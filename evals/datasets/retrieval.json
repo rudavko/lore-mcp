@@ -1,0 +1,262 @@
+{
+	"version": 3,
+	"description": "30 seed entries with overlapping topics + triples for graph expansion. Queries test ranking quality: multi-result, partial matches, graph-boosted results.",
+	"seed_entries": [
+		{
+			"ref": "ts-generics",
+			"topic": "TypeScript generics",
+			"content": "TypeScript generics allow creating reusable components that work with multiple types while preserving type safety. Generic type parameters like T enable functions and classes to operate on different data types without sacrificing compile-time checks.",
+			"tags": ["typescript", "types"]
+		},
+		{
+			"ref": "ts-decorators",
+			"topic": "TypeScript decorators",
+			"content": "TypeScript decorators are a meta-programming feature that allows adding annotations and modification to classes and their members. Stage 3 decorators landed in TypeScript 5.0 with a new syntax aligned with the TC39 proposal.",
+			"tags": ["typescript", "decorators"]
+		},
+		{
+			"ref": "ts-inference",
+			"topic": "TypeScript type inference",
+			"content": "TypeScript infers types from usage context, reducing the need for explicit type annotations. The compiler analyzes variable assignments, return values, and function parameters to determine types automatically, making code cleaner while maintaining safety.",
+			"tags": ["typescript", "types"]
+		},
+		{
+			"ref": "ts-conditional-types",
+			"topic": "TypeScript conditional types",
+			"content": "Conditional types in TypeScript use the extends keyword to create types that depend on other types. Syntax: T extends U ? X : Y. Combined with infer, they enable powerful type-level programming for extracting and transforming types.",
+			"tags": ["typescript", "types", "advanced"]
+		},
+		{
+			"ref": "ts-mapped-types",
+			"topic": "TypeScript mapped types",
+			"content": "Mapped types create new types by transforming properties of existing types. Partial<T>, Required<T>, and Record<K,V> are built-in mapped types. Custom mapped types use [K in keyof T] syntax to iterate over keys.",
+			"tags": ["typescript", "types", "advanced"]
+		},
+		{
+			"ref": "ts-enums-gotcha",
+			"topic": "TypeScript enums runtime cost",
+			"content": "TypeScript enums generate runtime JavaScript objects unlike most TS constructs. Numeric enums create reverse mappings, increasing bundle size. Prefer const enums or string literal unions for zero-runtime-cost alternatives.",
+			"tags": ["typescript", "gotcha", "performance"]
+		},
+		{
+			"ref": "rust-lifetimes",
+			"topic": "Rust lifetimes",
+			"content": "Rust lifetimes ensure memory safety without a garbage collector by tracking how long references are valid. The borrow checker enforces that references cannot outlive the data they point to, preventing dangling pointer bugs at compile time.",
+			"tags": ["rust", "memory"]
+		},
+		{
+			"ref": "rust-ownership",
+			"topic": "Rust ownership model",
+			"content": "Rust's ownership system enforces that each value has exactly one owner. When ownership is transferred (moved), the original binding becomes invalid. This prevents double-free bugs and data races without runtime garbage collection.",
+			"tags": ["rust", "memory", "fundamentals"]
+		},
+		{
+			"ref": "rust-traits",
+			"topic": "Rust traits and generics",
+			"content": "Rust traits define shared behavior, similar to interfaces. Generic functions use trait bounds (fn foo<T: Display>(x: T)) to constrain type parameters. Trait objects (dyn Trait) enable dynamic dispatch when static dispatch is impractical.",
+			"tags": ["rust", "types", "generics"]
+		},
+		{
+			"ref": "rust-async",
+			"topic": "Rust async runtime",
+			"content": "Rust's async/await requires an executor runtime like tokio or async-std. Unlike JavaScript, Rust futures are lazy and do nothing until polled. The compiler transforms async functions into state machines for zero-cost abstraction.",
+			"tags": ["rust", "async", "runtime"]
+		},
+		{
+			"ref": "js-closures",
+			"topic": "JavaScript closures",
+			"content": "JavaScript closures capture variables from their enclosing lexical scope, allowing inner functions to access outer variables even after the outer function returns. Closures are fundamental to patterns like module privacy, callbacks, and partial application.",
+			"tags": ["javascript", "fundamentals"]
+		},
+		{
+			"ref": "js-event-loop",
+			"topic": "JavaScript event loop",
+			"content": "The JavaScript event loop processes a queue of callbacks, enabling non-blocking I/O on a single thread. Microtasks (promises) are drained before macrotasks (setTimeout). Understanding the event loop is essential for debugging async timing issues.",
+			"tags": ["javascript", "async", "runtime"]
+		},
+		{
+			"ref": "js-prototypes",
+			"topic": "JavaScript prototype chain",
+			"content": "JavaScript uses prototypal inheritance where objects inherit directly from other objects via the prototype chain. Object.create() sets up the chain explicitly. Class syntax is sugar over prototypes, not true classical inheritance.",
+			"tags": ["javascript", "fundamentals"]
+		},
+		{
+			"ref": "bun-sqlite-quirk",
+			"topic": "bun sqlite FTS5",
+			"content": "bun:sqlite supports FTS5 virtual tables for full-text search. Creating virtual tables with USING fts5() works in both local development and testing. Content-sync mode with triggers keeps the FTS index updated automatically.",
+			"tags": ["bun", "sqlite", "search"]
+		},
+		{
+			"ref": "bun-test-runner",
+			"topic": "bun test runner",
+			"content": "Bun has a built-in test runner compatible with Jest-like syntax. It supports describe/test/expect patterns, beforeEach hooks, and runs TypeScript directly without compilation. Tests must have .test or .spec in the filename.",
+			"tags": ["bun", "testing"]
+		},
+		{
+			"ref": "bun-bundler",
+			"topic": "bun bundler performance",
+			"content": "Bun's built-in bundler is significantly faster than esbuild and webpack for typical projects. It supports tree-shaking, code splitting, and CSS modules. Use bun build --target=browser for frontend bundles.",
+			"tags": ["bun", "performance", "bundling"]
+		},
+		{
+			"ref": "sqlite-wal",
+			"topic": "SQLite WAL mode",
+			"content": "WAL (Write-Ahead Logging) mode in SQLite allows concurrent readers while a single writer operates. Unlike the default rollback journal, WAL mode appends changes to a log file, improving read concurrency significantly for web workloads.",
+			"tags": ["sqlite", "performance"]
+		},
+		{
+			"ref": "sqlite-fts5-tokenizer",
+			"topic": "SQLite FTS5 tokenizer configuration",
+			"content": "FTS5 supports multiple tokenizers: unicode61 (default, handles Unicode folding), ascii (faster but ASCII-only), and porter (adds stemming). Custom tokenizers can be registered. The tokenizer affects both indexing and query matching behavior.",
+			"tags": ["sqlite", "search", "fts5"]
+		},
+		{
+			"ref": "sqlite-json",
+			"topic": "SQLite JSON functions",
+			"content": "SQLite has built-in JSON functions: json_extract(), json_array_length(), json_each(). These enable querying JSON columns without parsing in application code. D1 and bun:sqlite both support the JSON1 extension.",
+			"tags": ["sqlite", "json"]
+		},
+		{
+			"ref": "d1-batch-limits",
+			"topic": "D1 batch statement limits",
+			"content": "Cloudflare D1 has a limit of 100 statements per batch call. When performing bulk operations like entity merges, use WHERE-clause updates instead of per-row statements to stay within this limit. Exceeding it causes a runtime error.",
+			"tags": ["cloudflare", "d1", "gotcha"]
+		},
+		{
+			"ref": "d1-migration",
+			"topic": "D1 database migrations",
+			"content": "D1 migrations are SQL files in a migrations directory, applied via wrangler d1 migrations apply. Each migration runs in a transaction. Use CREATE TABLE IF NOT EXISTS for idempotency. Wrangler tracks applied migrations automatically.",
+			"tags": ["cloudflare", "d1", "deployment"]
+		},
+		{
+			"ref": "d1-read-replication",
+			"topic": "D1 read replication",
+			"content": "Cloudflare D1 automatically replicates reads to edge locations near the requesting worker. Write operations route to the primary. This gives low-latency reads globally while maintaining consistency for writes.",
+			"tags": ["cloudflare", "d1", "performance"]
+		},
+		{
+			"ref": "mcp-protocol",
+			"topic": "MCP protocol resources",
+			"content": "The Model Context Protocol defines resources as server-side data that clients can discover and read. Resources have URIs, names, descriptions, and MIME types. Clients call resources/list to discover and resources/read to fetch content.",
+			"tags": ["mcp", "protocol"]
+		},
+		{
+			"ref": "mcp-tools",
+			"topic": "MCP tool registration",
+			"content": "MCP tools are registered on the server with a name, description, JSON schema for parameters, and a handler function. The McpServer class from the SDK handles schema validation. Tools return content arrays with text and resource blocks.",
+			"tags": ["mcp", "protocol", "tools"]
+		},
+		{
+			"ref": "mcp-subscriptions",
+			"topic": "MCP resource subscriptions",
+			"content": "MCP supports resource subscriptions where clients opt in to change notifications. Servers emit notifications/resources/updated with the resource URI when data changes. The SDK handles subscription state internally.",
+			"tags": ["mcp", "protocol", "realtime"]
+		},
+		{
+			"ref": "cf-workers-limits",
+			"topic": "Cloudflare Workers limits",
+			"content": "Cloudflare Workers have CPU time limits: 10ms for free tier, 30s for paid. Memory is capped at 128MB. Subrequests are limited to 50 per invocation on free tier, 1000 on paid. Durable Objects bypass some limits with their own billing.",
+			"tags": ["cloudflare", "workers", "limits"]
+		},
+		{
+			"ref": "cf-do-alarms",
+			"topic": "Durable Object alarms",
+			"content": "Durable Object alarms allow scheduling future execution without external cron triggers. Call this.schedule(when, callback) to set an alarm. Alarms survive restarts and are guaranteed to fire at least once. Useful for async background processing.",
+			"tags": ["cloudflare", "durable-objects", "async"]
+		},
+		{
+			"ref": "vectorize-basics",
+			"topic": "Cloudflare Vectorize",
+			"content": "Vectorize is Cloudflare's vector database for similarity search. It stores embeddings and supports nearest-neighbor queries. Integrate with Workers AI to generate embeddings from text using models like bge-base-en-v1.5.",
+			"tags": ["cloudflare", "vectorize", "ai"]
+		},
+		{
+			"ref": "workers-ai-models",
+			"topic": "Workers AI embedding models",
+			"content": "Cloudflare Workers AI provides embedding models including bge-base-en-v1.5 (768 dimensions) and bge-small-en-v1.5 (384 dimensions). Call ai.run() with a text array to generate embeddings. Output is a float array per input text.",
+			"tags": ["cloudflare", "ai", "embeddings"]
+		},
+		{
+			"ref": "generic-programming",
+			"topic": "Generic programming paradigm",
+			"content": "Generic programming enables algorithms that work across multiple types. Languages implement it differently: C++ templates, Java generics with type erasure, Rust monomorphization, TypeScript structural type parameters. Each has different runtime behavior.",
+			"tags": ["programming", "types", "paradigm"]
+		}
+	],
+	"triples": [
+		{ "subject": "TypeScript", "predicate": "is_a", "object": "JavaScript" },
+		{ "subject": "TypeScript", "predicate": "has_feature", "object": "generics" },
+		{ "subject": "TypeScript", "predicate": "has_feature", "object": "decorators" },
+		{ "subject": "Rust", "predicate": "has_feature", "object": "lifetimes" },
+		{ "subject": "Rust", "predicate": "has_feature", "object": "ownership" },
+		{ "subject": "Rust", "predicate": "has_feature", "object": "traits" },
+		{ "subject": "bun", "predicate": "uses", "object": "SQLite" },
+		{ "subject": "D1", "predicate": "is_a", "object": "SQLite" },
+		{ "subject": "D1", "predicate": "part_of", "object": "Cloudflare" },
+		{ "subject": "Vectorize", "predicate": "part_of", "object": "Cloudflare" },
+		{ "subject": "MCP", "predicate": "has_concept", "object": "resources" },
+		{ "subject": "MCP", "predicate": "has_concept", "object": "tools" }
+	],
+	"queries": [
+		{
+			"query": "TypeScript type system",
+			"expected_refs": ["ts-generics", "ts-inference", "ts-conditional-types", "ts-mapped-types", "generic-programming"],
+			"note": "Should rank entries about TS types higher. Tests multi-result ranking with 5 expected results."
+		},
+		{
+			"query": "TypeScript generics",
+			"expected_refs": ["ts-generics", "ts-conditional-types", "ts-mapped-types", "ts-inference", "generic-programming", "rust-traits"],
+			"note": "Direct topic match plus related type system entries. Tests ranking: exact match > partial match."
+		},
+		{
+			"query": "Rust memory safety",
+			"expected_refs": ["rust-lifetimes", "rust-ownership"],
+			"note": "Should find both memory-related Rust entries."
+		},
+		{
+			"query": "async runtime execution",
+			"expected_refs": ["rust-async", "js-event-loop", "cf-do-alarms"],
+			"note": "Cross-language: should find async-related entries across Rust, JS, and Cloudflare."
+		},
+		{
+			"query": "SQLite full text search",
+			"expected_refs": ["bun-sqlite-quirk", "sqlite-fts5-tokenizer", "sqlite-wal"],
+			"note": "Should find FTS5-related entries. Tests recall for related but not exact matches."
+		},
+		{
+			"query": "Cloudflare D1 database",
+			"expected_refs": ["d1-batch-limits", "d1-migration", "d1-read-replication", "sqlite-wal"],
+			"note": "Should find all D1 entries plus related SQLite entry via graph."
+		},
+		{
+			"query": "JavaScript fundamentals closures",
+			"expected_refs": ["js-closures", "js-prototypes", "js-event-loop"],
+			"note": "Should find JS fundamentals entries. Tests ranking for tag + content match."
+		},
+		{
+			"query": "bun development tools",
+			"expected_refs": ["bun-test-runner", "bun-bundler", "bun-sqlite-quirk"],
+			"note": "Should find all bun-related entries."
+		},
+		{
+			"query": "MCP protocol server",
+			"expected_refs": ["mcp-protocol", "mcp-tools", "mcp-subscriptions"],
+			"note": "Should find all MCP entries."
+		},
+		{
+			"query": "Cloudflare Workers AI embeddings",
+			"expected_refs": ["workers-ai-models", "vectorize-basics", "cf-workers-limits"],
+			"note": "Should find AI/Vectorize/Workers entries. Tests cross-topic recall."
+		},
+		{
+			"query": "generics and type parameters",
+			"expected_refs": ["ts-generics", "rust-traits", "generic-programming", "ts-conditional-types"],
+			"note": "Cross-language generics. Tests whether search finds conceptually related entries."
+		},
+		{
+			"query": "performance optimization",
+			"expected_refs": ["bun-bundler", "sqlite-wal", "d1-read-replication", "ts-enums-gotcha"],
+			"note": "Entries tagged with 'performance' or discussing performance. Tests tag-agnostic content matching."
+		}
+	]
+}

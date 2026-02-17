@@ -1,0 +1,27 @@
+feature_id: "001"
+feature_name: "self-serve-updates"
+state: "implementation_complete"
+owner: "team"
+last_updated: "2026-02-14"
+depends_on: []
+
+stories:
+  US-001: "implemented"
+  US-002: "implemented"
+  US-003: "implemented"
+  US-004: "implemented"
+  US-005: "implemented"
+  US-006: "implemented"
+  US-007: "implemented"
+  US-008: "implemented"
+  US-009: "implemented"
+  US-010: "implemented"
+  US-011: "implemented"
+  US-012: "implemented"
+
+phases:
+  spec: "completed"
+  plan: "completed"
+  tasks: "completed"
+  implementation: "completed"
+  validation: "pending"

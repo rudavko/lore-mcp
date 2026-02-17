@@ -1,0 +1,21 @@
+feature_id: "004"
+feature_name: "hybrid-retrieval-and-evals"
+state: "planned"
+owner: "team"
+last_updated: "2026-02-14"
+depends_on: ["002", "003"]
+
+stories:
+  US-004-001: "not_started"
+  US-004-002: "not_started"
+  US-004-003: "not_started"
+  US-004-004: "not_started"
+  US-004-005: "not_started"
+
+phases:
+  spec: "completed"
+  plan: "completed"
+  tasks: "completed"
+  implementation: "not_started"
+  validation: "not_started"
+

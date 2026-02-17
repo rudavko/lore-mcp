@@ -1,0 +1,21 @@
+feature_id: "003"
+feature_name: "graph-semantics-and-governance"
+state: "planned"
+owner: "team"
+last_updated: "2026-02-14"
+depends_on: ["002"]
+
+stories:
+  US-003-001: "not_started"
+  US-003-002: "not_started"
+  US-003-003: "not_started"
+  US-003-004: "not_started"
+  US-003-005: "not_started"
+
+phases:
+  spec: "completed"
+  plan: "completed"
+  tasks: "completed"
+  implementation: "not_started"
+  validation: "not_started"
+
