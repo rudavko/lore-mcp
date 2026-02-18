@@ -14,7 +14,7 @@
 10. [x] Add failure visibility and troubleshooting guidance (US-010)
 11. [x] Add rollback guidance using Cloudflare Worker versions (US-011)
 12. [x] Add data safety and destructive delete/redeploy warnings (US-012)
-13. [ ] Validate all story acceptance criteria and update status.yaml (US-001 to US-012)
+13. [ ] Validate all story acceptance criteria and update status.json (US-001 to US-012)
 
 ## Verification Checklist
 

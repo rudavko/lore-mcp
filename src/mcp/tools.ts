@@ -3,10 +3,8 @@
 // provenance (source/actor/confidence) from the original relate call through
 // the ConflictInfo and into the resolution handlers.
 //
-// GEMINI-CONTEXT: Conflicts are stored in DO storage (DurableObjectStorage)
-// so they survive Durable Object hibernation between relate → resolve_conflict.
-// Each conflict has a 1-hour TTL; expired conflicts are cleaned up on read.
-// Falls back to an in-memory Map when no storage is provided (e.g. in tests).
+// GEMINI-CONTEXT: Conflicts are persisted in D1 with an expires_at TTL column,
+// so relate → resolve_conflict survives reconnects and fresh DO contexts.
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -29,53 +27,86 @@ import { notifyResourceChange } from "./subscriptions";
 import type { ConflictInfo } from "../lib/types";
 import { logEvent } from "../lib/observe";
 
-const CONFLICT_TTL_MS = 60 * 60 * 1000;
-const CONFLICT_KEY_PREFIX = "conflict:";
-
-interface StoredConflict {
-	conflict: ConflictInfo;
-	storedAt: number;
-}
-
 export function registerTools(
 	server: McpServer,
 	env: { DB: D1Database; AI?: Ai; VECTORIZE_INDEX?: VectorizeIndex },
-	storage?: DurableObjectStorage,
+	_storage?: DurableObjectStorage,
 ) {
-	// Conflict helpers — use DO storage when available, in-memory Map as fallback.
-	const fallbackMap = new Map<string, ConflictInfo>();
+	const storage = _storage;
+	const CONFLICT_TTL_MS = 60 * 60 * 1000;
+
+	interface StoredConflict {
+		conflict: ConflictInfo;
+		storedAt: number;
+	}
 
 	async function saveConflict(conflict: ConflictInfo): Promise<void> {
+		const nowIso = new Date().toISOString();
+		const expiresAt = new Date(Date.now() + CONFLICT_TTL_MS).toISOString();
+		await env.DB.prepare(
+			`INSERT OR REPLACE INTO conflicts (conflict_id, scope, data, created_at, expires_at)
+			 VALUES (?, ?, ?, ?, ?)`,
+		).bind(
+			conflict.conflict_id,
+			conflict.scope,
+			JSON.stringify(conflict),
+			nowIso,
+			expiresAt,
+		).run();
 		if (storage) {
-			const stored: StoredConflict = { conflict, storedAt: Date.now() };
-			await storage.put(`${CONFLICT_KEY_PREFIX}${conflict.conflict_id}`, stored);
-		} else {
-			if (fallbackMap.size >= 100) {
-				const oldest = fallbackMap.keys().next().value;
-				if (oldest) fallbackMap.delete(oldest);
+			try {
+				await storage.put(`conflict:${conflict.conflict_id}`, { conflict, storedAt: Date.now() });
+			} catch {
+				// Non-fatal cache write
 			}
-			fallbackMap.set(conflict.conflict_id, conflict);
 		}
 	}
 
 	async function loadConflict(id: string): Promise<ConflictInfo | null> {
 		if (storage) {
-			const stored = await storage.get<StoredConflict>(`${CONFLICT_KEY_PREFIX}${id}`);
-			if (!stored) return null;
-			if (Date.now() - stored.storedAt > CONFLICT_TTL_MS) {
-				await storage.delete(`${CONFLICT_KEY_PREFIX}${id}`);
-				return null;
+			const stored = await storage.get<StoredConflict>(`conflict:${id}`);
+			if (stored && stored.storedAt + CONFLICT_TTL_MS > Date.now()) {
+				return stored.conflict;
 			}
-			return stored.conflict;
+			if (stored) {
+				await storage.delete(`conflict:${id}`);
+			}
 		}
-		return fallbackMap.get(id) ?? null;
+
+		const row = await env.DB.prepare(
+			`SELECT data, expires_at FROM conflicts WHERE conflict_id = ?`,
+		).bind(id).first();
+
+		if (!row) return null;
+
+		const expiresAt = new Date(row.expires_at as string).getTime();
+		if (Number.isNaN(expiresAt) || expiresAt <= Date.now()) {
+			await env.DB.prepare(`DELETE FROM conflicts WHERE conflict_id = ?`).bind(id).run();
+			if (storage) {
+				await storage.delete(`conflict:${id}`);
+			}
+			return null;
+		}
+
+		try {
+			const parsed = JSON.parse(row.data as string) as ConflictInfo;
+			if (storage) {
+				await storage.put(`conflict:${id}`, { conflict: parsed, storedAt: Date.now() });
+			}
+			return parsed;
+		} catch {
+			await env.DB.prepare(`DELETE FROM conflicts WHERE conflict_id = ?`).bind(id).run();
+			if (storage) {
+				await storage.delete(`conflict:${id}`);
+			}
+			return null;
+		}
 	}
 
 	async function removeConflict(id: string): Promise<void> {
+		await env.DB.prepare(`DELETE FROM conflicts WHERE conflict_id = ?`).bind(id).run();
 		if (storage) {
-			await storage.delete(`${CONFLICT_KEY_PREFIX}${id}`);
-		} else {
-			fallbackMap.delete(id);
+			await storage.delete(`conflict:${id}`);
 		}
 	}
 
@@ -166,16 +197,16 @@ export function registerTools(
 		"query",
 		"Search knowledge entries with hybrid retrieval (lexical + semantic + graph)",
 		{
-			topic: z.string().optional().describe("Filter by topic (substring)"),
+			topic: z.string().optional().describe("Filter by topic (substring). Combined with content if both are provided."),
 			tags: z.array(z.string()).optional().describe("Filter by tags (entry must have all)"),
-			content: z.string().optional().describe("Filter by content (substring)"),
+			content: z.string().optional().describe("Filter by content (substring). Combined with topic if both are provided."),
 			limit: z.number().int().min(1).max(200).optional().describe("Max entries to return (default: 20)"),
 			cursor: z.string().optional().describe("Pagination cursor from previous response"),
 		},
 		async ({ topic, tags, content, limit, cursor }) => {
 			try {
 				// If a free-text query is provided, use hybrid search
-				const queryText = topic || content;
+				const queryText = [topic, content].filter(Boolean).join(" ") || undefined;
 				if (queryText) {
 					const result = await hybridSearch(env.DB, env.AI, env.VECTORIZE_INDEX, {
 						query: queryText,
@@ -198,10 +229,10 @@ export function registerTools(
 				}
 
 				// Fallback to basic query for tag-only or empty queries
-				const entries = await queryEntries(env.DB, { topic, tags, content, limit });
+				const result = await queryEntries(env.DB, { topic, tags, content, limit, cursor });
 				return formatResult(
-					entries.length ? `Found ${entries.length} entries` : "No entries found",
-					{ items: entries, next_cursor: null },
+					result.items.length ? `Found ${result.items.length} entries` : "No entries found",
+					{ items: result.items, next_cursor: result.next_cursor },
 					"knowledge://entries",
 				);
 			} catch (e) {
@@ -217,14 +248,19 @@ export function registerTools(
 			id: z.string().describe("Entity ID"),
 			entity_type: z.enum(["entry", "triple"]).optional().describe("Type of entity (default: entry)"),
 		},
-		async ({ id, entity_type }) => {
-			try {
-				const type = entity_type ?? "entry";
-				if (type === "entry") {
-					await deleteEntry(env.DB, id);
-				} else {
-					await deleteTriple(env.DB, id);
-				}
+			async ({ id, entity_type }) => {
+				try {
+					const type = entity_type ?? "entry";
+					if (type === "entry") {
+						await deleteEntry(env.DB, id);
+						if (env.VECTORIZE_INDEX) {
+							env.VECTORIZE_INDEX.deleteByIds([id]).catch((e) => {
+								logEvent("vectorize_delete_failed", { id, error: String(e) });
+							});
+						}
+					} else {
+						await deleteTriple(env.DB, id);
+					}
 				notify(type);
 				logEvent("mutation", { op: "delete", entity_type: type, id, ok: true });
 				return formatResult(
@@ -297,13 +333,14 @@ export function registerTools(
 			predicate: z.string().optional().describe("Filter by predicate (substring)"),
 			object: z.string().optional().describe("Filter by object (substring)"),
 			limit: z.number().int().min(1).max(200).optional().describe("Max triples to return (default: 50)"),
+			cursor: z.string().optional().describe("Pagination cursor from previous response"),
 		},
-		async ({ subject, predicate, object, limit }) => {
+		async ({ subject, predicate, object, limit, cursor }) => {
 			try {
-				const triples = await queryTriples(env.DB, { subject, predicate, object, limit });
+				const result = await queryTriples(env.DB, { subject, predicate, object, limit, cursor });
 				return formatResult(
-					triples.length ? `Found ${triples.length} triples` : "No triples found",
-					{ items: triples, next_cursor: null },
+					result.items.length ? `Found ${result.items.length} triples` : "No triples found",
+					{ items: result.items, next_cursor: result.next_cursor },
 					"knowledge://graph/triples",
 				);
 			} catch (e) {
@@ -509,13 +546,14 @@ export function registerTools(
 		{
 			limit: z.number().int().min(1).max(100).optional().describe("Max entries to return (default: 20)"),
 			entity_type: z.enum(["entry", "triple"]).optional().describe("Filter by entity type"),
+			cursor: z.string().optional().describe("Pagination cursor from previous response"),
 		},
-		async ({ limit, entity_type }) => {
+		async ({ limit, entity_type, cursor }) => {
 			try {
-				const txns = await getHistory(env.DB, { limit, entity_type });
+				const result = await getHistory(env.DB, { limit, entity_type, cursor });
 				return formatResult(
-					txns.length ? `${txns.length} transactions` : "No transactions found",
-					{ items: txns },
+					result.items.length ? `${result.items.length} transactions` : "No transactions found",
+					{ items: result.items, next_cursor: result.next_cursor },
 					"knowledge://history/transactions",
 				);
 			} catch (e) {

@@ -12,7 +12,7 @@
 8. [ ] Update undo/history logic for merge/upsert/conflict paths.
 9. [ ] Add tests for canonicalization, merges, provenance completeness, conflicts, and policy enforcement.
 10. [ ] Update docs with graph governance model, examples, and operator controls.
-11. [ ] Validate acceptance criteria and update `status.yaml`.
+11. [ ] Validate acceptance criteria and update `status.json`.
 
 ## Verification Checklist
 
@@ -21,4 +21,3 @@
 3. [ ] Triple update/upsert behavior is deterministic and auditable.
 4. [ ] Conflict responses include machine-readable resolution options.
 5. [ ] Policy violations are blocked and reported consistently.
-

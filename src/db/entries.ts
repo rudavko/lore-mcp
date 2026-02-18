@@ -2,7 +2,7 @@
 
 import { ulid, sqliteNow } from "../lib/ulid";
 import { KnowledgeError } from "../lib/errors";
-import { escapeLike } from "../lib/format";
+import { decodeCursor, escapeLike } from "../lib/format";
 import type { Entry } from "../lib/types";
 
 const MAX_TOPIC_LENGTH = 1000;
@@ -31,6 +31,21 @@ export interface QueryEntryParams {
 	tags?: string[];
 	content?: string;
 	limit?: number;
+	cursor?: string;
+}
+
+export interface QueryEntryResult {
+	items: Entry[];
+	next_cursor: string | null;
+}
+
+function validateEntryFields(params: { topic?: string; content?: string }): void {
+	if (params.topic !== undefined && params.topic.length > MAX_TOPIC_LENGTH) {
+		throw KnowledgeError.validation(`Topic exceeds ${MAX_TOPIC_LENGTH} characters`);
+	}
+	if (params.content !== undefined && params.content.length > MAX_CONTENT_LENGTH) {
+		throw KnowledgeError.validation(`Content exceeds ${MAX_CONTENT_LENGTH} characters`);
+	}
 }
 
 export function rowToEntry(r: Record<string, unknown>): Entry {
@@ -55,10 +70,7 @@ export async function createEntry(
 	db: D1Database,
 	params: CreateEntryParams,
 ): Promise<Entry> {
-	if (params.topic.length > MAX_TOPIC_LENGTH)
-		throw KnowledgeError.validation(`Topic exceeds ${MAX_TOPIC_LENGTH} characters`);
-	if (params.content.length > MAX_CONTENT_LENGTH)
-		throw KnowledgeError.validation(`Content exceeds ${MAX_CONTENT_LENGTH} characters`);
+	validateEntryFields({ topic: params.topic, content: params.content });
 
 	const id = ulid();
 	const tags = params.tags ?? [];
@@ -100,6 +112,8 @@ export async function updateEntry(
 	id: string,
 	params: UpdateEntryParams,
 ): Promise<Entry> {
+	validateEntryFields({ topic: params.topic, content: params.content });
+
 	const row = await db.prepare(
 		`SELECT * FROM entries WHERE id = ? AND deleted_at IS NULL`,
 	).bind(id).first();
@@ -154,16 +168,20 @@ export async function deleteEntry(db: D1Database, id: string): Promise<void> {
 	]);
 }
 
-// When tags are specified, filtering happens in JS after fetch, so SQL LIMIT
-// is only applied when there's no tag filter. Final result is always sliced.
 export async function queryEntries(
 	db: D1Database,
 	params: QueryEntryParams,
-): Promise<Entry[]> {
+): Promise<QueryEntryResult> {
 	const limit = Math.min(params.limit ?? 50, 200);
 	const hasTags = params.tags && params.tags.length > 0;
 	const conditions: string[] = ["deleted_at IS NULL"];
 	const binds: unknown[] = [];
+	const cursorId = decodeCursor(params.cursor);
+
+	if (cursorId) {
+		conditions.push("id < ?");
+		binds.push(cursorId);
+	}
 
 	if (params.topic) {
 		conditions.push("topic LIKE ? ESCAPE '\\'");
@@ -174,21 +192,29 @@ export async function queryEntries(
 		binds.push(`%${escapeLike(params.content)}%`);
 	}
 
-	let sql = `SELECT * FROM entries WHERE ${conditions.join(" AND ")} ORDER BY created_at DESC`;
-	if (!hasTags) {
-		sql += " LIMIT ?";
-		binds.push(limit);
-	}
+	const sqlLimit = hasTags ? Math.min(limit * 10, 2000) : limit + 1;
+	const sql = `SELECT * FROM entries WHERE ${conditions.join(" AND ")} ORDER BY id DESC LIMIT ?`;
+	binds.push(sqlLimit);
 	const stmt = binds.length ? db.prepare(sql).bind(...binds) : db.prepare(sql);
 	const { results } = await stmt.all();
 
-	let entries: Entry[] = results.map((r) => rowToEntry(r as Record<string, unknown>));
+	const entries: Entry[] = results.map((r) => rowToEntry(r as Record<string, unknown>));
 
 	if (hasTags) {
-		entries = entries.filter((e) =>
+		// Tag pagination is approximate because keyset cursoring happens before JS
+		// tag filtering, so sparse matches can be skipped across pages.
+		const filtered = entries.filter((e) =>
 			params.tags!.every((t) => e.tags.includes(t)),
 		);
+		const page = filtered.slice(0, limit);
+		const next_cursor = filtered.length >= limit && page.length > 0
+			? btoa(page[page.length - 1].id)
+			: null;
+		return { items: page, next_cursor };
 	}
 
-	return entries.slice(0, limit);
+	const hasMore = entries.length > limit;
+	const page = hasMore ? entries.slice(0, limit) : entries;
+	const next_cursor = hasMore && page.length > 0 ? btoa(page[page.length - 1].id) : null;
+	return { items: page, next_cursor };
 }

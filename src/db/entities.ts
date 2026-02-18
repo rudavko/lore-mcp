@@ -17,19 +17,26 @@ export async function createEntity(
 
 	const entity: CanonicalEntity = { id, name, created_at: now };
 
-	await db.batch([
-		db.prepare(
-			`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
-			 VALUES (?, 'CREATE', 'entity', ?, NULL, ?, ?)`,
-		).bind(ulid(), id, JSON.stringify(entity), now),
-		db.prepare(
-			`INSERT INTO canonical_entities (id, name, created_at) VALUES (?, ?, ?)`,
-		).bind(id, name, now),
-		// Auto-create alias matching the canonical name
-		db.prepare(
-			`INSERT INTO entity_aliases (id, alias, canonical_entity_id, created_at) VALUES (?, ?, ?, ?)`,
-		).bind(ulid(), name.toLowerCase(), id, now),
-	]);
+	try {
+		await db.batch([
+			db.prepare(
+				`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
+				 VALUES (?, 'CREATE', 'entity', ?, NULL, ?, ?)`,
+			).bind(ulid(), id, JSON.stringify(entity), now),
+			db.prepare(
+				`INSERT INTO canonical_entities (id, name, created_at) VALUES (?, ?, ?)`,
+			).bind(id, name, now),
+			// Auto-create alias matching the canonical name
+			db.prepare(
+				`INSERT INTO entity_aliases (id, alias, canonical_entity_id, created_at) VALUES (?, ?, ?, ?)`,
+			).bind(ulid(), name.toLowerCase(), id, now),
+		]);
+	} catch (e) {
+		if (String(e).includes("UNIQUE")) {
+			throw KnowledgeError.conflict(`Entity "${name}" already exists`);
+		}
+		throw e;
+	}
 
 	return entity;
 }
@@ -51,15 +58,22 @@ export async function addAlias(
 
 	const record: EntityAlias = { id, alias: normalized, canonical_entity_id: entityId, created_at: now };
 
-	await db.batch([
-		db.prepare(
-			`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
-			 VALUES (?, 'CREATE', 'alias', ?, NULL, ?, ?)`,
-		).bind(ulid(), id, JSON.stringify(record), now),
-		db.prepare(
-			`INSERT INTO entity_aliases (id, alias, canonical_entity_id, created_at) VALUES (?, ?, ?, ?)`,
-		).bind(id, normalized, entityId, now),
-	]);
+	try {
+		await db.batch([
+			db.prepare(
+				`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
+				 VALUES (?, 'CREATE', 'alias', ?, NULL, ?, ?)`,
+			).bind(ulid(), id, JSON.stringify(record), now),
+			db.prepare(
+				`INSERT INTO entity_aliases (id, alias, canonical_entity_id, created_at) VALUES (?, ?, ?, ?)`,
+			).bind(id, normalized, entityId, now),
+		]);
+	} catch (e) {
+		if (String(e).includes("UNIQUE")) {
+			throw KnowledgeError.conflict(`Alias "${alias.toLowerCase()}" is already in use`);
+		}
+		throw e;
+	}
 
 	return record;
 }
@@ -213,7 +227,7 @@ export async function mergeEntities(
 		).bind(keepId, mergeId),
 		// Create alias from merged entity's name to keep entity
 		db.prepare(
-			`INSERT INTO entity_aliases (id, alias, canonical_entity_id, created_at) VALUES (?, ?, ?, ?)`,
+			`INSERT OR IGNORE INTO entity_aliases (id, alias, canonical_entity_id, created_at) VALUES (?, ?, ?, ?)`,
 		).bind(ulid(), mergeName.toLowerCase(), keepId, now),
 		// Delete the merged entity record
 		db.prepare(

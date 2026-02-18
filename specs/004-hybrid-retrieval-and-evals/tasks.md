@@ -14,7 +14,7 @@
 10. [ ] Add CI regression gates with baseline comparisons and thresholds.
 11. [ ] Add runtime metrics, dashboards, and alerting rules for AX-relevant KPIs.
 12. [ ] Update docs with retrieval tuning guidance and operational runbooks.
-13. [ ] Validate acceptance criteria and update `status.yaml`.
+13. [ ] Validate acceptance criteria and update `status.json`.
 
 ## Verification Checklist
 
@@ -23,4 +23,3 @@
 3. [ ] Async ingestion tasks are resumable or idempotent under retry conditions.
 4. [ ] CI blocks merges when configured regression thresholds are exceeded.
 5. [ ] Observability dashboards show actionable latency and quality signals.
-

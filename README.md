@@ -28,17 +28,17 @@ With one deployed LORE endpoint, every connected agent sees the same knowledge b
 |---|---|
 | `store` | Create a knowledge entry with optional provenance |
 | `update` | Update an existing entry |
-| `query` | Hybrid search: FTS5 lexical + Vectorize semantic + graph expansion |
+| `query` | Hybrid search: FTS5 lexical + Vectorize semantic + graph expansion (combines `topic` + `content` when both are provided) |
 | `delete` | Soft-delete an entry or triple |
 | `relate` | Create a graph triple with conflict detection |
-| `query_graph` | Query triples by subject / predicate / object |
+| `query_graph` | Query triples by subject / predicate / object with cursor pagination |
 | `update_triple` | Update an existing triple |
 | `upsert_triple` | Create-or-update a triple by subject+predicate |
 | `resolve_conflict` | Resolve a detected triple conflict (replace / retain_both / reject) |
 | `upsert_entity` | Create or resolve a canonical entity by name |
 | `merge_entities` | Merge two canonical entities |
 | `undo` | Revert recent transactions |
-| `history` | View transaction history |
+| `history` | View transaction history with cursor pagination |
 | `ingest` | Bulk-ingest text (sync for small inputs, async for large) |
 | `ingestion_status` | Check async ingestion progress |
 | `time` | Current time in any IANA timezone |
@@ -263,7 +263,7 @@ evals/
 
 - **Single-owner only.** One passphrase, one TOTP secret, one user.
 - **No multi-tenant isolation.** All data lives in one D1 database.
-- **LIKE wildcards not escaped.** `%` and `_` in search input are passed through to SQL LIKE clauses.
+- **Tag pagination is approximate.** When filtering by tags only (no topic or content), pagination can skip some matches at very low tag selectivity. For exhaustive export, use `knowledge://entries` and filter client-side.
 - **Vectorize requires separate setup.** Semantic search only works when AI and Vectorize bindings are configured in wrangler.jsonc.
 - **D1 row size limit.** Async ingestion caps content at ~900KB per task. For larger inputs, pre-chunk and call `store` individually.
 

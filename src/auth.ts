@@ -53,6 +53,8 @@ const LOCK_PREFIX = "ks:authlock:";
 const TOTP_SECRET_KEY = "ks:totp:secret";
 const TOTP_PENDING_PREFIX = "ks:totp:pending:";
 const TOTP_PENDING_TTL_SECONDS = 10 * 60;
+const LOOPBACK_FORM_ACTION =
+	"http://127.0.0.1:* http://localhost:* http://[::1]:*";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -213,7 +215,7 @@ app.use("*", async (c, next) => {
 	const scriptSrc = nonce ? ` script-src 'nonce-${nonce}';` : "";
 	c.header(
 		"Content-Security-Policy",
-		`default-src 'none'; style-src 'unsafe-inline'; img-src 'self';${scriptSrc} manifest-src 'self'; form-action 'self' https:; frame-ancestors 'none'; base-uri 'none'`,
+		`default-src 'none'; style-src 'unsafe-inline'; img-src 'self';${scriptSrc} manifest-src 'self'; form-action 'self' https: ${LOOPBACK_FORM_ACTION}; frame-ancestors 'none'; base-uri 'none'`,
 	);
 
 	const noStorePaths = ["/authorize", "/approve", "/enroll-totp", "/enroll-passkey", "/complete-passkey-skip", "/enroll-totp-redirect"];

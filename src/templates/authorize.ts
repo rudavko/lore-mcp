@@ -147,7 +147,7 @@ export function renderAuthPage(p: AuthPageParams) {
     `}
     <div class="footer">
       This grants <strong>${p.clientName}</strong> read &amp; write access to your entries and triples.<br />
-      You can revoke access at any time by rotating your passphrase.
+      Access stays active until OAuth tokens are revoked at <code>/token</code>; rotating your passphrase does not invalidate issued tokens.
     </div>
   </div>
   ${needsJs ? html`${raw(`<script nonce="${p.cspNonce}">`)}

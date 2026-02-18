@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeEach } from "bun:test";
+import { readFileSync } from "node:fs";
 import { createD1Mock } from "./test-utils";
 import { initSchema } from "./db/schema";
 import { createEntry, updateEntry, deleteEntry, queryEntries } from "./db/entries";
@@ -7,10 +8,11 @@ import { createEntity, addAlias, resolveAlias, upsertEntity, mergeEntities } fro
 import { undoTransactions, getHistory } from "./db/history";
 import { detectConflict } from "./domain/conflict";
 import { checkPolicy, setPolicy, resetPolicy } from "./domain/policy";
-import { KnowledgeError } from "./lib/errors";
+import { type ErrorCode, KnowledgeError } from "./lib/errors";
 import { shouldProcessAsync, ingestSync, ingestAsync, processIngestionBatch, getIngestionStatus } from "./domain/ingestion";
-import { lexicalSearch, hybridSearch, sanitizeFts5Query, semanticSearch, syncEmbedding } from "./db/search";
+import { lexicalSearch, hybridSearch, graphExpand, sanitizeFts5Query, semanticSearch, syncEmbedding } from "./db/search";
 import { isFts5Available } from "./db/schema";
+import { ulid, sqliteNow } from "./lib/ulid";
 
 let db: D1Database;
 
@@ -19,6 +21,31 @@ beforeEach(async () => {
 	await initSchema(db);
 	resetPolicy();
 });
+
+function expectKnowledgeErrorCode(error: unknown, code: ErrorCode): void {
+	expect(error).toBeInstanceOf(KnowledgeError);
+	expect((error as KnowledgeError).code).toBe(code);
+}
+
+async function expectRejectsKnowledgeErrorCode<T>(promise: Promise<T>, code: ErrorCode): Promise<void> {
+	try {
+		await promise;
+	} catch (error) {
+		expectKnowledgeErrorCode(error, code);
+		return;
+	}
+	throw new Error(`Expected KnowledgeError(${code})`);
+}
+
+function expectPolicyViolation(fn: () => void): void {
+	try {
+		fn();
+	} catch (error) {
+		expectKnowledgeErrorCode(error, "policy");
+		return;
+	}
+	throw new Error("Expected KnowledgeError(policy)");
+}
 
 // ---- Entry CRUD ----
 
@@ -30,7 +57,7 @@ describe("entries", () => {
 		expect(entry.tags).toEqual(["typescript"]);
 		expect(entry.status).toBe("active");
 
-		const results = await queryEntries(db, { topic: "ts" });
+		const { items: results } = await queryEntries(db, { topic: "ts" });
 		expect(results).toHaveLength(1);
 		expect(results[0].id).toBe(entry.id);
 	});
@@ -51,7 +78,7 @@ describe("entries", () => {
 	test("query with no filters returns entries", async () => {
 		await createEntry(db, { topic: "a", content: "first" });
 		await createEntry(db, { topic: "b", content: "second" });
-		const results = await queryEntries(db, {});
+		const { items: results } = await queryEntries(db, {});
 		expect(results).toHaveLength(2);
 	});
 
@@ -59,8 +86,37 @@ describe("entries", () => {
 		for (let i = 0; i < 5; i++) {
 			await createEntry(db, { topic: `t${i}`, content: `c${i}` });
 		}
-		const results = await queryEntries(db, { limit: 3 });
+		const { items: results } = await queryEntries(db, { limit: 3 });
 		expect(results).toHaveLength(3);
+	});
+
+	test("queryEntries returns next_cursor when more results exist", async () => {
+		for (let i = 0; i < 5; i++) {
+			await createEntry(db, { topic: `cursor-${i}`, content: `c${i}` });
+		}
+		const result = await queryEntries(db, { topic: "cursor-", limit: 2 });
+		expect(result.items).toHaveLength(2);
+		expect(result.next_cursor).not.toBeNull();
+	});
+
+	test("queryEntries cursor yields non-overlapping second page", async () => {
+		for (let i = 0; i < 5; i++) {
+			await createEntry(db, { topic: `page-${i}`, content: `c${i}` });
+		}
+		const page1 = await queryEntries(db, { topic: "page-", limit: 2 });
+		expect(page1.next_cursor).not.toBeNull();
+
+		const page2 = await queryEntries(db, { topic: "page-", limit: 2, cursor: page1.next_cursor! });
+		const page1Ids = new Set(page1.items.map((i) => i.id));
+		expect(page2.items.every((item) => !page1Ids.has(item.id))).toBe(true);
+	});
+
+	test("queryEntries returns null next_cursor on last page", async () => {
+		await createEntry(db, { topic: "last-1", content: "a" });
+		await createEntry(db, { topic: "last-2", content: "b" });
+		const page = await queryEntries(db, { topic: "last-", limit: 5 });
+		expect(page.items).toHaveLength(2);
+		expect(page.next_cursor).toBeNull();
 	});
 
 	test("query filters by tags in JS and respects limit", async () => {
@@ -68,21 +124,32 @@ describe("entries", () => {
 		await createEntry(db, { topic: "b", content: "c", tags: ["x", "y"] });
 		await createEntry(db, { topic: "c", content: "c", tags: ["y"] });
 
-		const withX = await queryEntries(db, { tags: ["x"] });
+		const { items: withX } = await queryEntries(db, { tags: ["x"] });
 		expect(withX).toHaveLength(2);
 
-		const withBoth = await queryEntries(db, { tags: ["x", "y"] });
+		const { items: withBoth } = await queryEntries(db, { tags: ["x", "y"] });
 		expect(withBoth).toHaveLength(1);
 		expect(withBoth[0].topic).toBe("b");
 
-		const limited = await queryEntries(db, { tags: ["x"], limit: 1 });
+		const { items: limited } = await queryEntries(db, { tags: ["x"], limit: 1 });
 		expect(limited).toHaveLength(1);
+	});
+
+	test("queryEntries with tags returns bounded results and next_cursor", async () => {
+		for (let i = 0; i < 10; i++) {
+			await createEntry(db, { topic: `tagged-${i}`, content: "c", tags: ["x"] });
+			await createEntry(db, { topic: `untagged-${i}`, content: "c" });
+		}
+
+		const result = await queryEntries(db, { tags: ["x"], limit: 3 });
+		expect(result.items).toHaveLength(3);
+		expect(result.next_cursor).not.toBeNull();
 	});
 
 	test("query by content substring", async () => {
 		await createEntry(db, { topic: "a", content: "hello world" });
 		await createEntry(db, { topic: "b", content: "goodbye" });
-		const results = await queryEntries(db, { content: "hello" });
+		const { items: results } = await queryEntries(db, { content: "hello" });
 		expect(results).toHaveLength(1);
 		expect(results[0].topic).toBe("a");
 	});
@@ -96,19 +163,13 @@ describe("entries", () => {
 	});
 
 	test("update nonexistent entry throws KnowledgeError", async () => {
-		try {
-			await updateEntry(db, "nonexistent", { topic: "x" });
-			expect(true).toBe(false); // should not reach
-		} catch (e) {
-			expect(e).toBeInstanceOf(KnowledgeError);
-			expect((e as KnowledgeError).code).toBe("not_found");
-		}
+		await expectRejectsKnowledgeErrorCode(updateEntry(db, "nonexistent", { topic: "x" }), "not_found");
 	});
 
 	test("delete entry (soft)", async () => {
 		const entry = await createEntry(db, { topic: "doomed", content: "bye" });
 		await deleteEntry(db, entry.id);
-		const results = await queryEntries(db, { topic: "doomed" });
+		const { items: results } = await queryEntries(db, { topic: "doomed" });
 		expect(results).toHaveLength(0);
 	});
 
@@ -129,7 +190,7 @@ describe("LIKE wildcard escape", () => {
 	test("entry query does not treat % as wildcard", async () => {
 		await createEntry(db, { topic: "100% correct", content: "exact" });
 		await createEntry(db, { topic: "other topic", content: "unrelated" });
-		const results = await queryEntries(db, { topic: "100%" });
+		const { items: results } = await queryEntries(db, { topic: "100%" });
 		expect(results).toHaveLength(1);
 		expect(results[0].topic).toBe("100% correct");
 	});
@@ -137,7 +198,7 @@ describe("LIKE wildcard escape", () => {
 	test("entry query does not treat _ as single-char wildcard", async () => {
 		await createEntry(db, { topic: "a_b", content: "underscore" });
 		await createEntry(db, { topic: "aXb", content: "should not match" });
-		const results = await queryEntries(db, { topic: "a_b" });
+		const { items: results } = await queryEntries(db, { topic: "a_b" });
 		expect(results).toHaveLength(1);
 		expect(results[0].topic).toBe("a_b");
 	});
@@ -145,7 +206,7 @@ describe("LIKE wildcard escape", () => {
 	test("triple query does not treat % as wildcard", async () => {
 		await createTriple(db, { subject: "100% sure", predicate: "is", object: "fact" });
 		await createTriple(db, { subject: "other", predicate: "is", object: "unrelated" });
-		const results = await queryTriples(db, { subject: "100%" });
+		const { items: results } = await queryTriples(db, { subject: "100%" });
 		expect(results).toHaveLength(1);
 		expect(results[0].subject).toBe("100% sure");
 	});
@@ -153,7 +214,7 @@ describe("LIKE wildcard escape", () => {
 	test("triple query does not treat _ as single-char wildcard", async () => {
 		await createTriple(db, { subject: "x", predicate: "has_a", object: "thing" });
 		await createTriple(db, { subject: "x", predicate: "hasXa", object: "nope" });
-		const results = await queryTriples(db, { predicate: "has_a" });
+		const { items: results } = await queryTriples(db, { predicate: "has_a" });
 		expect(results).toHaveLength(1);
 		expect(results[0].predicate).toBe("has_a");
 	});
@@ -187,6 +248,32 @@ describe("length validation", () => {
 		expect(createTriple(db, { subject: "x", predicate: "is", object: long })).rejects.toThrow("exceeds");
 	});
 
+	test("updateEntry rejects topic exceeding max length", async () => {
+		const entry = await createEntry(db, { topic: "ok", content: "ok" });
+		await expect(updateEntry(db, entry.id, { topic: "x".repeat(1001) })).rejects.toThrow("exceeds");
+	});
+
+	test("updateEntry rejects content exceeding max length", async () => {
+		const entry = await createEntry(db, { topic: "ok", content: "ok" });
+		await expect(updateEntry(db, entry.id, { content: "x".repeat(100_001) })).rejects.toThrow("exceeds");
+	});
+
+	test("updateEntry accepts partial update without validation error", async () => {
+		const entry = await createEntry(db, { topic: "x".repeat(1000), content: "ok" });
+		const updated = await updateEntry(db, entry.id, { content: "new" });
+		expect(updated.content).toBe("new");
+	});
+
+	test("updateTriple rejects object exceeding max length", async () => {
+		const triple = await createTriple(db, { subject: "a", predicate: "is", object: "b" });
+		await expect(updateTriple(db, triple.id, { object: "x".repeat(2001) })).rejects.toThrow("exceeds");
+	});
+
+	test("updateTriple rejects predicate exceeding max length", async () => {
+		const triple = await createTriple(db, { subject: "a", predicate: "is", object: "b" });
+		await expect(updateTriple(db, triple.id, { predicate: "x".repeat(2001) })).rejects.toThrow("exceeds");
+	});
+
 	test("entry accepts content at exactly max length", async () => {
 		const entry = await createEntry(db, { topic: "x".repeat(1000), content: "x".repeat(100_000) });
 		expect(entry.id).toHaveLength(26);
@@ -202,7 +289,7 @@ describe("triples", () => {
 		expect(triple.subject).toBe("TypeScript");
 		expect(triple.status).toBe("active");
 
-		const results = await queryTriples(db, { subject: "Type" });
+		const { items: results } = await queryTriples(db, { subject: "Type" });
 		expect(results).toHaveLength(1);
 		expect(results[0].id).toBe(triple.id);
 	});
@@ -245,14 +332,41 @@ describe("triples", () => {
 		for (let i = 0; i < 5; i++) {
 			await createTriple(db, { subject: `s${i}`, predicate: "p", object: "o" });
 		}
-		const results = await queryTriples(db, { limit: 2 });
+		const { items: results } = await queryTriples(db, { limit: 2 });
 		expect(results).toHaveLength(2);
+	});
+
+	test("queryTriples returns next_cursor when more results exist", async () => {
+		for (let i = 0; i < 5; i++) {
+			await createTriple(db, { subject: `cursor-s${i}`, predicate: "p", object: "o" });
+		}
+		const result = await queryTriples(db, { subject: "cursor-s", limit: 2 });
+		expect(result.items).toHaveLength(2);
+		expect(result.next_cursor).not.toBeNull();
+	});
+
+	test("queryTriples cursor yields non-overlapping second page", async () => {
+		for (let i = 0; i < 5; i++) {
+			await createTriple(db, { subject: `page-s${i}`, predicate: "p", object: "o" });
+		}
+		const page1 = await queryTriples(db, { subject: "page-s", limit: 2 });
+		expect(page1.next_cursor).not.toBeNull();
+		const page2 = await queryTriples(db, { subject: "page-s", limit: 2, cursor: page1.next_cursor! });
+		const page1Ids = new Set(page1.items.map((i) => i.id));
+		expect(page2.items.every((item) => !page1Ids.has(item.id))).toBe(true);
+	});
+
+	test("queryTriples returns null next_cursor on last page", async () => {
+		await createTriple(db, { subject: "last-s1", predicate: "is", object: "a" });
+		await createTriple(db, { subject: "last-s2", predicate: "is", object: "b" });
+		const page = await queryTriples(db, { subject: "last-s", limit: 5 });
+		expect(page.next_cursor).toBeNull();
 	});
 
 	test("delete triple (soft)", async () => {
 		const triple = await createTriple(db, { subject: "a", predicate: "b", object: "c" });
 		await deleteTriple(db, triple.id);
-		const results = await queryTriples(db, { subject: "a" });
+		const { items: results } = await queryTriples(db, { subject: "a" });
 		expect(results).toHaveLength(0);
 	});
 
@@ -269,7 +383,7 @@ describe("undo", () => {
 		const reverted = await undoTransactions(db, 1);
 		expect(reverted).toHaveLength(1);
 
-		const results = await queryEntries(db, { topic: "temp" });
+		const { items: results } = await queryEntries(db, { topic: "temp" });
 		expect(results).toHaveLength(0);
 	});
 
@@ -280,7 +394,7 @@ describe("undo", () => {
 		const reverted = await undoTransactions(db, 1);
 		expect(reverted).toHaveLength(1);
 
-		const results = await queryEntries(db, { topic: "restore-me" });
+		const { items: results } = await queryEntries(db, { topic: "restore-me" });
 		expect(results).toHaveLength(1);
 	});
 
@@ -290,7 +404,7 @@ describe("undo", () => {
 
 		await undoTransactions(db, 1);
 
-		const results = await queryEntries(db, { topic: "original" });
+		const { items: results } = await queryEntries(db, { topic: "original" });
 		expect(results).toHaveLength(1);
 		expect(results[0].content).toBe("v1");
 	});
@@ -301,7 +415,7 @@ describe("undo", () => {
 
 		await undoTransactions(db, 1);
 
-		const results = await queryTriples(db, { subject: "A" });
+		const { items: results } = await queryTriples(db, { subject: "A" });
 		expect(results).toHaveLength(1);
 		expect(results[0].object).toBe("B");
 		expect(results[0].confidence).toBe(0.5);
@@ -319,7 +433,7 @@ describe("undo", () => {
 		expect(r2).toHaveLength(1);
 		expect(r1[0]).not.toBe(r2[0]);
 
-		const results = await queryEntries(db, {});
+		const { items: results } = await queryEntries(db, {});
 		expect(results).toHaveLength(0);
 	});
 
@@ -334,7 +448,7 @@ describe("undo", () => {
 describe("history", () => {
 	test("records transactions", async () => {
 		await createEntry(db, { topic: "a", content: "b" });
-		const txns = await getHistory(db, {});
+		const { items: txns } = await getHistory(db, {});
 		expect(txns.length).toBeGreaterThanOrEqual(1);
 		expect(txns[0].op).toBe("CREATE");
 		expect(txns[0].entity_type).toBe("entry");
@@ -344,8 +458,8 @@ describe("history", () => {
 		await createEntry(db, { topic: "a", content: "b" });
 		await createTriple(db, { subject: "x", predicate: "y", object: "z" });
 
-		const entryTxns = await getHistory(db, { entity_type: "entry" });
-		const tripleTxns = await getHistory(db, { entity_type: "triple" });
+		const { items: entryTxns } = await getHistory(db, { entity_type: "entry" });
+		const { items: tripleTxns } = await getHistory(db, { entity_type: "triple" });
 
 		expect(entryTxns.every((t) => t.entity_type === "entry")).toBe(true);
 		expect(tripleTxns.every((t) => t.entity_type === "triple")).toBe(true);
@@ -355,8 +469,28 @@ describe("history", () => {
 		for (let i = 0; i < 5; i++) {
 			await createEntry(db, { topic: `t${i}`, content: `c${i}` });
 		}
-		const txns = await getHistory(db, { limit: 2 });
+		const { items: txns } = await getHistory(db, { limit: 2 });
 		expect(txns).toHaveLength(2);
+	});
+
+	test("getHistory returns next_cursor when more results exist", async () => {
+		for (let i = 0; i < 5; i++) {
+			await createEntry(db, { topic: `h-cursor-${i}`, content: `c${i}` });
+		}
+		const page = await getHistory(db, { limit: 2 });
+		expect(page.items).toHaveLength(2);
+		expect(page.next_cursor).not.toBeNull();
+	});
+
+	test("getHistory cursor yields non-overlapping second page", async () => {
+		for (let i = 0; i < 5; i++) {
+			await createEntry(db, { topic: `h-page-${i}`, content: `c${i}` });
+		}
+		const page1 = await getHistory(db, { limit: 2 });
+		expect(page1.next_cursor).not.toBeNull();
+		const page2 = await getHistory(db, { limit: 2, cursor: page1.next_cursor! });
+		const page1Ids = new Set(page1.items.map((i) => i.id));
+		expect(page2.items.every((item) => !page1Ids.has(item.id))).toBe(true);
 	});
 });
 
@@ -381,6 +515,52 @@ describe("entities", () => {
 		expect(resolved!.id).toBe(entity.id);
 	});
 
+	test("createEntity throws on duplicate name (unique constraint)", async () => {
+		await createEntity(db, "Duplicate");
+		await expect(createEntity(db, "Duplicate")).rejects.toThrow("already exists");
+	});
+
+	test("addAlias throws conflict when alias already in use by another entity", async () => {
+		const a = await createEntity(db, "AlphaAlias");
+		const b = await createEntity(db, "BetaAlias");
+		await addAlias(db, a.id, "shared");
+		await expect(addAlias(db, b.id, "shared")).rejects.toThrow("already in use");
+	});
+
+	test("legacy schema gets canonical-entity uniqueness via follow-up migration", async () => {
+		const legacyDb = createD1Mock();
+		await legacyDb.batch([
+			legacyDb.prepare(`CREATE TABLE transactions (
+				id TEXT PRIMARY KEY,
+				op TEXT NOT NULL,
+				entity_type TEXT NOT NULL,
+				entity_id TEXT NOT NULL,
+				before_snapshot TEXT,
+				after_snapshot TEXT,
+				reverted_by TEXT,
+				created_at TEXT NOT NULL
+			)`),
+			legacyDb.prepare(`CREATE TABLE canonical_entities (
+				id TEXT PRIMARY KEY,
+				name TEXT NOT NULL,
+				created_at TEXT NOT NULL
+			)`),
+			legacyDb.prepare(`CREATE TABLE entity_aliases (
+				id TEXT PRIMARY KEY,
+				alias TEXT NOT NULL,
+				canonical_entity_id TEXT NOT NULL REFERENCES canonical_entities(id),
+				created_at TEXT NOT NULL
+			)`),
+		]);
+
+		await createEntity(legacyDb, "Duplicate");
+
+		const migrationSql = readFileSync("migrations/0002_unique_constraints.sql", "utf8");
+		await legacyDb.prepare(migrationSql).run();
+
+		await expect(createEntity(legacyDb, "Duplicate")).rejects.toThrow();
+	});
+
 	test("upsert entity creates when new", async () => {
 		const { entity, created } = await upsertEntity(db, "Rust");
 		expect(created).toBe(true);
@@ -394,6 +574,14 @@ describe("entities", () => {
 		expect(entity.id).toBe(original.id);
 	});
 
+	test("upsertEntity does not throw on existing name (resolves via alias)", async () => {
+		const first = await upsertEntity(db, "Existing");
+		const second = await upsertEntity(db, "Existing");
+		expect(first.created).toBe(true);
+		expect(second.created).toBe(false);
+		expect(second.entity.id).toBe(first.entity.id);
+	});
+
 	test("merge entities reassigns triples", async () => {
 		const keep = await createEntity(db, "JavaScript");
 		const merge = await createEntity(db, "JS");
@@ -405,11 +593,11 @@ describe("entities", () => {
 		expect(result.merged_count).toBe(2);
 
 		// Triples should now reference "JavaScript"
-		const triples = await queryTriples(db, { subject: "JavaScript" });
+		const { items: triples } = await queryTriples(db, { subject: "JavaScript" });
 		expect(triples).toHaveLength(1);
 		expect(triples[0].object).toBe("closures");
 
-		const objectTriples = await queryTriples(db, { object: "JavaScript" });
+		const { items: objectTriples } = await queryTriples(db, { object: "JavaScript" });
 		expect(objectTriples).toHaveLength(1);
 
 		// "JS" should now resolve to "JavaScript" entity
@@ -422,13 +610,13 @@ describe("entities", () => {
 		const keep = await createEntity(db, "JavaScript");
 		const merge = await createEntity(db, "JS");
 
-		const t1 = await createTriple(db, { subject: "JS", predicate: "has", object: "closures" });
-		const t2 = await createTriple(db, { subject: "closures", predicate: "in", object: "JS" });
+		await createTriple(db, { subject: "JS", predicate: "has", object: "closures" });
+		await createTriple(db, { subject: "closures", predicate: "in", object: "JS" });
 
 		await mergeEntities(db, keep.id, merge.id);
 
 		// Verify merge happened
-		const postMerge = await queryTriples(db, { subject: "JavaScript" });
+		const { items: postMerge } = await queryTriples(db, { subject: "JavaScript" });
 		expect(postMerge).toHaveLength(1);
 
 		// Undo the merge
@@ -436,11 +624,11 @@ describe("entities", () => {
 		expect(reverted).toHaveLength(1);
 
 		// Triples should be restored to original "JS" references
-		const restoredSubj = await queryTriples(db, { subject: "JS" });
+		const { items: restoredSubj } = await queryTriples(db, { subject: "JS" });
 		expect(restoredSubj).toHaveLength(1);
 		expect(restoredSubj[0].object).toBe("closures");
 
-		const restoredObj = await queryTriples(db, { object: "JS" });
+		const { items: restoredObj } = await queryTriples(db, { object: "JS" });
 		expect(restoredObj).toHaveLength(1);
 		expect(restoredObj[0].subject).toBe("closures");
 
@@ -557,29 +745,50 @@ describe("policy", () => {
 	});
 
 	test("rejects missing required field", () => {
-		try {
-			checkPolicy("store", { topic: "x" });
-			expect(true).toBe(false);
-		} catch (e) {
-			expect(e).toBeInstanceOf(KnowledgeError);
-			expect((e as KnowledgeError).code).toBe("policy");
-		}
+		expectPolicyViolation(() => checkPolicy("store", { topic: "x" }));
 	});
 
 	test("rejects low confidence when policy set", () => {
 		setPolicy({ minConfidence: 0.5 });
-		try {
-			checkPolicy("store", { topic: "x", content: "y", confidence: 0.3 });
-			expect(true).toBe(false);
-		} catch (e) {
-			expect(e).toBeInstanceOf(KnowledgeError);
-			expect((e as KnowledgeError).code).toBe("policy");
-		}
+		expectPolicyViolation(() => checkPolicy("store", { topic: "x", content: "y", confidence: 0.3 }));
 	});
 
 	test("passes confidence above minimum", () => {
 		setPolicy({ minConfidence: 0.5 });
 		expect(() => checkPolicy("store", { topic: "x", content: "y", confidence: 0.8 })).not.toThrow();
+	});
+
+	describe("policy — all operations", () => {
+		test("relate: rejects when subject missing", () => {
+			expectPolicyViolation(() => checkPolicy("relate", { subject: "", predicate: "is", object: "B" }));
+		});
+
+		test("relate: rejects when predicate missing", () => {
+			expectPolicyViolation(() => checkPolicy("relate", { subject: "A", predicate: "", object: "B" }));
+		});
+
+		test("relate: rejects low confidence when minConfidence set", () => {
+			setPolicy({ minConfidence: 0.5 });
+			expectPolicyViolation(() => {
+				checkPolicy("relate", { subject: "A", predicate: "is", object: "B", confidence: 0.3 });
+			});
+		});
+
+		test("update_triple: rejects missing id", () => {
+			expectPolicyViolation(() => checkPolicy("update_triple", { id: "" }));
+		});
+
+		test("upsert_triple: rejects missing object", () => {
+			expectPolicyViolation(() => checkPolicy("upsert_triple", { subject: "A", predicate: "is", object: "" }));
+		});
+
+		test("merge_entities: rejects missing keepId", () => {
+			expectPolicyViolation(() => checkPolicy("merge_entities", { keepId: "", mergeId: "ent_2" }));
+		});
+
+		test("merge_entities: rejects missing mergeId", () => {
+			expectPolicyViolation(() => checkPolicy("merge_entities", { keepId: "ent_1", mergeId: "" }));
+		});
 	});
 });
 
@@ -641,7 +850,7 @@ describe("ingestion", () => {
 		expect(result.entries_created).toBe(2);
 		expect(result.duplicates_skipped).toBe(0);
 
-		const entries = await queryEntries(db, { tags: ["ingested"] });
+		const { items: entries } = await queryEntries(db, { tags: ["ingested"] });
 		expect(entries).toHaveLength(2);
 		expect(entries[0].source).toBe("test-source");
 	});
@@ -662,6 +871,11 @@ describe("ingestion", () => {
 		expect(status!.status).toBe("pending");
 	});
 
+	test("ingestAsync throws validation error for content exceeding 900KB", async () => {
+		const huge = "x".repeat(900_001);
+		await expect(ingestAsync(db, huge)).rejects.toThrow("too large");
+	});
+
 	// GEMINI-CONTEXT: chunkText merges paragraphs until CHUNK_SIZE (500 chars).
 	// 3 paragraphs of 300 chars each exceed 500 per pair, yielding 3 chunks.
 	test("processIngestionBatch processes pending task", async () => {
@@ -678,7 +892,7 @@ describe("ingestion", () => {
 			remaining = next.remaining;
 		}
 
-		const entries = await queryEntries(db, { tags: ["ingested"] });
+		const { items: entries } = await queryEntries(db, { tags: ["ingested"] });
 		expect(entries.length).toBeGreaterThanOrEqual(3);
 	});
 
@@ -686,6 +900,23 @@ describe("ingestion", () => {
 		const result = await processIngestionBatch(db);
 		expect(result.processed).toBe(0);
 		expect(result.remaining).toBe(0);
+	});
+
+	test("processIngestionBatch marks task failed when input_uri contains invalid JSON", async () => {
+		const taskId = ulid();
+		const now = sqliteNow();
+		await db.prepare(
+			`INSERT INTO ingestion_tasks (id, status, input_uri, total_items, processed_items, created_at, updated_at)
+			 VALUES (?, 'pending', ?, 1, 0, ?, ?)`,
+		).bind(taskId, "not-valid-json", now, now).run();
+
+		const result = await processIngestionBatch(db);
+		expect(result.processed).toBe(0);
+		expect(result.remaining).toBe(0);
+
+		const status = await getIngestionStatus(db, taskId);
+		expect(status?.status).toBe("failed");
+		expect(status?.error).toContain("Invalid input");
 	});
 
 	test("getIngestionStatus returns null for unknown task", async () => {
@@ -747,11 +978,58 @@ describe("search", () => {
 		}
 	});
 
+	test("hybridSearch excludes soft-deleted entries from lexical results", async () => {
+		const entry = await createEntry(db, { topic: "ghost", content: "should disappear" });
+		await deleteEntry(db, entry.id);
+		const result = await hybridSearch(db, undefined, undefined, { query: "ghost", limit: 10 });
+		expect(result.items.every((i) => i.id !== entry.id)).toBe(true);
+	});
+
 	test("hybridSearch ignores invalid cursor gracefully", async () => {
 		await createEntry(db, { topic: "test", content: "data" });
 		// Invalid base64 cursor should not crash
 		const result = await hybridSearch(db, undefined, undefined, { query: "test", limit: 10, cursor: "not-valid-base64!!!" });
 		expect(result.items.length).toBeGreaterThanOrEqual(1);
+	});
+});
+
+describe("graphExpand", () => {
+	test("returns connected entries via triple subject→object", async () => {
+		const e1 = await createEntry(db, { topic: "TypeScript", content: "typed language" });
+		const e2 = await createEntry(db, { topic: "JavaScript", content: "dynamic language" });
+		await createTriple(db, { subject: "TypeScript", predicate: "extends", object: "JavaScript" });
+
+		const results = await graphExpand(db, [e1.id], 1);
+		const connected = results.find((r) => r.id === e2.id);
+		expect(connected).toBeDefined();
+		expect(connected!.score_graph).toBeGreaterThan(0);
+		expect(connected!.graph_hops).toBe(1);
+	});
+
+	test("returns empty array for entry with no connected triples", async () => {
+		const entry = await createEntry(db, { topic: "isolated", content: "alone" });
+		const results = await graphExpand(db, [entry.id], 1);
+		expect(results).toHaveLength(0);
+	});
+
+	test("excludes seed entry IDs from results", async () => {
+		const e = await createEntry(db, { topic: "self-loop", content: "cycle" });
+		await createTriple(db, { subject: "self-loop", predicate: "is", object: "self-loop" });
+		const results = await graphExpand(db, [e.id], 1);
+		expect(results.every((r) => r.id !== e.id)).toBe(true);
+	});
+
+	test("hybridSearch score_graph > 0 when graph-connected entry included", async () => {
+		const seed = await createEntry(db, { topic: "TypeScript", content: "query anchor" });
+		const neighbor = await createEntry(db, { topic: "JavaScript", content: "connected node" });
+		await createTriple(db, { subject: "TypeScript", predicate: "extends", object: "JavaScript" });
+
+		const result = await hybridSearch(db, undefined, undefined, { query: "TypeScript", limit: 10 });
+		const graphHit = result.items.find((item) => item.id === neighbor.id);
+		expect(graphHit).toBeDefined();
+		expect(graphHit!.score_graph).toBeGreaterThan(0);
+		expect(graphHit!.graph_hops).toBe(1);
+		expect(result.items.find((item) => item.id === seed.id)?.score_graph ?? 0).toBe(0);
 	});
 });
 
@@ -1023,7 +1301,7 @@ describe("semantic search with mocks", () => {
 
 	test("hybridSearch integrates semantic results when Ai+Vectorize provided", async () => {
 		// Seed some entries
-		const entry1 = await createEntry(db, { topic: "alpha concept", content: "First alpha entry" });
+		await createEntry(db, { topic: "alpha concept", content: "First alpha entry" });
 		const entry2 = await createEntry(db, { topic: "beta concept", content: "Second beta entry" });
 
 		const mockAi = createMockAi();
@@ -1042,5 +1320,35 @@ describe("semantic search with mocks", () => {
 		const hasSemantic = result.items.some((i) => i.score_semantic > 0);
 		expect(hasLexical).toBe(true);
 		expect(hasSemantic).toBe(true);
+	});
+
+	test("hybridSearch does not hydrate soft-deleted semantic matches", async () => {
+		const deletedEntry = await createEntry(db, { topic: "old alpha", content: "deleted semantic candidate" });
+		await deleteEntry(db, deletedEntry.id);
+
+		const mockAi = createMockAi();
+		const mockVectorize = createMockVectorize([
+			{ id: deletedEntry.id, score: 0.99 },
+		]);
+
+		const result = await hybridSearch(db, mockAi, mockVectorize, { query: "alpha", limit: 10 });
+		expect(result.items).toHaveLength(0);
+	});
+
+	test("hybridSearch skips deleted top semantic hits without starving the page", async () => {
+		const deletedEntry = await createEntry(db, { topic: "stale", content: "deleted semantic candidate" });
+		const liveEntry = await createEntry(db, { topic: "fresh", content: "live semantic candidate" });
+		await deleteEntry(db, deletedEntry.id);
+
+		const mockAi = createMockAi();
+		const mockVectorize = createMockVectorize([
+			{ id: deletedEntry.id, score: 0.99 },
+			{ id: liveEntry.id, score: 0.98 },
+		]);
+
+		const result = await hybridSearch(db, mockAi, mockVectorize, { query: "semantic-only", limit: 1 });
+		expect(result.items).toHaveLength(1);
+		expect(result.items[0].id).toBe(liveEntry.id);
+		expect(result.next_cursor).toBeNull();
 	});
 });

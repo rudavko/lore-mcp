@@ -68,6 +68,16 @@ export async function initSchema(db: D1Database): Promise<void> {
 			created_at TEXT NOT NULL DEFAULT (datetime('now')),
 			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 		)`),
+		db.prepare(`CREATE TABLE IF NOT EXISTS conflicts (
+			conflict_id TEXT PRIMARY KEY,
+			scope TEXT NOT NULL,
+			data TEXT NOT NULL,
+			created_at TEXT NOT NULL DEFAULT (datetime('now')),
+			expires_at TEXT NOT NULL
+		)`),
+		db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS uq_canonical_entities_name ON canonical_entities(name)`),
+		db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS uq_entity_aliases_alias ON entity_aliases(alias)`),
+		db.prepare(`CREATE INDEX IF NOT EXISTS idx_conflicts_expires ON conflicts(expires_at)`),
 	]);
 
 	// Try to create FTS5 virtual table (both D1 and bun:sqlite support FTS5)

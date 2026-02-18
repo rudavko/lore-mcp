@@ -147,7 +147,7 @@ try {
 			console.log(`    Skipping ${key} (empty)`);
 			continue;
 		}
-		const { stdout, stderr, ok } = run(["secret", "put", key, "--name", NAME], { input: value + "\n" });
+		const { stdout, stderr } = run(["secret", "put", key, "--name", NAME], { input: value + "\n" });
 		const success = (stdout + stderr).includes("Success");
 		console.log(`    ${key}: ${success ? "set" : `FAILED — ${(stderr || stdout).trim().split("\n").pop()}`}`);
 	}

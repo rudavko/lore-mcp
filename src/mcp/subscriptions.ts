@@ -28,7 +28,7 @@ const ENTITY_URI_MAP: Record<string, string> = {
 	alias: "knowledge://entries",
 };
 
-export function registerSubscriptions(server: McpServer) {
+export function registerSubscriptions(_server: McpServer) {
 	// The MCP SDK handles subscription state internally.
 	// Clients call resources/subscribe to opt in, then we emit
 	// notifications/resources/updated with the URI when data changes.

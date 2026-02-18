@@ -8,10 +8,14 @@ graph LR
   002[002 MCP UX Contracts]
   003[003 Graph Semantics]
   004[004 Hybrid Retrieval]
+  005[005 Architectural Hardening]
 
   002 --> 003
   002 --> 004
   003 --> 004
+  002 --> 005
+  003 --> 005
+  004 --> 005
 ```
 
 ## Index
@@ -22,3 +26,4 @@ graph LR
 | [002](002-mcp-ux-contracts/spec.md) | MCP UX Contracts | planned | — |
 | [003](003-graph-semantics-and-governance/spec.md) | Graph Semantics & Governance | planned | 002 |
 | [004](004-hybrid-retrieval-and-evals/spec.md) | Hybrid Retrieval & Evals | planned | 002, 003 |
+| [005](005-architectural-hardening/spec.md) | Architectural Hardening | implementation_complete | 002, 003, 004 |

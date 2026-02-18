@@ -11,7 +11,7 @@
 7. [ ] Register MCP prompt templates for ingest, retrieve, and correction workflows.
 8. [ ] Add integration tests for structured outputs, resource discovery, and prompt discovery.
 9. [ ] Update README/tooling docs with contract examples and migration notes.
-10. [ ] Validate acceptance criteria and update `status.yaml`.
+10. [ ] Validate acceptance criteria and update `status.json`.
 
 ## Verification Checklist
 
@@ -20,4 +20,3 @@
 3. [ ] `resources/list` and resource reads work in at least one MCP client.
 4. [ ] `prompts/list` and `prompts/get` return usable prompt definitions.
 5. [ ] Existing text-only user flows remain functional during migration.
-

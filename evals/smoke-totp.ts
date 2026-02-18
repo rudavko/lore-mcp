@@ -4,7 +4,7 @@
  * Usage: npx wrangler dev --port 8799  (in another terminal)
  *        bun run evals/smoke-totp.ts
  */
-import { computeTOTP, base32Encode } from "../src/totp";
+import { computeTOTP } from "../src/totp";
 
 const BASE = process.env.SERVER_URL ?? "http://localhost:8799";
 

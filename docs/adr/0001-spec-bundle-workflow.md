@@ -21,7 +21,7 @@ For behavior-changing product work, we will use a spec bundle per feature:
   - `spec.md`
   - `plan.md`
   - `tasks.md`
-  - `status.yaml`
+  - `status.json`
 
 Specification requirements:
 
@@ -29,7 +29,7 @@ Specification requirements:
 - Acceptance criteria use Gherkin-style Given/When/Then statements.
 - `plan.md` captures technical approach.
 - `tasks.md` is the ordered implementation checklist.
-- `status.yaml` is machine-readable status for stories and phases.
+- `status.json` is machine-readable status for stories and phases.
 
 ## Alternatives Considered
 
@@ -56,4 +56,3 @@ Tradeoff:
 ## Compliance
 
 Any pull request that changes product behavior must include updates to the relevant spec bundle in `specs/`.
-

@@ -181,3 +181,4 @@ package-lock.json
 PLAN*.md
 auth-variants/
 backup/
+.DS_Store

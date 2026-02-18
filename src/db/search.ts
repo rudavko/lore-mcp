@@ -58,6 +58,8 @@ export async function lexicalSearch(
 	if (isFts5Available()) {
 		const sanitized = sanitizeFts5Query(query);
 		if (sanitized) {
+			// Use OR between tokens so multi-term queries remain inclusive.
+			const ftsMatchQuery = sanitized.replace(/"\s+"/g, '" OR "');
 			try {
 				const { results } = await db.prepare(
 					`SELECT e.id, bm25(entries_fts) AS rank
@@ -67,7 +69,7 @@ export async function lexicalSearch(
 					 AND e.deleted_at IS NULL
 					 ORDER BY rank
 					 LIMIT ?`,
-				).bind(sanitized, limit * 2).all();
+				).bind(ftsMatchQuery, limit * 2).all();
 
 				// bm25() returns negative values where more-negative = better match.
 				// Normalize to 0-1 range.
@@ -78,20 +80,28 @@ export async function lexicalSearch(
 					id: r.id as string,
 					score_lexical: scores[i] / maxScore,
 				}));
-			} catch (e) {
-				logEvent("fts5_fallback", { error: String(e), query: sanitized });
-			}
+				} catch (e) {
+					logEvent("fts5_fallback", { error: String(e), query: ftsMatchQuery });
+				}
 		}
 	}
 
-	// LIKE-based fallback — escapeLike prevents user-injected % _ wildcards
-	const pattern = `%${escapeLike(query)}%`;
+	// LIKE-based fallback — OR across tokens to mirror FTS behavior.
+	const tokens = query.trim().split(/\s+/).filter(Boolean);
+	if (tokens.length === 0) return [];
+	const clauses = tokens.map(
+		() => `(topic LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\')`,
+	);
+	const binds = tokens.flatMap((token) => {
+		const pattern = `%${escapeLike(token)}%`;
+		return [pattern, pattern, pattern];
+	});
 	const { results } = await db.prepare(
-		`SELECT id, topic, content FROM entries
-		 WHERE deleted_at IS NULL AND (topic LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\')
+		`SELECT DISTINCT id, topic, content FROM entries
+		 WHERE deleted_at IS NULL AND (${clauses.join(" OR ")})
 		 ORDER BY created_at DESC
 		 LIMIT ?`,
-	).bind(pattern, pattern, pattern, limit * 2).all();
+	).bind(...binds, limit * 2).all();
 
 	const queryLower = query.toLowerCase();
 	return results.map((r) => {
@@ -319,17 +329,15 @@ export async function hybridSearch(
 		}
 	}
 
-	const page = sorted.slice(0, limit);
-
-	// Fetch full entry data for results
-	if (page.length === 0) {
+	// Fetch full entry data for ranked candidates.
+	if (sorted.length === 0) {
 		return { items: [], next_cursor: null, retrieval_ms: Date.now() - start };
 	}
 
-	const idPlaceholders = page.map(() => "?").join(",");
+	const idPlaceholders = sorted.map(() => "?").join(",");
 	const { results: entryRows } = await db.prepare(
-		`SELECT * FROM entries WHERE id IN (${idPlaceholders})`,
-	).bind(...page.map((p) => p.id)).all();
+		`SELECT * FROM entries WHERE id IN (${idPlaceholders}) AND deleted_at IS NULL`,
+	).bind(...sorted.map((p) => p.id)).all();
 
 	const entryMap = new Map<string, Entry>();
 	for (const r of entryRows) {
@@ -337,14 +345,14 @@ export async function hybridSearch(
 		entryMap.set(entry.id, entry);
 	}
 
-	const items = page
-		.filter((p) => entryMap.has(p.id))
-		.map((p) => ({
-			...entryMap.get(p.id)!,
-			...p,
-		}));
+	const liveSorted = sorted.filter((p) => entryMap.has(p.id));
+	const page = liveSorted.slice(0, limit);
+	const items = page.map((p) => ({
+		...entryMap.get(p.id)!,
+		...p,
+	}));
 
-	const nextCursor = page.length === limit && sorted.length > limit
+	const nextCursor = page.length === limit && liveSorted.length > limit
 		? btoa(page[page.length - 1].id)
 		: null;
 

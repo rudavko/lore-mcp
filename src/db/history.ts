@@ -4,7 +4,19 @@
 // in snapshots and re-stringified for the DB column (which stores JSON text).
 
 import { ulid, sqliteNow } from "../lib/ulid";
+import { decodeCursor } from "../lib/format";
 import type { Transaction } from "../lib/types";
+
+export interface GetHistoryParams {
+	limit?: number;
+	entity_type?: string;
+	cursor?: string;
+}
+
+export interface GetHistoryResult {
+	items: Transaction[];
+	next_cursor: string | null;
+}
 
 export async function undoTransactions(
 	db: D1Database,
@@ -136,11 +148,17 @@ export async function undoTransactions(
 
 export async function getHistory(
 	db: D1Database,
-	params: { limit?: number; entity_type?: string },
-): Promise<Transaction[]> {
+	params: GetHistoryParams,
+): Promise<GetHistoryResult> {
 	const limit = params.limit ?? 20;
 	const conditions: string[] = [];
 	const binds: unknown[] = [];
+	const cursorId = decodeCursor(params.cursor);
+
+	if (cursorId) {
+		conditions.push("id < ?");
+		binds.push(cursorId);
+	}
 
 	if (params.entity_type) {
 		conditions.push("entity_type = ?");
@@ -148,13 +166,14 @@ export async function getHistory(
 	}
 
 	const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
-	const sql = `SELECT * FROM transactions ${where} ORDER BY created_at DESC, id DESC LIMIT ?`;
-	binds.push(limit);
+	const sql = `SELECT * FROM transactions ${where} ORDER BY id DESC LIMIT ?`;
+	binds.push(limit + 1);
 
 	const stmt = db.prepare(sql).bind(...binds);
 	const { results } = await stmt.all();
-
-	return results.map((r) => ({
+	const hasMore = results.length > limit;
+	const page = hasMore ? results.slice(0, limit) : results;
+	const items = page.map((r) => ({
 		id: r.id as string,
 		op: r.op as string,
 		entity_type: r.entity_type as string,
@@ -164,4 +183,7 @@ export async function getHistory(
 		reverted_by: (r.reverted_by as string) ?? null,
 		created_at: r.created_at as string,
 	}));
+	const next_cursor = hasMore && items.length > 0 ? btoa(items[items.length - 1].id) : null;
+
+	return { items, next_cursor };
 }

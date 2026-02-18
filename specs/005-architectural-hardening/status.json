@@ -1,0 +1,37 @@
+{
+  "feature_id": "005",
+  "feature_name": "architectural-hardening",
+  "state": "implementation_complete",
+  "owner": "team",
+  "last_updated": "2026-02-18",
+  "depends_on": [
+    "002",
+    "003",
+    "004"
+  ],
+  "stories": {
+    "US-005-001": "completed",
+    "US-005-002": "completed",
+    "US-005-003": "completed",
+    "US-005-004": "completed",
+    "US-005-005": "completed",
+    "US-005-006": "completed",
+    "US-005-007": "completed",
+    "US-005-008": "completed"
+  },
+  "phases": {
+    "spec": "completed",
+    "plan": "completed",
+    "tasks": "completed",
+    "implementation": "completed",
+    "validation": "completed"
+  },
+  "workstreams": {
+    "ws1_pagination": "completed",
+    "ws2_vectorize_delete_sync": "completed",
+    "ws3_conflict_durability": "completed",
+    "ws4_update_validation": "completed",
+    "ws5_schema_unique_constraints": "completed",
+    "ws6_query_topic_content_fix": "completed"
+  }
+}

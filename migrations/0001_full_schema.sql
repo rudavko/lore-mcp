@@ -75,6 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_entries_status ON entries(status);
 CREATE INDEX IF NOT EXISTS idx_triples_subject ON triples(subject);
 CREATE INDEX IF NOT EXISTS idx_triples_predicate ON triples(predicate);
 CREATE INDEX IF NOT EXISTS idx_triples_status ON triples(status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_canonical_entities_name ON canonical_entities(name);
 CREATE INDEX IF NOT EXISTS idx_entity_aliases_alias ON entity_aliases(alias);
 CREATE INDEX IF NOT EXISTS idx_entity_aliases_entity ON entity_aliases(canonical_entity_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_created ON transactions(created_at);

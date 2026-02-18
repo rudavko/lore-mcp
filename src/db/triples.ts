@@ -2,7 +2,7 @@
 
 import { ulid, sqliteNow } from "../lib/ulid";
 import { KnowledgeError } from "../lib/errors";
-import { escapeLike } from "../lib/format";
+import { decodeCursor, escapeLike } from "../lib/format";
 import type { Triple } from "../lib/types";
 
 const MAX_FIELD_LENGTH = 2000;
@@ -29,6 +29,28 @@ export interface QueryTripleParams {
 	predicate?: string;
 	object?: string;
 	limit?: number;
+	cursor?: string;
+}
+
+export interface QueryTripleResult {
+	items: Triple[];
+	next_cursor: string | null;
+}
+
+function validateTripleFields(params: {
+	subject?: string;
+	predicate?: string;
+	object?: string;
+}): void {
+	if (params.subject !== undefined && params.subject.length > MAX_FIELD_LENGTH) {
+		throw KnowledgeError.validation(`Subject exceeds ${MAX_FIELD_LENGTH} characters`);
+	}
+	if (params.predicate !== undefined && params.predicate.length > MAX_FIELD_LENGTH) {
+		throw KnowledgeError.validation(`Predicate exceeds ${MAX_FIELD_LENGTH} characters`);
+	}
+	if (params.object !== undefined && params.object.length > MAX_FIELD_LENGTH) {
+		throw KnowledgeError.validation(`Object exceeds ${MAX_FIELD_LENGTH} characters`);
+	}
 }
 
 export function rowToTriple(r: Record<string, unknown>): Triple {
@@ -51,12 +73,11 @@ export async function createTriple(
 	db: D1Database,
 	params: CreateTripleParams,
 ): Promise<Triple> {
-	if (params.subject.length > MAX_FIELD_LENGTH)
-		throw KnowledgeError.validation(`Subject exceeds ${MAX_FIELD_LENGTH} characters`);
-	if (params.predicate.length > MAX_FIELD_LENGTH)
-		throw KnowledgeError.validation(`Predicate exceeds ${MAX_FIELD_LENGTH} characters`);
-	if (params.object.length > MAX_FIELD_LENGTH)
-		throw KnowledgeError.validation(`Object exceeds ${MAX_FIELD_LENGTH} characters`);
+	validateTripleFields({
+		subject: params.subject,
+		predicate: params.predicate,
+		object: params.object,
+	});
 
 	const id = ulid();
 	const now = sqliteNow();
@@ -94,6 +115,8 @@ export async function updateTriple(
 	id: string,
 	params: UpdateTripleParams,
 ): Promise<Triple> {
+	validateTripleFields({ predicate: params.predicate, object: params.object });
+
 	const row = await db.prepare(
 		`SELECT * FROM triples WHERE id = ? AND deleted_at IS NULL`,
 	).bind(id).first();
@@ -173,10 +196,16 @@ export async function deleteTriple(db: D1Database, id: string): Promise<void> {
 export async function queryTriples(
 	db: D1Database,
 	params: QueryTripleParams,
-): Promise<Triple[]> {
+): Promise<QueryTripleResult> {
 	const limit = Math.min(params.limit ?? 50, 200);
 	const conditions: string[] = ["deleted_at IS NULL"];
 	const binds: unknown[] = [];
+	const cursorId = decodeCursor(params.cursor);
+
+	if (cursorId) {
+		conditions.push("id < ?");
+		binds.push(cursorId);
+	}
 
 	if (params.subject) {
 		conditions.push("subject LIKE ? ESCAPE '\\'");
@@ -191,12 +220,16 @@ export async function queryTriples(
 		binds.push(`%${escapeLike(params.object)}%`);
 	}
 
-	binds.push(limit);
-	const sql = `SELECT * FROM triples WHERE ${conditions.join(" AND ")} ORDER BY created_at DESC LIMIT ?`;
+	binds.push(limit + 1);
+	const sql = `SELECT * FROM triples WHERE ${conditions.join(" AND ")} ORDER BY id DESC LIMIT ?`;
 	const stmt = db.prepare(sql).bind(...binds);
 	const { results } = await stmt.all();
 
-	return results.map((r) => rowToTriple(r as Record<string, unknown>));
+	const triples = results.map((r) => rowToTriple(r as Record<string, unknown>));
+	const hasMore = triples.length > limit;
+	const page = hasMore ? triples.slice(0, limit) : triples;
+	const next_cursor = hasMore && page.length > 0 ? btoa(page[page.length - 1].id) : null;
+	return { items: page, next_cursor };
 }
 
 // Find active triples matching subject+predicate (for conflict detection)
