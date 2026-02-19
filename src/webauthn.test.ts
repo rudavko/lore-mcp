@@ -31,7 +31,9 @@ function createKVMock(): KVNamespace {
 			return entry.value;
 		},
 		async put(key: string, value: string, opts?: { expirationTtl?: number }) {
-			const expireAt = opts?.expirationTtl ? Date.now() + opts.expirationTtl * 1000 : undefined;
+			const expireAt = opts?.expirationTtl
+				? Date.now() + opts.expirationTtl * 1000
+				: undefined;
 			store.set(key, { value, expireAt });
 		},
 		async delete(key: string) {
@@ -214,7 +216,13 @@ describe("createAuthenticationOptions", () => {
 describe("verifyRegistration", () => {
 	test("returns null on invalid response", async () => {
 		const result = await verifyRegistration(
-			{ id: "bad", rawId: "bad", type: "public-key", response: {} as any, clientExtensionResults: {} },
+			{
+				id: "bad",
+				rawId: "bad",
+				type: "public-key",
+				response: {} as any,
+				clientExtensionResults: {},
+			},
 			"expected-challenge",
 			"https://example.com",
 			"example.com",
@@ -236,7 +244,13 @@ describe("verifyRegistration", () => {
 describe("verifyAuthentication", () => {
 	test("returns verified:false on invalid response", async () => {
 		const result = await verifyAuthentication(
-			{ id: "bad", rawId: "bad", type: "public-key", response: {} as any, clientExtensionResults: {} },
+			{
+				id: "bad",
+				rawId: "bad",
+				type: "public-key",
+				response: {} as any,
+				clientExtensionResults: {},
+			},
 			"expected-challenge",
 			"https://example.com",
 			"example.com",

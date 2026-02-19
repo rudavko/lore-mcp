@@ -38,9 +38,10 @@ function chunkText(text: string): string[] {
 /** Check if an entry with identical content already exists. */
 async function isDuplicate(db: D1Database, content: string): Promise<boolean> {
 	// Use exact content match (fast with index on small result sets)
-	const row = await db.prepare(
-		`SELECT id FROM entries WHERE content = ? AND deleted_at IS NULL LIMIT 1`,
-	).bind(content).first();
+	const row = await db
+		.prepare(`SELECT id FROM entries WHERE content = ? AND deleted_at IS NULL LIMIT 1`)
+		.bind(content)
+		.first();
 	return row !== null;
 }
 
@@ -59,10 +60,13 @@ export async function ingestSync(
 	const now = sqliteNow();
 	const chunks = chunkText(content);
 
-	await db.prepare(
-		`INSERT INTO ingestion_tasks (id, status, total_items, processed_items, created_at, updated_at)
+	await db
+		.prepare(
+			`INSERT INTO ingestion_tasks (id, status, total_items, processed_items, created_at, updated_at)
 		 VALUES (?, 'processing', ?, 0, ?, ?)`,
-	).bind(taskId, chunks.length, now, now).run();
+		)
+		.bind(taskId, chunks.length, now, now)
+		.run();
 
 	let created = 0;
 	let duplicates = 0;
@@ -81,14 +85,16 @@ export async function ingestSync(
 			created++;
 		}
 
-		await db.prepare(
-			`UPDATE ingestion_tasks SET processed_items = ?, updated_at = ? WHERE id = ?`,
-		).bind(created + duplicates, sqliteNow(), taskId).run();
+		await db
+			.prepare(`UPDATE ingestion_tasks SET processed_items = ?, updated_at = ? WHERE id = ?`)
+			.bind(created + duplicates, sqliteNow(), taskId)
+			.run();
 	}
 
-	await db.prepare(
-		`UPDATE ingestion_tasks SET status = 'completed', updated_at = ? WHERE id = ?`,
-	).bind(sqliteNow(), taskId).run();
+	await db
+		.prepare(`UPDATE ingestion_tasks SET status = 'completed', updated_at = ? WHERE id = ?`)
+		.bind(sqliteNow(), taskId)
+		.run();
 
 	return { task_id: taskId, entries_created: created, duplicates_skipped: duplicates };
 }
@@ -102,7 +108,7 @@ export async function ingestAsync(
 	if (content.length > MAX_STORABLE_CONTENT) {
 		throw KnowledgeError.validation(
 			`Content too large for async ingestion (${content.length} bytes, max ${MAX_STORABLE_CONTENT}). ` +
-			`Pre-chunk the content and call store individually.`,
+				`Pre-chunk the content and call store individually.`,
 		);
 	}
 
@@ -111,10 +117,13 @@ export async function ingestAsync(
 	const chunks = chunkText(content);
 
 	// Store raw content in input_uri for the alarm to re-derive chunks
-	await db.prepare(
-		`INSERT INTO ingestion_tasks (id, status, input_uri, total_items, processed_items, created_at, updated_at)
+	await db
+		.prepare(
+			`INSERT INTO ingestion_tasks (id, status, input_uri, total_items, processed_items, created_at, updated_at)
 		 VALUES (?, 'pending', ?, ?, 0, ?, ?)`,
-	).bind(taskId, JSON.stringify({ content, source }), chunks.length, now, now).run();
+		)
+		.bind(taskId, JSON.stringify({ content, source }), chunks.length, now, now)
+		.run();
 
 	return { task_id: taskId };
 }
@@ -128,10 +137,13 @@ export async function ingestAsync(
 export async function processIngestionBatch(
 	db: D1Database,
 ): Promise<{ processed: number; remaining: number }> {
-	const task = await db.prepare(
-		`SELECT * FROM ingestion_tasks WHERE status IN ('pending', 'processing')
+	const task = await db
+		.prepare(
+			`SELECT * FROM ingestion_tasks WHERE status IN ('pending', 'processing')
 		 ORDER BY created_at ASC LIMIT 1`,
-	).bind().first();
+		)
+		.bind()
+		.first();
 
 	if (!task) return { processed: 0, remaining: 0 };
 
@@ -140,9 +152,12 @@ export async function processIngestionBatch(
 	const inputUri = task.input_uri as string | null;
 
 	if (!inputUri) {
-		await db.prepare(
-			`UPDATE ingestion_tasks SET status = 'failed', error = 'No input data', updated_at = ? WHERE id = ?`,
-		).bind(sqliteNow(), taskId).run();
+		await db
+			.prepare(
+				`UPDATE ingestion_tasks SET status = 'failed', error = 'No input data', updated_at = ? WHERE id = ?`,
+			)
+			.bind(sqliteNow(), taskId)
+			.run();
 		return { processed: 0, remaining: 0 };
 	}
 
@@ -153,9 +168,12 @@ export async function processIngestionBatch(
 		content = parsed.content;
 		source = parsed.source;
 	} catch {
-		await db.prepare(
-			`UPDATE ingestion_tasks SET status = 'failed', error = 'Invalid input data', updated_at = ? WHERE id = ?`,
-		).bind(sqliteNow(), taskId).run();
+		await db
+			.prepare(
+				`UPDATE ingestion_tasks SET status = 'failed', error = 'Invalid input data', updated_at = ? WHERE id = ?`,
+			)
+			.bind(sqliteNow(), taskId)
+			.run();
 		return { processed: 0, remaining: 0 };
 	}
 
@@ -163,9 +181,10 @@ export async function processIngestionBatch(
 	const remaining = chunks.slice(processedSoFar);
 	const batch = remaining.slice(0, BATCH_SIZE);
 
-	await db.prepare(
-		`UPDATE ingestion_tasks SET status = 'processing', updated_at = ? WHERE id = ?`,
-	).bind(sqliteNow(), taskId).run();
+	await db
+		.prepare(`UPDATE ingestion_tasks SET status = 'processing', updated_at = ? WHERE id = ?`)
+		.bind(sqliteNow(), taskId)
+		.run();
 
 	let processed = 0;
 	for (const chunk of batch) {
@@ -180,16 +199,18 @@ export async function processIngestionBatch(
 		}
 		processed++;
 
-		await db.prepare(
-			`UPDATE ingestion_tasks SET processed_items = ?, updated_at = ? WHERE id = ?`,
-		).bind(processedSoFar + processed, sqliteNow(), taskId).run();
+		await db
+			.prepare(`UPDATE ingestion_tasks SET processed_items = ?, updated_at = ? WHERE id = ?`)
+			.bind(processedSoFar + processed, sqliteNow(), taskId)
+			.run();
 	}
 
 	const totalRemaining = remaining.length - processed;
 	if (totalRemaining <= 0) {
-		await db.prepare(
-			`UPDATE ingestion_tasks SET status = 'completed', updated_at = ? WHERE id = ?`,
-		).bind(sqliteNow(), taskId).run();
+		await db
+			.prepare(`UPDATE ingestion_tasks SET status = 'completed', updated_at = ? WHERE id = ?`)
+			.bind(sqliteNow(), taskId)
+			.run();
 	}
 
 	return { processed, remaining: totalRemaining };
@@ -205,9 +226,12 @@ export async function getIngestionStatus(
 	processed_items: number;
 	error: string | null;
 } | null> {
-	const row = await db.prepare(
-		`SELECT id, status, total_items, processed_items, error FROM ingestion_tasks WHERE id = ?`,
-	).bind(taskId).first();
+	const row = await db
+		.prepare(
+			`SELECT id, status, total_items, processed_items, error FROM ingestion_tasks WHERE id = ?`,
+		)
+		.bind(taskId)
+		.first();
 
 	if (!row) return null;
 

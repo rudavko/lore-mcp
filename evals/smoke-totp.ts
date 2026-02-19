@@ -14,7 +14,9 @@ function readDevVarsPassphrase(): string {
 		const content = require("fs").readFileSync(`${process.cwd()}/.dev.vars`, "utf8");
 		const match = content.match(/^ACCESS_PASSPHRASE=(.+)$/m);
 		if (match) return match[1].trim();
-	} catch { /* ignore */ }
+	} catch {
+		/* ignore */
+	}
 	return "";
 }
 const PASSPHRASE = process.env.SERVER_URL
@@ -170,7 +172,9 @@ async function main() {
 		console.error(`   FAIL: Expected 302, got ${approve2Res.status}: ${body}`);
 		process.exit(1);
 	}
-	console.log(`   Authorized! Redirect: ${(approve2Res.headers.get("Location") ?? "").slice(0, 60)}...`);
+	console.log(
+		`   Authorized! Redirect: ${(approve2Res.headers.get("Location") ?? "").slice(0, 60)}...`,
+	);
 
 	// 7. POST /approve with wrong TOTP
 	console.log("7. POST /approve with wrong TOTP (should fail)...");

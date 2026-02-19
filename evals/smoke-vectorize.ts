@@ -17,7 +17,9 @@ const OAUTH_TOKEN = process.env.OAUTH_TOKEN;
 
 if (!SERVER_URL || !OAUTH_TOKEN) {
 	console.error("Required env vars:");
-	console.error("  SERVER_URL   — Deployed server URL (e.g. https://mcp-knowledge-server.user.workers.dev)");
+	console.error(
+		"  SERVER_URL   — Deployed server URL (e.g. https://mcp-knowledge-server.user.workers.dev)",
+	);
 	console.error("  OAUTH_TOKEN  — Bearer token from the OAuth flow (/authorize → /token)");
 	console.error("");
 	console.error("Usage: SERVER_URL=https://... OAUTH_TOKEN=... bun run evals/smoke-vectorize.ts");
@@ -34,7 +36,7 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
-			"Authorization": `Bearer ${OAUTH_TOKEN}`,
+			Authorization: `Bearer ${OAUTH_TOKEN}`,
 		},
 		body: JSON.stringify({
 			jsonrpc: "2.0",
@@ -46,7 +48,9 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
 
 	if (response.status === 401 || response.status === 403) {
 		console.error(`AUTH ERROR (${response.status}): Token may be expired or invalid.`);
-		console.error("  Obtain a new token via the OAuth flow: GET /authorize → POST /approve → POST /token");
+		console.error(
+			"  Obtain a new token via the OAuth flow: GET /authorize → POST /approve → POST /token",
+		);
 		process.exit(2);
 	}
 
@@ -54,7 +58,7 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
 		throw new Error(`HTTP ${response.status}: ${await response.text()}`);
 	}
 
-	const result = await response.json() as { result?: ToolResult; error?: { message: string } };
+	const result = (await response.json()) as { result?: ToolResult; error?: { message: string } };
 	if (result.error) throw new Error(result.error.message);
 	return result.result!;
 }
@@ -80,7 +84,8 @@ async function main() {
 	// 2. Store two semantically related entries with different wording
 	const entry1 = await callTool("store", {
 		topic: "smoke-test: memory management",
-		content: "Rust ensures memory safety through ownership and borrowing rules enforced at compile time.",
+		content:
+			"Rust ensures memory safety through ownership and borrowing rules enforced at compile time.",
 		tags: ["smoke-test"],
 		source: "vectorize-smoke",
 	});
@@ -107,13 +112,17 @@ async function main() {
 
 	if (!data || data.items.length === 0) {
 		console.error("FAIL: Semantic search returned no results for paraphrased query.");
-		console.error("  This suggests Vectorize/Ai bindings are not configured in wrangler.jsonc.");
+		console.error(
+			"  This suggests Vectorize/Ai bindings are not configured in wrangler.jsonc.",
+		);
 		await cleanup(entry1, entry2);
 		process.exit(1);
 	}
 
 	const hasSemantic = data.items.some((i) => i.score_semantic > 0);
-	console.log(`  Query returned ${data.items.length} results, semantic scores present: ${hasSemantic}`);
+	console.log(
+		`  Query returned ${data.items.length} results, semantic scores present: ${hasSemantic}`,
+	);
 
 	if (!hasSemantic) {
 		console.error("FAIL: Results found but no semantic scores. Vectorize may not be active.");

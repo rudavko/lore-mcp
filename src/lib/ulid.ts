@@ -29,7 +29,10 @@ export function ulid(): string {
 		let overflowed = true;
 		for (let i = 15; i >= 0; i--) {
 			lastRandom[i] = (lastRandom[i] + 1) & 31;
-			if (lastRandom[i] !== 0) { overflowed = false; break; }
+			if (lastRandom[i] !== 0) {
+				overflowed = false;
+				break;
+			}
 		}
 		if (overflowed) lastTime = 0;
 	} else {

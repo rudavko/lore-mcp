@@ -13,7 +13,13 @@ import { KnowledgeError } from "../lib/errors";
 import { checkPolicy } from "../domain/policy";
 import { detectConflict } from "../domain/conflict";
 import { createEntry, updateEntry, deleteEntry, queryEntries } from "../db/entries";
-import { createTriple, updateTriple, upsertTriple, deleteTriple, queryTriples } from "../db/triples";
+import {
+	createTriple,
+	updateTriple,
+	upsertTriple,
+	deleteTriple,
+	queryTriples,
+} from "../db/triples";
 import { upsertEntity, mergeEntities } from "../db/entities";
 import { undoTransactions, getHistory } from "../db/history";
 import { hybridSearch, syncEmbedding } from "../db/search";
@@ -46,16 +52,15 @@ export function registerTools(
 		await env.DB.prepare(
 			`INSERT OR REPLACE INTO conflicts (conflict_id, scope, data, created_at, expires_at)
 			 VALUES (?, ?, ?, ?, ?)`,
-		).bind(
-			conflict.conflict_id,
-			conflict.scope,
-			JSON.stringify(conflict),
-			nowIso,
-			expiresAt,
-		).run();
+		)
+			.bind(conflict.conflict_id, conflict.scope, JSON.stringify(conflict), nowIso, expiresAt)
+			.run();
 		if (storage) {
 			try {
-				await storage.put(`conflict:${conflict.conflict_id}`, { conflict, storedAt: Date.now() });
+				await storage.put(`conflict:${conflict.conflict_id}`, {
+					conflict,
+					storedAt: Date.now(),
+				});
 			} catch {
 				// Non-fatal cache write
 			}
@@ -75,7 +80,9 @@ export function registerTools(
 
 		const row = await env.DB.prepare(
 			`SELECT data, expires_at FROM conflicts WHERE conflict_id = ?`,
-		).bind(id).first();
+		)
+			.bind(id)
+			.first();
 
 		if (!row) return null;
 
@@ -117,7 +124,12 @@ export function registerTools(
 	server.tool(
 		"time",
 		"Returns the current time in a given timezone",
-		{ timezone: z.string().optional().describe("IANA timezone, e.g. Europe/Kyiv. Defaults to UTC.") },
+		{
+			timezone: z
+				.string()
+				.optional()
+				.describe("IANA timezone, e.g. Europe/Kyiv. Defaults to UTC."),
+		},
 		async ({ timezone }) => {
 			const tz = timezone || "UTC";
 			try {
@@ -128,7 +140,9 @@ export function registerTools(
 				});
 				return formatResult(`${formatted} (${tz})`);
 			} catch {
-				return formatError(KnowledgeError.validation(`Invalid timezone: "${tz}". Use IANA format.`));
+				return formatError(
+					KnowledgeError.validation(`Invalid timezone: "${tz}". Use IANA format.`),
+				);
 			}
 		},
 	);
@@ -149,8 +163,20 @@ export function registerTools(
 		async ({ topic, content, tags, source, actor, confidence }) => {
 			try {
 				checkPolicy("store", { topic, content, confidence });
-				const entry = await createEntry(env.DB, { topic, content, tags, source, actor, confidence });
-				await syncEmbedding(env.AI, env.VECTORIZE_INDEX, entry.id, `${entry.topic} ${entry.content}`);
+				const entry = await createEntry(env.DB, {
+					topic,
+					content,
+					tags,
+					source,
+					actor,
+					confidence,
+				});
+				await syncEmbedding(
+					env.AI,
+					env.VECTORIZE_INDEX,
+					entry.id,
+					`${entry.topic} ${entry.content}`,
+				);
 				notify("entry");
 				logEvent("mutation", { op: "store", id: entry.id, ok: true });
 				return formatResult(
@@ -178,8 +204,20 @@ export function registerTools(
 		},
 		async ({ id, topic, content, tags, source, actor, confidence }) => {
 			try {
-				const entry = await updateEntry(env.DB, id, { topic, content, tags, source, actor, confidence });
-				await syncEmbedding(env.AI, env.VECTORIZE_INDEX, entry.id, `${entry.topic} ${entry.content}`);
+				const entry = await updateEntry(env.DB, id, {
+					topic,
+					content,
+					tags,
+					source,
+					actor,
+					confidence,
+				});
+				await syncEmbedding(
+					env.AI,
+					env.VECTORIZE_INDEX,
+					entry.id,
+					`${entry.topic} ${entry.content}`,
+				);
 				notify("entry");
 				logEvent("mutation", { op: "update", id: entry.id, ok: true });
 				return formatResult(
@@ -197,10 +235,26 @@ export function registerTools(
 		"query",
 		"Search knowledge entries with hybrid retrieval (lexical + semantic + graph)",
 		{
-			topic: z.string().optional().describe("Filter by topic (substring). Combined with content if both are provided."),
+			topic: z
+				.string()
+				.optional()
+				.describe(
+					"Filter by topic (substring). Combined with content if both are provided.",
+				),
 			tags: z.array(z.string()).optional().describe("Filter by tags (entry must have all)"),
-			content: z.string().optional().describe("Filter by content (substring). Combined with topic if both are provided."),
-			limit: z.number().int().min(1).max(200).optional().describe("Max entries to return (default: 20)"),
+			content: z
+				.string()
+				.optional()
+				.describe(
+					"Filter by content (substring). Combined with topic if both are provided.",
+				),
+			limit: z
+				.number()
+				.int()
+				.min(1)
+				.max(200)
+				.optional()
+				.describe("Max entries to return (default: 20)"),
 			cursor: z.string().optional().describe("Pagination cursor from previous response"),
 		},
 		async ({ topic, tags, content, limit, cursor }) => {
@@ -220,10 +274,18 @@ export function registerTools(
 						items = items.filter((e) => tags.every((t) => e.tags.includes(t)));
 					}
 
-					logEvent("retrieval", { mode: "hybrid", results: items.length, ms: result.retrieval_ms });
+					logEvent("retrieval", {
+						mode: "hybrid",
+						results: items.length,
+						ms: result.retrieval_ms,
+					});
 					return formatResult(
 						`Found ${items.length} entries (${result.retrieval_ms}ms)`,
-						{ items, next_cursor: result.next_cursor, retrieval_ms: result.retrieval_ms },
+						{
+							items,
+							next_cursor: result.next_cursor,
+							retrieval_ms: result.retrieval_ms,
+						},
 						"knowledge://entries",
 					);
 				}
@@ -231,7 +293,9 @@ export function registerTools(
 				// Fallback to basic query for tag-only or empty queries
 				const result = await queryEntries(env.DB, { topic, tags, content, limit, cursor });
 				return formatResult(
-					result.items.length ? `Found ${result.items.length} entries` : "No entries found",
+					result.items.length
+						? `Found ${result.items.length} entries`
+						: "No entries found",
 					{ items: result.items, next_cursor: result.next_cursor },
 					"knowledge://entries",
 				);
@@ -246,21 +310,24 @@ export function registerTools(
 		"Soft-delete an entry or triple",
 		{
 			id: z.string().describe("Entity ID"),
-			entity_type: z.enum(["entry", "triple"]).optional().describe("Type of entity (default: entry)"),
+			entity_type: z
+				.enum(["entry", "triple"])
+				.optional()
+				.describe("Type of entity (default: entry)"),
 		},
-			async ({ id, entity_type }) => {
-				try {
-					const type = entity_type ?? "entry";
-					if (type === "entry") {
-						await deleteEntry(env.DB, id);
-						if (env.VECTORIZE_INDEX) {
-							env.VECTORIZE_INDEX.deleteByIds([id]).catch((e) => {
-								logEvent("vectorize_delete_failed", { id, error: String(e) });
-							});
-						}
-					} else {
-						await deleteTriple(env.DB, id);
+		async ({ id, entity_type }) => {
+			try {
+				const type = entity_type ?? "entry";
+				if (type === "entry") {
+					await deleteEntry(env.DB, id);
+					if (env.VECTORIZE_INDEX) {
+						env.VECTORIZE_INDEX.deleteByIds([id]).catch((e) => {
+							logEvent("vectorize_delete_failed", { id, error: String(e) });
+						});
 					}
+				} else {
+					await deleteTriple(env.DB, id);
+				}
 				notify(type);
 				logEvent("mutation", { op: "delete", entity_type: type, id, ok: true });
 				return formatResult(
@@ -303,7 +370,10 @@ export function registerTools(
 
 				if (conflict) {
 					await saveConflict(conflict);
-					logEvent("conflict", { scope: conflict.scope, conflict_id: conflict.conflict_id });
+					logEvent("conflict", {
+						scope: conflict.scope,
+						conflict_id: conflict.conflict_id,
+					});
 					return formatResult(
 						`Conflict detected for ${subject}/${predicate}. Use resolve_conflict with conflict_id to proceed.`,
 						conflict,
@@ -311,7 +381,14 @@ export function registerTools(
 					);
 				}
 
-				const triple = await createTriple(env.DB, { subject, predicate, object, source, actor, confidence });
+				const triple = await createTriple(env.DB, {
+					subject,
+					predicate,
+					object,
+					source,
+					actor,
+					confidence,
+				});
 				notify("triple");
 				logEvent("mutation", { op: "relate", id: triple.id, ok: true });
 				return formatResult(
@@ -332,14 +409,28 @@ export function registerTools(
 			subject: z.string().optional().describe("Filter by subject (substring)"),
 			predicate: z.string().optional().describe("Filter by predicate (substring)"),
 			object: z.string().optional().describe("Filter by object (substring)"),
-			limit: z.number().int().min(1).max(200).optional().describe("Max triples to return (default: 50)"),
+			limit: z
+				.number()
+				.int()
+				.min(1)
+				.max(200)
+				.optional()
+				.describe("Max triples to return (default: 50)"),
 			cursor: z.string().optional().describe("Pagination cursor from previous response"),
 		},
 		async ({ subject, predicate, object, limit, cursor }) => {
 			try {
-				const result = await queryTriples(env.DB, { subject, predicate, object, limit, cursor });
+				const result = await queryTriples(env.DB, {
+					subject,
+					predicate,
+					object,
+					limit,
+					cursor,
+				});
 				return formatResult(
-					result.items.length ? `Found ${result.items.length} triples` : "No triples found",
+					result.items.length
+						? `Found ${result.items.length} triples`
+						: "No triples found",
 					{ items: result.items, next_cursor: result.next_cursor },
 					"knowledge://graph/triples",
 				);
@@ -363,7 +454,13 @@ export function registerTools(
 		async ({ id, predicate, object, source, actor, confidence }) => {
 			try {
 				checkPolicy("update_triple", { id, confidence });
-				const triple = await updateTriple(env.DB, id, { predicate, object, source, actor, confidence });
+				const triple = await updateTriple(env.DB, id, {
+					predicate,
+					object,
+					source,
+					actor,
+					confidence,
+				});
 				notify("triple");
 				return formatResult(
 					`Updated triple ${triple.id}`,
@@ -390,7 +487,14 @@ export function registerTools(
 		async ({ subject, predicate, object, source, actor, confidence }) => {
 			try {
 				checkPolicy("upsert_triple", { subject, predicate, object, confidence });
-				const { triple, created } = await upsertTriple(env.DB, { subject, predicate, object, source, actor, confidence });
+				const { triple, created } = await upsertTriple(env.DB, {
+					subject,
+					predicate,
+					object,
+					source,
+					actor,
+					confidence,
+				});
 				notify("triple");
 				return formatResult(
 					created ? `Created triple ${triple.id}` : `Updated triple ${triple.id}`,
@@ -500,7 +604,13 @@ export function registerTools(
 				checkPolicy("merge_entities", { keepId: keep_id, mergeId: merge_id });
 				const result = await mergeEntities(env.DB, keep_id, merge_id);
 				notify("entity");
-				logEvent("mutation", { op: "merge_entities", keep_id, merge_id, merged_count: result.merged_count, ok: true });
+				logEvent("mutation", {
+					op: "merge_entities",
+					keep_id,
+					merge_id,
+					merged_count: result.merged_count,
+					ok: true,
+				});
 				return formatResult(
 					`Merged entity ${merge_id} into ${keep_id} (${result.merged_count} triples reassigned)`,
 					{ keep_id, merge_id, ...result },
@@ -518,13 +628,22 @@ export function registerTools(
 		"undo",
 		"Revert the last N transactions (default: 1)",
 		{
-			count: z.number().int().min(1).optional().describe("Number of transactions to undo (default: 1)"),
+			count: z
+				.number()
+				.int()
+				.min(1)
+				.optional()
+				.describe("Number of transactions to undo (default: 1)"),
 		},
 		async ({ count }) => {
 			try {
 				const reverted = await undoTransactions(env.DB, count ?? 1);
 				if (reverted.length === 0) {
-					return formatResult("Nothing to undo", { reverted: [] }, "knowledge://history/transactions");
+					return formatResult(
+						"Nothing to undo",
+						{ reverted: [] },
+						"knowledge://history/transactions",
+					);
 				}
 				// Undo can affect entries or triples — notify both
 				notify("entry");
@@ -544,7 +663,13 @@ export function registerTools(
 		"history",
 		"View recent transaction history",
 		{
-			limit: z.number().int().min(1).max(100).optional().describe("Max entries to return (default: 20)"),
+			limit: z
+				.number()
+				.int()
+				.min(1)
+				.max(100)
+				.optional()
+				.describe("Max entries to return (default: 20)"),
 			entity_type: z.enum(["entry", "triple"]).optional().describe("Filter by entity type"),
 			cursor: z.string().optional().describe("Pagination cursor from previous response"),
 		},
@@ -552,7 +677,9 @@ export function registerTools(
 			try {
 				const result = await getHistory(env.DB, { limit, entity_type, cursor });
 				return formatResult(
-					result.items.length ? `${result.items.length} transactions` : "No transactions found",
+					result.items.length
+						? `${result.items.length} transactions`
+						: "No transactions found",
 					{ items: result.items, next_cursor: result.next_cursor },
 					"knowledge://history/transactions",
 				);

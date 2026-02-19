@@ -109,7 +109,10 @@ export async function storeChallenge(
 	});
 }
 
-export async function consumeChallenge(kv: KVNamespace, nonce: string): Promise<StoredChallenge | null> {
+export async function consumeChallenge(
+	kv: KVNamespace,
+	nonce: string,
+): Promise<StoredChallenge | null> {
 	const key = challengeKey(nonce);
 	const raw = await kv.get(key);
 	await kv.delete(key);

@@ -66,10 +66,7 @@ export function rowToEntry(r: Record<string, unknown>): Entry {
 	};
 }
 
-export async function createEntry(
-	db: D1Database,
-	params: CreateEntryParams,
-): Promise<Entry> {
+export async function createEntry(db: D1Database, params: CreateEntryParams): Promise<Entry> {
 	validateEntryFields({ topic: params.topic, content: params.content });
 
 	const id = ulid();
@@ -94,14 +91,28 @@ export async function createEntry(
 	};
 
 	await db.batch([
-		db.prepare(
-			`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
+		db
+			.prepare(
+				`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
 			 VALUES (?, 'CREATE', 'entry', ?, NULL, ?, ?)`,
-		).bind(ulid(), id, JSON.stringify(entry), now),
-		db.prepare(
-			`INSERT INTO entries (id, topic, content, tags, source, actor, confidence, status, created_at, updated_at)
+			)
+			.bind(ulid(), id, JSON.stringify(entry), now),
+		db
+			.prepare(
+				`INSERT INTO entries (id, topic, content, tags, source, actor, confidence, status, created_at, updated_at)
 			 VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
-		).bind(id, params.topic, params.content, tagsJson, params.source ?? null, params.actor ?? null, params.confidence ?? null, now, now),
+			)
+			.bind(
+				id,
+				params.topic,
+				params.content,
+				tagsJson,
+				params.source ?? null,
+				params.actor ?? null,
+				params.confidence ?? null,
+				now,
+				now,
+			),
 	]);
 
 	return entry;
@@ -114,9 +125,10 @@ export async function updateEntry(
 ): Promise<Entry> {
 	validateEntryFields({ topic: params.topic, content: params.content });
 
-	const row = await db.prepare(
-		`SELECT * FROM entries WHERE id = ? AND deleted_at IS NULL`,
-	).bind(id).first();
+	const row = await db
+		.prepare(`SELECT * FROM entries WHERE id = ? AND deleted_at IS NULL`)
+		.bind(id)
+		.first();
 
 	if (!row) throw KnowledgeError.notFound("Entry", id);
 
@@ -130,27 +142,42 @@ export async function updateEntry(
 		tags: params.tags ?? before.tags,
 		source: params.source !== undefined ? (params.source ?? null) : before.source,
 		actor: params.actor !== undefined ? (params.actor ?? null) : before.actor,
-		confidence: params.confidence !== undefined ? (params.confidence ?? null) : before.confidence,
+		confidence:
+			params.confidence !== undefined ? (params.confidence ?? null) : before.confidence,
 		updated_at: now,
 	};
 
 	await db.batch([
-		db.prepare(
-			`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
+		db
+			.prepare(
+				`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
 			 VALUES (?, 'UPDATE', 'entry', ?, ?, ?, ?)`,
-		).bind(ulid(), id, JSON.stringify(before), JSON.stringify(updated), now),
-		db.prepare(
-			`UPDATE entries SET topic = ?, content = ?, tags = ?, source = ?, actor = ?, confidence = ?, updated_at = ? WHERE id = ?`,
-		).bind(updated.topic, updated.content, JSON.stringify(updated.tags), updated.source, updated.actor, updated.confidence, now, id),
+			)
+			.bind(ulid(), id, JSON.stringify(before), JSON.stringify(updated), now),
+		db
+			.prepare(
+				`UPDATE entries SET topic = ?, content = ?, tags = ?, source = ?, actor = ?, confidence = ?, updated_at = ? WHERE id = ?`,
+			)
+			.bind(
+				updated.topic,
+				updated.content,
+				JSON.stringify(updated.tags),
+				updated.source,
+				updated.actor,
+				updated.confidence,
+				now,
+				id,
+			),
 	]);
 
 	return updated;
 }
 
 export async function deleteEntry(db: D1Database, id: string): Promise<void> {
-	const row = await db.prepare(
-		`SELECT * FROM entries WHERE id = ? AND deleted_at IS NULL`,
-	).bind(id).first();
+	const row = await db
+		.prepare(`SELECT * FROM entries WHERE id = ? AND deleted_at IS NULL`)
+		.bind(id)
+		.first();
 
 	if (!row) throw KnowledgeError.notFound("Entry", id);
 
@@ -158,13 +185,13 @@ export async function deleteEntry(db: D1Database, id: string): Promise<void> {
 	const now = sqliteNow();
 
 	await db.batch([
-		db.prepare(
-			`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
+		db
+			.prepare(
+				`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
 			 VALUES (?, 'DELETE', 'entry', ?, ?, NULL, ?)`,
-		).bind(ulid(), id, JSON.stringify(before), now),
-		db.prepare(
-			`UPDATE entries SET deleted_at = ? WHERE id = ?`,
-		).bind(now, id),
+			)
+			.bind(ulid(), id, JSON.stringify(before), now),
+		db.prepare(`UPDATE entries SET deleted_at = ? WHERE id = ?`).bind(now, id),
 	]);
 }
 
@@ -203,13 +230,10 @@ export async function queryEntries(
 	if (hasTags) {
 		// Tag pagination is approximate because keyset cursoring happens before JS
 		// tag filtering, so sparse matches can be skipped across pages.
-		const filtered = entries.filter((e) =>
-			params.tags!.every((t) => e.tags.includes(t)),
-		);
+		const filtered = entries.filter((e) => params.tags!.every((t) => e.tags.includes(t)));
 		const page = filtered.slice(0, limit);
-		const next_cursor = filtered.length >= limit && page.length > 0
-			? btoa(page[page.length - 1].id)
-			: null;
+		const next_cursor =
+			filtered.length >= limit && page.length > 0 ? btoa(page[page.length - 1].id) : null;
 		return { items: page, next_cursor };
 	}
 

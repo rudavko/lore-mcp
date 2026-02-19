@@ -9,8 +9,21 @@ import { undoTransactions, getHistory } from "./db/history";
 import { detectConflict } from "./domain/conflict";
 import { checkPolicy, setPolicy, resetPolicy } from "./domain/policy";
 import { type ErrorCode, KnowledgeError } from "./lib/errors";
-import { shouldProcessAsync, ingestSync, ingestAsync, processIngestionBatch, getIngestionStatus } from "./domain/ingestion";
-import { lexicalSearch, hybridSearch, graphExpand, sanitizeFts5Query, semanticSearch, syncEmbedding } from "./db/search";
+import {
+	shouldProcessAsync,
+	ingestSync,
+	ingestAsync,
+	processIngestionBatch,
+	getIngestionStatus,
+} from "./domain/ingestion";
+import {
+	lexicalSearch,
+	hybridSearch,
+	graphExpand,
+	sanitizeFts5Query,
+	semanticSearch,
+	syncEmbedding,
+} from "./db/search";
 import { isFts5Available } from "./db/schema";
 import { ulid, sqliteNow } from "./lib/ulid";
 
@@ -27,7 +40,10 @@ function expectKnowledgeErrorCode(error: unknown, code: ErrorCode): void {
 	expect((error as KnowledgeError).code).toBe(code);
 }
 
-async function expectRejectsKnowledgeErrorCode<T>(promise: Promise<T>, code: ErrorCode): Promise<void> {
+async function expectRejectsKnowledgeErrorCode<T>(
+	promise: Promise<T>,
+	code: ErrorCode,
+): Promise<void> {
 	try {
 		await promise;
 	} catch (error) {
@@ -51,7 +67,11 @@ function expectPolicyViolation(fn: () => void): void {
 
 describe("entries", () => {
 	test("create and query", async () => {
-		const entry = await createEntry(db, { topic: "ts-quirk", content: "Zod v4 changes", tags: ["typescript"] });
+		const entry = await createEntry(db, {
+			topic: "ts-quirk",
+			content: "Zod v4 changes",
+			tags: ["typescript"],
+		});
 		expect(entry.id).toHaveLength(26);
 		expect(entry.topic).toBe("ts-quirk");
 		expect(entry.tags).toEqual(["typescript"]);
@@ -106,7 +126,11 @@ describe("entries", () => {
 		const page1 = await queryEntries(db, { topic: "page-", limit: 2 });
 		expect(page1.next_cursor).not.toBeNull();
 
-		const page2 = await queryEntries(db, { topic: "page-", limit: 2, cursor: page1.next_cursor! });
+		const page2 = await queryEntries(db, {
+			topic: "page-",
+			limit: 2,
+			cursor: page1.next_cursor!,
+		});
 		const page1Ids = new Set(page1.items.map((i) => i.id));
 		expect(page2.items.every((item) => !page1Ids.has(item.id))).toBe(true);
 	});
@@ -163,7 +187,10 @@ describe("entries", () => {
 	});
 
 	test("update nonexistent entry throws KnowledgeError", async () => {
-		await expectRejectsKnowledgeErrorCode(updateEntry(db, "nonexistent", { topic: "x" }), "not_found");
+		await expectRejectsKnowledgeErrorCode(
+			updateEntry(db, "nonexistent", { topic: "x" }),
+			"not_found",
+		);
 	});
 
 	test("delete entry (soft)", async () => {
@@ -235,27 +262,37 @@ describe("length validation", () => {
 
 	test("triple rejects subject exceeding max length", async () => {
 		const long = "x".repeat(2001);
-		expect(createTriple(db, { subject: long, predicate: "is", object: "y" })).rejects.toThrow("exceeds");
+		expect(createTriple(db, { subject: long, predicate: "is", object: "y" })).rejects.toThrow(
+			"exceeds",
+		);
 	});
 
 	test("triple rejects predicate exceeding max length", async () => {
 		const long = "x".repeat(2001);
-		expect(createTriple(db, { subject: "x", predicate: long, object: "y" })).rejects.toThrow("exceeds");
+		expect(createTriple(db, { subject: "x", predicate: long, object: "y" })).rejects.toThrow(
+			"exceeds",
+		);
 	});
 
 	test("triple rejects object exceeding max length", async () => {
 		const long = "x".repeat(2001);
-		expect(createTriple(db, { subject: "x", predicate: "is", object: long })).rejects.toThrow("exceeds");
+		expect(createTriple(db, { subject: "x", predicate: "is", object: long })).rejects.toThrow(
+			"exceeds",
+		);
 	});
 
 	test("updateEntry rejects topic exceeding max length", async () => {
 		const entry = await createEntry(db, { topic: "ok", content: "ok" });
-		await expect(updateEntry(db, entry.id, { topic: "x".repeat(1001) })).rejects.toThrow("exceeds");
+		await expect(updateEntry(db, entry.id, { topic: "x".repeat(1001) })).rejects.toThrow(
+			"exceeds",
+		);
 	});
 
 	test("updateEntry rejects content exceeding max length", async () => {
 		const entry = await createEntry(db, { topic: "ok", content: "ok" });
-		await expect(updateEntry(db, entry.id, { content: "x".repeat(100_001) })).rejects.toThrow("exceeds");
+		await expect(updateEntry(db, entry.id, { content: "x".repeat(100_001) })).rejects.toThrow(
+			"exceeds",
+		);
 	});
 
 	test("updateEntry accepts partial update without validation error", async () => {
@@ -266,16 +303,23 @@ describe("length validation", () => {
 
 	test("updateTriple rejects object exceeding max length", async () => {
 		const triple = await createTriple(db, { subject: "a", predicate: "is", object: "b" });
-		await expect(updateTriple(db, triple.id, { object: "x".repeat(2001) })).rejects.toThrow("exceeds");
+		await expect(updateTriple(db, triple.id, { object: "x".repeat(2001) })).rejects.toThrow(
+			"exceeds",
+		);
 	});
 
 	test("updateTriple rejects predicate exceeding max length", async () => {
 		const triple = await createTriple(db, { subject: "a", predicate: "is", object: "b" });
-		await expect(updateTriple(db, triple.id, { predicate: "x".repeat(2001) })).rejects.toThrow("exceeds");
+		await expect(updateTriple(db, triple.id, { predicate: "x".repeat(2001) })).rejects.toThrow(
+			"exceeds",
+		);
 	});
 
 	test("entry accepts content at exactly max length", async () => {
-		const entry = await createEntry(db, { topic: "x".repeat(1000), content: "x".repeat(100_000) });
+		const entry = await createEntry(db, {
+			topic: "x".repeat(1000),
+			content: "x".repeat(100_000),
+		});
 		expect(entry.id).toHaveLength(26);
 	});
 });
@@ -284,7 +328,11 @@ describe("length validation", () => {
 
 describe("triples", () => {
 	test("create and query", async () => {
-		const triple = await createTriple(db, { subject: "TypeScript", predicate: "has", object: "generics" });
+		const triple = await createTriple(db, {
+			subject: "TypeScript",
+			predicate: "has",
+			object: "generics",
+		});
 		expect(triple.id).toHaveLength(26);
 		expect(triple.subject).toBe("TypeScript");
 		expect(triple.status).toBe("active");
@@ -316,14 +364,22 @@ describe("triples", () => {
 	});
 
 	test("upsert triple creates when new", async () => {
-		const { triple, created } = await upsertTriple(db, { subject: "X", predicate: "likes", object: "Y" });
+		const { triple, created } = await upsertTriple(db, {
+			subject: "X",
+			predicate: "likes",
+			object: "Y",
+		});
 		expect(created).toBe(true);
 		expect(triple.subject).toBe("X");
 	});
 
 	test("upsert triple updates when exists", async () => {
 		await createTriple(db, { subject: "X", predicate: "likes", object: "Y" });
-		const { triple, created } = await upsertTriple(db, { subject: "X", predicate: "likes", object: "Z" });
+		const { triple, created } = await upsertTriple(db, {
+			subject: "X",
+			predicate: "likes",
+			object: "Z",
+		});
 		expect(created).toBe(false);
 		expect(triple.object).toBe("Z");
 	});
@@ -351,7 +407,11 @@ describe("triples", () => {
 		}
 		const page1 = await queryTriples(db, { subject: "page-s", limit: 2 });
 		expect(page1.next_cursor).not.toBeNull();
-		const page2 = await queryTriples(db, { subject: "page-s", limit: 2, cursor: page1.next_cursor! });
+		const page2 = await queryTriples(db, {
+			subject: "page-s",
+			limit: 2,
+			cursor: page1.next_cursor!,
+		});
 		const page1Ids = new Set(page1.items.map((i) => i.id));
 		expect(page2.items.every((item) => !page1Ids.has(item.id))).toBe(true);
 	});
@@ -410,7 +470,12 @@ describe("undo", () => {
 	});
 
 	test("undo triple update restores all fields including subject", async () => {
-		const triple = await createTriple(db, { subject: "A", predicate: "is", object: "B", confidence: 0.5 });
+		const triple = await createTriple(db, {
+			subject: "A",
+			predicate: "is",
+			object: "B",
+			confidence: 0.5,
+		});
 		await updateTriple(db, triple.id, { object: "C", confidence: 0.9 });
 
 		await undoTransactions(db, 1);
@@ -643,29 +708,53 @@ describe("entities", () => {
 		const merge = await createEntity(db, "Py");
 
 		// Create entries linked to each entity
-		const keepEntry = await createEntry(db, { topic: "keep-entry", content: "Belongs to Python" });
-		const mergeEntry = await createEntry(db, { topic: "merge-entry", content: "Belongs to Py" });
+		const keepEntry = await createEntry(db, {
+			topic: "keep-entry",
+			content: "Belongs to Python",
+		});
+		const mergeEntry = await createEntry(db, {
+			topic: "merge-entry",
+			content: "Belongs to Py",
+		});
 		// Link entries to their entities via canonical_entity_id
-		await db.prepare(`UPDATE entries SET canonical_entity_id = ? WHERE id = ?`).bind(keep.id, keepEntry.id).run();
-		await db.prepare(`UPDATE entries SET canonical_entity_id = ? WHERE id = ?`).bind(merge.id, mergeEntry.id).run();
+		await db
+			.prepare(`UPDATE entries SET canonical_entity_id = ? WHERE id = ?`)
+			.bind(keep.id, keepEntry.id)
+			.run();
+		await db
+			.prepare(`UPDATE entries SET canonical_entity_id = ? WHERE id = ?`)
+			.bind(merge.id, mergeEntry.id)
+			.run();
 
 		await mergeEntities(db, keep.id, merge.id);
 
 		// After merge, both entries should be on keep
-		const postMerge = await db.prepare(`SELECT canonical_entity_id FROM entries WHERE id = ?`).bind(keepEntry.id).first();
+		const postMerge = await db
+			.prepare(`SELECT canonical_entity_id FROM entries WHERE id = ?`)
+			.bind(keepEntry.id)
+			.first();
 		expect(postMerge!.canonical_entity_id).toBe(keep.id);
-		const postMergeMerge = await db.prepare(`SELECT canonical_entity_id FROM entries WHERE id = ?`).bind(mergeEntry.id).first();
+		const postMergeMerge = await db
+			.prepare(`SELECT canonical_entity_id FROM entries WHERE id = ?`)
+			.bind(mergeEntry.id)
+			.first();
 		expect(postMergeMerge!.canonical_entity_id).toBe(keep.id);
 
 		// Undo the merge
 		await undoTransactions(db, 1);
 
 		// Keep's original entry should still be on keep (NOT moved to merge)
-		const afterUndo = await db.prepare(`SELECT canonical_entity_id FROM entries WHERE id = ?`).bind(keepEntry.id).first();
+		const afterUndo = await db
+			.prepare(`SELECT canonical_entity_id FROM entries WHERE id = ?`)
+			.bind(keepEntry.id)
+			.first();
 		expect(afterUndo!.canonical_entity_id).toBe(keep.id);
 
 		// Merge's entry should be back on merge
-		const afterUndoMerge = await db.prepare(`SELECT canonical_entity_id FROM entries WHERE id = ?`).bind(mergeEntry.id).first();
+		const afterUndoMerge = await db
+			.prepare(`SELECT canonical_entity_id FROM entries WHERE id = ?`)
+			.bind(mergeEntry.id)
+			.first();
 		expect(afterUndoMerge!.canonical_entity_id).toBe(merge.id);
 	});
 
@@ -750,27 +839,40 @@ describe("policy", () => {
 
 	test("rejects low confidence when policy set", () => {
 		setPolicy({ minConfidence: 0.5 });
-		expectPolicyViolation(() => checkPolicy("store", { topic: "x", content: "y", confidence: 0.3 }));
+		expectPolicyViolation(() =>
+			checkPolicy("store", { topic: "x", content: "y", confidence: 0.3 }),
+		);
 	});
 
 	test("passes confidence above minimum", () => {
 		setPolicy({ minConfidence: 0.5 });
-		expect(() => checkPolicy("store", { topic: "x", content: "y", confidence: 0.8 })).not.toThrow();
+		expect(() =>
+			checkPolicy("store", { topic: "x", content: "y", confidence: 0.8 }),
+		).not.toThrow();
 	});
 
 	describe("policy — all operations", () => {
 		test("relate: rejects when subject missing", () => {
-			expectPolicyViolation(() => checkPolicy("relate", { subject: "", predicate: "is", object: "B" }));
+			expectPolicyViolation(() =>
+				checkPolicy("relate", { subject: "", predicate: "is", object: "B" }),
+			);
 		});
 
 		test("relate: rejects when predicate missing", () => {
-			expectPolicyViolation(() => checkPolicy("relate", { subject: "A", predicate: "", object: "B" }));
+			expectPolicyViolation(() =>
+				checkPolicy("relate", { subject: "A", predicate: "", object: "B" }),
+			);
 		});
 
 		test("relate: rejects low confidence when minConfidence set", () => {
 			setPolicy({ minConfidence: 0.5 });
 			expectPolicyViolation(() => {
-				checkPolicy("relate", { subject: "A", predicate: "is", object: "B", confidence: 0.3 });
+				checkPolicy("relate", {
+					subject: "A",
+					predicate: "is",
+					object: "B",
+					confidence: 0.3,
+				});
 			});
 		});
 
@@ -779,15 +881,21 @@ describe("policy", () => {
 		});
 
 		test("upsert_triple: rejects missing object", () => {
-			expectPolicyViolation(() => checkPolicy("upsert_triple", { subject: "A", predicate: "is", object: "" }));
+			expectPolicyViolation(() =>
+				checkPolicy("upsert_triple", { subject: "A", predicate: "is", object: "" }),
+			);
 		});
 
 		test("merge_entities: rejects missing keepId", () => {
-			expectPolicyViolation(() => checkPolicy("merge_entities", { keepId: "", mergeId: "ent_2" }));
+			expectPolicyViolation(() =>
+				checkPolicy("merge_entities", { keepId: "", mergeId: "ent_2" }),
+			);
 		});
 
 		test("merge_entities: rejects missing mergeId", () => {
-			expectPolicyViolation(() => checkPolicy("merge_entities", { keepId: "ent_1", mergeId: "" }));
+			expectPolicyViolation(() =>
+				checkPolicy("merge_entities", { keepId: "ent_1", mergeId: "" }),
+			);
 		});
 	});
 });
@@ -905,10 +1013,13 @@ describe("ingestion", () => {
 	test("processIngestionBatch marks task failed when input_uri contains invalid JSON", async () => {
 		const taskId = ulid();
 		const now = sqliteNow();
-		await db.prepare(
-			`INSERT INTO ingestion_tasks (id, status, input_uri, total_items, processed_items, created_at, updated_at)
+		await db
+			.prepare(
+				`INSERT INTO ingestion_tasks (id, status, input_uri, total_items, processed_items, created_at, updated_at)
 			 VALUES (?, 'pending', ?, 1, 0, ?, ?)`,
-		).bind(taskId, "not-valid-json", now, now).run();
+			)
+			.bind(taskId, "not-valid-json", now, now)
+			.run();
 
 		const result = await processIngestionBatch(db);
 		expect(result.processed).toBe(0);
@@ -948,14 +1059,20 @@ describe("search", () => {
 		await createEntry(db, { topic: "TypeScript generics", content: "Type parameters" });
 		await createEntry(db, { topic: "Rust traits", content: "Trait bounds" });
 
-		const result = await hybridSearch(db, undefined, undefined, { query: "TypeScript", limit: 10 });
+		const result = await hybridSearch(db, undefined, undefined, {
+			query: "TypeScript",
+			limit: 10,
+		});
 		expect(result.items.length).toBeGreaterThanOrEqual(1);
 		expect(result.items[0].score_total).toBeGreaterThan(0);
 		expect(result.retrieval_ms).toBeGreaterThanOrEqual(0);
 	});
 
 	test("hybridSearch handles empty results", async () => {
-		const result = await hybridSearch(db, undefined, undefined, { query: "nonexistent topic xyz", limit: 10 });
+		const result = await hybridSearch(db, undefined, undefined, {
+			query: "nonexistent topic xyz",
+			limit: 10,
+		});
 		expect(result.items).toHaveLength(0);
 		expect(result.next_cursor).toBeNull();
 	});
@@ -965,11 +1082,18 @@ describe("search", () => {
 			await createEntry(db, { topic: "pagination test", content: `Item number ${i}` });
 		}
 
-		const page1 = await hybridSearch(db, undefined, undefined, { query: "pagination", limit: 2 });
+		const page1 = await hybridSearch(db, undefined, undefined, {
+			query: "pagination",
+			limit: 2,
+		});
 		expect(page1.items).toHaveLength(2);
 		expect(page1.next_cursor).not.toBeNull();
 
-		const page2 = await hybridSearch(db, undefined, undefined, { query: "pagination", limit: 2, cursor: page1.next_cursor! });
+		const page2 = await hybridSearch(db, undefined, undefined, {
+			query: "pagination",
+			limit: 2,
+			cursor: page1.next_cursor!,
+		});
 		expect(page2.items.length).toBeGreaterThan(0);
 		// Pages should not overlap
 		const page1Ids = new Set(page1.items.map((i) => i.id));
@@ -988,7 +1112,11 @@ describe("search", () => {
 	test("hybridSearch ignores invalid cursor gracefully", async () => {
 		await createEntry(db, { topic: "test", content: "data" });
 		// Invalid base64 cursor should not crash
-		const result = await hybridSearch(db, undefined, undefined, { query: "test", limit: 10, cursor: "not-valid-base64!!!" });
+		const result = await hybridSearch(db, undefined, undefined, {
+			query: "test",
+			limit: 10,
+			cursor: "not-valid-base64!!!",
+		});
 		expect(result.items.length).toBeGreaterThanOrEqual(1);
 	});
 });
@@ -997,7 +1125,11 @@ describe("graphExpand", () => {
 	test("returns connected entries via triple subject→object", async () => {
 		const e1 = await createEntry(db, { topic: "TypeScript", content: "typed language" });
 		const e2 = await createEntry(db, { topic: "JavaScript", content: "dynamic language" });
-		await createTriple(db, { subject: "TypeScript", predicate: "extends", object: "JavaScript" });
+		await createTriple(db, {
+			subject: "TypeScript",
+			predicate: "extends",
+			object: "JavaScript",
+		});
 
 		const results = await graphExpand(db, [e1.id], 1);
 		const connected = results.find((r) => r.id === e2.id);
@@ -1022,9 +1154,16 @@ describe("graphExpand", () => {
 	test("hybridSearch score_graph > 0 when graph-connected entry included", async () => {
 		const seed = await createEntry(db, { topic: "TypeScript", content: "query anchor" });
 		const neighbor = await createEntry(db, { topic: "JavaScript", content: "connected node" });
-		await createTriple(db, { subject: "TypeScript", predicate: "extends", object: "JavaScript" });
+		await createTriple(db, {
+			subject: "TypeScript",
+			predicate: "extends",
+			object: "JavaScript",
+		});
 
-		const result = await hybridSearch(db, undefined, undefined, { query: "TypeScript", limit: 10 });
+		const result = await hybridSearch(db, undefined, undefined, {
+			query: "TypeScript",
+			limit: 10,
+		});
 		const graphHit = result.items.find((item) => item.id === neighbor.id);
 		expect(graphHit).toBeDefined();
 		expect(graphHit!.score_graph).toBeGreaterThan(0);
@@ -1042,8 +1181,14 @@ describe("FTS5 MATCH integration", () => {
 	});
 
 	test("FTS5 MATCH finds entries by topic keyword", async () => {
-		await createEntry(db, { topic: "TypeScript generics", content: "Generics allow reusable components" });
-		await createEntry(db, { topic: "Rust lifetimes", content: "Lifetimes ensure memory safety" });
+		await createEntry(db, {
+			topic: "TypeScript generics",
+			content: "Generics allow reusable components",
+		});
+		await createEntry(db, {
+			topic: "Rust lifetimes",
+			content: "Lifetimes ensure memory safety",
+		});
 
 		// "TypeScript" should match via FTS5 MATCH, not LIKE
 		const results = await lexicalSearch(db, "TypeScript", 10);
@@ -1054,7 +1199,10 @@ describe("FTS5 MATCH integration", () => {
 	});
 
 	test("FTS5 MATCH finds entries by content keyword", async () => {
-		await createEntry(db, { topic: "memory", content: "Rust lifetimes ensure memory safety without garbage collection" });
+		await createEntry(db, {
+			topic: "memory",
+			content: "Rust lifetimes ensure memory safety without garbage collection",
+		});
 		await createEntry(db, { topic: "unrelated", content: "This is about cooking recipes" });
 
 		const results = await lexicalSearch(db, "garbage", 10);
@@ -1063,8 +1211,14 @@ describe("FTS5 MATCH integration", () => {
 	});
 
 	test("FTS5 MATCH handles multi-word queries", async () => {
-		await createEntry(db, { topic: "TypeScript generics", content: "Generic type parameters enable reusable code" });
-		await createEntry(db, { topic: "JavaScript closures", content: "Closures capture variables from scope" });
+		await createEntry(db, {
+			topic: "TypeScript generics",
+			content: "Generic type parameters enable reusable code",
+		});
+		await createEntry(db, {
+			topic: "JavaScript closures",
+			content: "Closures capture variables from scope",
+		});
 
 		// Multi-word query: each word quoted by sanitizer
 		const results = await lexicalSearch(db, "TypeScript generics", 10);
@@ -1073,9 +1227,15 @@ describe("FTS5 MATCH integration", () => {
 
 	test("FTS5 MATCH ranks topic matches higher than content-only matches", async () => {
 		// Entry with query term in topic
-		await createEntry(db, { topic: "bun runtime", content: "Fast JavaScript bundler and runtime" });
+		await createEntry(db, {
+			topic: "bun runtime",
+			content: "Fast JavaScript bundler and runtime",
+		});
 		// Entry with query term only in content
-		await createEntry(db, { topic: "tools comparison", content: "Some developers prefer bun over node" });
+		await createEntry(db, {
+			topic: "tools comparison",
+			content: "Some developers prefer bun over node",
+		});
 
 		const results = await lexicalSearch(db, "bun", 10);
 		expect(results.length).toBe(2);
@@ -1092,7 +1252,10 @@ describe("FTS5 MATCH integration", () => {
 	});
 
 	test("FTS5 MATCH handles FTS5 operator keywords as literals", async () => {
-		await createEntry(db, { topic: "logic gates", content: "AND OR NOT are boolean operators" });
+		await createEntry(db, {
+			topic: "logic gates",
+			content: "AND OR NOT are boolean operators",
+		});
 
 		// "AND" is an FTS5 operator but our sanitizer quotes it
 		const results = await lexicalSearch(db, "AND OR", 10);
@@ -1100,7 +1263,10 @@ describe("FTS5 MATCH integration", () => {
 	});
 
 	test("FTS5 triggers keep index in sync after updates", async () => {
-		const entry = await createEntry(db, { topic: "original topic", content: "original content" });
+		const entry = await createEntry(db, {
+			topic: "original topic",
+			content: "original content",
+		});
 
 		// Should find by original content
 		let results = await lexicalSearch(db, "original", 10);
@@ -1224,7 +1390,7 @@ describe("semantic search with mocks", () => {
 		const mockAi = createMockAi();
 		const mockVectorize = createMockVectorize([
 			{ id: "entry-1", score: 0.95 },
-			{ id: "entry-2", score: 0.80 },
+			{ id: "entry-2", score: 0.8 },
 		]);
 
 		const results = await semanticSearch(mockAi, mockVectorize, "test query", 10);
@@ -1232,7 +1398,7 @@ describe("semantic search with mocks", () => {
 		expect(results[0].id).toBe("entry-1");
 		expect(results[0].score_semantic).toBe(0.95);
 		expect(results[1].id).toBe("entry-2");
-		expect(results[1].score_semantic).toBe(0.80);
+		expect(results[1].score_semantic).toBe(0.8);
 	});
 
 	test("semanticSearch returns empty when Ai is undefined", async () => {
@@ -1249,7 +1415,9 @@ describe("semantic search with mocks", () => {
 
 	test("semanticSearch handles Ai failure gracefully", async () => {
 		const failingAi = {
-			run: async () => { throw new Error("AI service down"); },
+			run: async () => {
+				throw new Error("AI service down");
+			},
 		} as unknown as Ai;
 		const mockVectorize = createMockVectorize([]);
 
@@ -1260,7 +1428,9 @@ describe("semantic search with mocks", () => {
 	test("semanticSearch handles Vectorize failure gracefully", async () => {
 		const mockAi = createMockAi();
 		const failingVectorize = {
-			query: async () => { throw new Error("Vectorize down"); },
+			query: async () => {
+				throw new Error("Vectorize down");
+			},
 		} as unknown as VectorizeIndex;
 
 		const results = await semanticSearch(mockAi, failingVectorize, "test", 10);
@@ -1289,7 +1459,9 @@ describe("semantic search with mocks", () => {
 
 	test("syncEmbedding handles Ai failure gracefully", async () => {
 		const failingAi = {
-			run: async () => { throw new Error("AI down"); },
+			run: async () => {
+				throw new Error("AI down");
+			},
 		} as unknown as Ai;
 		const mockVectorize = {
 			upsert: async () => ({ mutationId: "mock" }),
@@ -1302,13 +1474,14 @@ describe("semantic search with mocks", () => {
 	test("hybridSearch integrates semantic results when Ai+Vectorize provided", async () => {
 		// Seed some entries
 		await createEntry(db, { topic: "alpha concept", content: "First alpha entry" });
-		const entry2 = await createEntry(db, { topic: "beta concept", content: "Second beta entry" });
+		const entry2 = await createEntry(db, {
+			topic: "beta concept",
+			content: "Second beta entry",
+		});
 
 		const mockAi = createMockAi();
 		// Mock Vectorize returns entry2 as the top semantic match
-		const mockVectorize = createMockVectorize([
-			{ id: entry2.id, score: 0.99 },
-		]);
+		const mockVectorize = createMockVectorize([{ id: entry2.id, score: 0.99 }]);
 
 		const result = await hybridSearch(db, mockAi, mockVectorize, { query: "alpha", limit: 10 });
 
@@ -1323,21 +1496,28 @@ describe("semantic search with mocks", () => {
 	});
 
 	test("hybridSearch does not hydrate soft-deleted semantic matches", async () => {
-		const deletedEntry = await createEntry(db, { topic: "old alpha", content: "deleted semantic candidate" });
+		const deletedEntry = await createEntry(db, {
+			topic: "old alpha",
+			content: "deleted semantic candidate",
+		});
 		await deleteEntry(db, deletedEntry.id);
 
 		const mockAi = createMockAi();
-		const mockVectorize = createMockVectorize([
-			{ id: deletedEntry.id, score: 0.99 },
-		]);
+		const mockVectorize = createMockVectorize([{ id: deletedEntry.id, score: 0.99 }]);
 
 		const result = await hybridSearch(db, mockAi, mockVectorize, { query: "alpha", limit: 10 });
 		expect(result.items).toHaveLength(0);
 	});
 
 	test("hybridSearch skips deleted top semantic hits without starving the page", async () => {
-		const deletedEntry = await createEntry(db, { topic: "stale", content: "deleted semantic candidate" });
-		const liveEntry = await createEntry(db, { topic: "fresh", content: "live semantic candidate" });
+		const deletedEntry = await createEntry(db, {
+			topic: "stale",
+			content: "deleted semantic candidate",
+		});
+		const liveEntry = await createEntry(db, {
+			topic: "fresh",
+			content: "live semantic candidate",
+		});
 		await deleteEntry(db, deletedEntry.id);
 
 		const mockAi = createMockAi();
@@ -1346,7 +1526,10 @@ describe("semantic search with mocks", () => {
 			{ id: liveEntry.id, score: 0.98 },
 		]);
 
-		const result = await hybridSearch(db, mockAi, mockVectorize, { query: "semantic-only", limit: 1 });
+		const result = await hybridSearch(db, mockAi, mockVectorize, {
+			query: "semantic-only",
+			limit: 1,
+		});
 		expect(result.items).toHaveLength(1);
 		expect(result.items[0].id).toBe(liveEntry.id);
 		expect(result.next_cursor).toBeNull();

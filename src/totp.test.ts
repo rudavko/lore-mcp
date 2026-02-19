@@ -167,7 +167,11 @@ describe("buildOtpAuthUri", () => {
 	});
 
 	test("encodes issuer and account in label", () => {
-		const uri = buildOtpAuthUri({ secret: "ABC", issuer: "My App", accountName: "user@example.com" });
+		const uri = buildOtpAuthUri({
+			secret: "ABC",
+			issuer: "My App",
+			accountName: "user@example.com",
+		});
 		expect(uri).toContain("otpauth://totp/My%20App:user%40example.com");
 	});
 });

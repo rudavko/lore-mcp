@@ -75,8 +75,12 @@ export async function initSchema(db: D1Database): Promise<void> {
 			created_at TEXT NOT NULL DEFAULT (datetime('now')),
 			expires_at TEXT NOT NULL
 		)`),
-		db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS uq_canonical_entities_name ON canonical_entities(name)`),
-		db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS uq_entity_aliases_alias ON entity_aliases(alias)`),
+		db.prepare(
+			`CREATE UNIQUE INDEX IF NOT EXISTS uq_canonical_entities_name ON canonical_entities(name)`,
+		),
+		db.prepare(
+			`CREATE UNIQUE INDEX IF NOT EXISTS uq_entity_aliases_alias ON entity_aliases(alias)`,
+		),
 		db.prepare(`CREATE INDEX IF NOT EXISTS idx_conflicts_expires ON conflicts(expires_at)`),
 	]);
 
@@ -89,12 +93,14 @@ async function initFts5(db: D1Database): Promise<void> {
 
 	try {
 		// Content-sync FTS5: external content table pointing to entries
-		await db.prepare(
-			`CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
+		await db
+			.prepare(
+				`CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
 				topic, content, tags,
 				content=entries, content_rowid=rowid
 			)`,
-		).run();
+			)
+			.run();
 
 		// Triggers to keep FTS in sync with entries table
 		await db.batch([

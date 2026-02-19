@@ -82,13 +82,17 @@ describe("mcp tools conflict round-trip", () => {
 		});
 
 		expect(resolveResult.isError).toBeUndefined();
-		const { items: triples } = await queryTriples(db, { subject: "Rust", predicate: "creator" });
+		const { items: triples } = await queryTriples(db, {
+			subject: "Rust",
+			predicate: "creator",
+		});
 		expect(triples).toHaveLength(1);
 		expect(triples[0].object).toBe("Someone Else");
 
-		const row = await db.prepare(
-			`SELECT COUNT(*) AS total FROM conflicts WHERE conflict_id = ?`,
-		).bind(conflict.conflict_id).first();
+		const row = await db
+			.prepare(`SELECT COUNT(*) AS total FROM conflicts WHERE conflict_id = ?`)
+			.bind(conflict.conflict_id)
+			.first();
 		expect(Number((row as Record<string, unknown> | null)?.total ?? 0)).toBe(0);
 	});
 
@@ -105,9 +109,10 @@ describe("mcp tools conflict round-trip", () => {
 		});
 		const conflict = readResource<{ conflict_id: string }>(relateResult);
 
-		await db.prepare(
-			`UPDATE conflicts SET expires_at = ? WHERE conflict_id = ?`,
-		).bind(new Date(Date.now() - 1).toISOString(), conflict.conflict_id).run();
+		await db
+			.prepare(`UPDATE conflicts SET expires_at = ? WHERE conflict_id = ?`)
+			.bind(new Date(Date.now() - 1).toISOString(), conflict.conflict_id)
+			.run();
 
 		const ctx2 = new MockMcpServer();
 		registerTools(ctx2 as unknown as McpServer, { DB: db });
@@ -120,9 +125,10 @@ describe("mcp tools conflict round-trip", () => {
 		expect(resolveResult.isError).toBe(true);
 		expect(readErrorCode(resolveResult)).toBe("not_found");
 
-		const row = await db.prepare(
-			`SELECT COUNT(*) AS total FROM conflicts WHERE conflict_id = ?`,
-		).bind(conflict.conflict_id).first();
+		const row = await db
+			.prepare(`SELECT COUNT(*) AS total FROM conflicts WHERE conflict_id = ?`)
+			.bind(conflict.conflict_id)
+			.first();
 		expect(Number((row as Record<string, unknown> | null)?.total ?? 0)).toBe(0);
 	});
 });

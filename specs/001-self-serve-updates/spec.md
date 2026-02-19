@@ -29,21 +29,21 @@ Acceptance Criteria:
 
 - Given I open the public repository README
 - When I view the top section
-- Then I can see a plain-language summary and a primary Deploy button above the fold
+- Then I can see a plain-language summary and a primary Use as Template button above the fold
 
 - Given I need update information
 - When I scan install instructions
 - Then I can find a concise section describing manual versus auto-update options
 
-### US-002 One-click deploy from public repo
+### US-002 Template-based deploy from public repo
 
-As a user, I want one-click deployment from the public repository, so I can provision the service in my own Cloudflare account without CLI setup.
+As a user, I want to deploy using the repository as a template, so I can provision the service in my own Cloudflare account while maintaining my own copy of the code.
 
 Acceptance Criteria:
 
-- Given I click Deploy to Cloudflare from the public repository
-- When deployment setup opens
-- Then the flow targets the correct repository URL and required values are requested
+- Given I click Use as Template from the public repository
+- When I create my own repository copy
+- Then I can connect it to Cloudflare Workers via the dashboard
 
 - Given deployment completes
 - When I view project output
@@ -204,4 +204,3 @@ Acceptance Criteria:
 3. Users can explicitly opt in/out of scheduled auto-updates.
 4. Update failures include actionable guidance and rollback steps.
 5. Documentation makes destructive recovery paths unambiguous.
-

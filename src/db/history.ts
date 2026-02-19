@@ -18,15 +18,15 @@ export interface GetHistoryResult {
 	next_cursor: string | null;
 }
 
-export async function undoTransactions(
-	db: D1Database,
-	count: number = 1,
-): Promise<string[]> {
-	const { results: txns } = await db.prepare(
-		`SELECT * FROM transactions
+export async function undoTransactions(db: D1Database, count: number = 1): Promise<string[]> {
+	const { results: txns } = await db
+		.prepare(
+			`SELECT * FROM transactions
 		 WHERE op != 'REVERT' AND reverted_by IS NULL
 		 ORDER BY created_at DESC, id DESC LIMIT ?`,
-	).bind(count).all();
+		)
+		.bind(count)
+		.all();
 
 	const revertedIds: string[] = [];
 
@@ -43,13 +43,13 @@ export async function undoTransactions(
 		const table = entityType === "entry" ? "entries" : "triples";
 
 		const stmts: D1PreparedStatement[] = [
-			db.prepare(
-				`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
+			db
+				.prepare(
+					`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
 				 VALUES (?, 'REVERT', ?, ?, ?, ?, ?)`,
-			).bind(revertId, entityType, entityId, after, before, now),
-			db.prepare(
-				`UPDATE transactions SET reverted_by = ? WHERE id = ?`,
-			).bind(revertId, txId),
+				)
+				.bind(revertId, entityType, entityId, after, before, now),
+			db.prepare(`UPDATE transactions SET reverted_by = ? WHERE id = ?`).bind(revertId, txId),
 		];
 
 		if (op === "CREATE") {
@@ -64,18 +64,41 @@ export async function undoTransactions(
 			const snap = JSON.parse(before);
 			if (entityType === "entry") {
 				// snap.tags is string[] from the snapshot; DB column stores JSON string
-				const tagsJson = Array.isArray(snap.tags) ? JSON.stringify(snap.tags) : (snap.tags ?? "[]");
+				const tagsJson = Array.isArray(snap.tags)
+					? JSON.stringify(snap.tags)
+					: (snap.tags ?? "[]");
 				stmts.push(
-					db.prepare(
-						`UPDATE entries SET topic = ?, content = ?, tags = ?, source = ?, actor = ?, confidence = ?, updated_at = ? WHERE id = ?`,
-					).bind(snap.topic, snap.content, tagsJson, snap.source ?? null, snap.actor ?? null, snap.confidence ?? null, snap.updated_at, entityId),
+					db
+						.prepare(
+							`UPDATE entries SET topic = ?, content = ?, tags = ?, source = ?, actor = ?, confidence = ?, updated_at = ? WHERE id = ?`,
+						)
+						.bind(
+							snap.topic,
+							snap.content,
+							tagsJson,
+							snap.source ?? null,
+							snap.actor ?? null,
+							snap.confidence ?? null,
+							snap.updated_at,
+							entityId,
+						),
 				);
 			} else if (entityType === "triple") {
 				// Restore all triple fields including subject
 				stmts.push(
-					db.prepare(
-						`UPDATE triples SET subject = ?, predicate = ?, object = ?, source = ?, actor = ?, confidence = ? WHERE id = ?`,
-					).bind(snap.subject, snap.predicate, snap.object, snap.source ?? null, snap.actor ?? null, snap.confidence ?? null, entityId),
+					db
+						.prepare(
+							`UPDATE triples SET subject = ?, predicate = ?, object = ?, source = ?, actor = ?, confidence = ? WHERE id = ?`,
+						)
+						.bind(
+							snap.subject,
+							snap.predicate,
+							snap.object,
+							snap.source ?? null,
+							snap.actor ?? null,
+							snap.confidence ?? null,
+							entityId,
+						),
 				);
 			}
 		} else if (op === "MERGE" && before) {
@@ -92,14 +115,20 @@ export async function undoTransactions(
 			if (snap.keep_id && snap.merge_id && snap.keep_name && snap.merge_name) {
 				// 1. Restore the deleted canonical entity (preserve original created_at)
 				stmts.push(
-					db.prepare(`INSERT OR IGNORE INTO canonical_entities (id, name, created_at) VALUES (?, ?, ?)`)
+					db
+						.prepare(
+							`INSERT OR IGNORE INTO canonical_entities (id, name, created_at) VALUES (?, ?, ?)`,
+						)
 						.bind(snap.merge_id, snap.merge_name, snap.merge_created_at ?? now),
 				);
 				// 2. Reverse triple subject reassignments (per-ID)
 				if (Array.isArray(snap.subj_triple_ids)) {
 					for (const tripleId of snap.subj_triple_ids) {
 						stmts.push(
-							db.prepare(`UPDATE triples SET subject = ? WHERE id = ? AND subject = ?`)
+							db
+								.prepare(
+									`UPDATE triples SET subject = ? WHERE id = ? AND subject = ?`,
+								)
 								.bind(snap.merge_name, tripleId, snap.keep_name),
 						);
 					}
@@ -108,7 +137,10 @@ export async function undoTransactions(
 				if (Array.isArray(snap.obj_triple_ids)) {
 					for (const tripleId of snap.obj_triple_ids) {
 						stmts.push(
-							db.prepare(`UPDATE triples SET object = ? WHERE id = ? AND object = ?`)
+							db
+								.prepare(
+									`UPDATE triples SET object = ? WHERE id = ? AND object = ?`,
+								)
 								.bind(snap.merge_name, tripleId, snap.keep_name),
 						);
 					}
@@ -117,7 +149,10 @@ export async function undoTransactions(
 				if (Array.isArray(snap.merge_entry_ids)) {
 					for (const entryId of snap.merge_entry_ids) {
 						stmts.push(
-							db.prepare(`UPDATE entries SET canonical_entity_id = ? WHERE id = ? AND canonical_entity_id = ?`)
+							db
+								.prepare(
+									`UPDATE entries SET canonical_entity_id = ? WHERE id = ? AND canonical_entity_id = ?`,
+								)
 								.bind(snap.merge_id, entryId, snap.keep_id),
 						);
 					}
@@ -126,14 +161,20 @@ export async function undoTransactions(
 				if (Array.isArray(snap.merge_alias_ids)) {
 					for (const aliasId of snap.merge_alias_ids) {
 						stmts.push(
-							db.prepare(`UPDATE entity_aliases SET canonical_entity_id = ? WHERE id = ? AND canonical_entity_id = ?`)
+							db
+								.prepare(
+									`UPDATE entity_aliases SET canonical_entity_id = ? WHERE id = ? AND canonical_entity_id = ?`,
+								)
 								.bind(snap.merge_id, aliasId, snap.keep_id),
 						);
 					}
 				}
 				// 6. Remove the merge-created alias
 				stmts.push(
-					db.prepare(`DELETE FROM entity_aliases WHERE canonical_entity_id = ? AND alias = ?`)
+					db
+						.prepare(
+							`DELETE FROM entity_aliases WHERE canonical_entity_id = ? AND alias = ?`,
+						)
 						.bind(snap.keep_id, snap.merge_name.toLowerCase()),
 				);
 			}

@@ -61,15 +61,18 @@ export async function lexicalSearch(
 			// Use OR between tokens so multi-term queries remain inclusive.
 			const ftsMatchQuery = sanitized.replace(/"\s+"/g, '" OR "');
 			try {
-				const { results } = await db.prepare(
-					`SELECT e.id, bm25(entries_fts) AS rank
+				const { results } = await db
+					.prepare(
+						`SELECT e.id, bm25(entries_fts) AS rank
 					 FROM entries_fts fts
 					 JOIN entries e ON e.rowid = fts.rowid
 					 WHERE entries_fts MATCH ?
 					 AND e.deleted_at IS NULL
 					 ORDER BY rank
 					 LIMIT ?`,
-				).bind(ftsMatchQuery, limit * 2).all();
+					)
+					.bind(ftsMatchQuery, limit * 2)
+					.all();
 
 				// bm25() returns negative values where more-negative = better match.
 				// Normalize to 0-1 range.
@@ -80,9 +83,9 @@ export async function lexicalSearch(
 					id: r.id as string,
 					score_lexical: scores[i] / maxScore,
 				}));
-				} catch (e) {
-					logEvent("fts5_fallback", { error: String(e), query: ftsMatchQuery });
-				}
+			} catch (e) {
+				logEvent("fts5_fallback", { error: String(e), query: ftsMatchQuery });
+			}
 		}
 	}
 
@@ -96,12 +99,15 @@ export async function lexicalSearch(
 		const pattern = `%${escapeLike(token)}%`;
 		return [pattern, pattern, pattern];
 	});
-	const { results } = await db.prepare(
-		`SELECT DISTINCT id, topic, content FROM entries
+	const { results } = await db
+		.prepare(
+			`SELECT DISTINCT id, topic, content FROM entries
 		 WHERE deleted_at IS NULL AND (${clauses.join(" OR ")})
 		 ORDER BY created_at DESC
 		 LIMIT ?`,
-	).bind(...binds, limit * 2).all();
+		)
+		.bind(...binds, limit * 2)
+		.all();
 
 	const queryLower = query.toLowerCase();
 	return results.map((r) => {
@@ -186,20 +192,26 @@ export async function graphExpand(
 
 	// Get topics of seed entries to find connected triples
 	const placeholders = entryIds.map(() => "?").join(",");
-	const { results: seedEntries } = await db.prepare(
-		`SELECT id, topic FROM entries WHERE id IN (${placeholders}) AND deleted_at IS NULL`,
-	).bind(...entryIds).all();
+	const { results: seedEntries } = await db
+		.prepare(
+			`SELECT id, topic FROM entries WHERE id IN (${placeholders}) AND deleted_at IS NULL`,
+		)
+		.bind(...entryIds)
+		.all();
 
 	const seedTopics = seedEntries.map((r) => r.topic as string);
 	if (seedTopics.length === 0) return [];
 
 	// Find triples where seed topics appear as subject or object
 	const topicPlaceholders = seedTopics.map(() => "?").join(",");
-	const { results: relatedTriples } = await db.prepare(
-		`SELECT subject, object FROM triples
+	const { results: relatedTriples } = await db
+		.prepare(
+			`SELECT subject, object FROM triples
 		 WHERE (subject IN (${topicPlaceholders}) OR object IN (${topicPlaceholders}))
 		 AND deleted_at IS NULL`,
-	).bind(...seedTopics, ...seedTopics).all();
+		)
+		.bind(...seedTopics, ...seedTopics)
+		.all();
 
 	// Collect related terms from the other side of each triple
 	const relatedTerms = new Set<string>();
@@ -215,15 +227,18 @@ export async function graphExpand(
 	// Find entries whose topic matches related terms
 	const termArray = Array.from(relatedTerms);
 	const termPlaceholders = termArray.map(() => "?").join(",");
-	const { results: graphEntries } = await db.prepare(
-		`SELECT id FROM entries
+	const { results: graphEntries } = await db
+		.prepare(
+			`SELECT id FROM entries
 		 WHERE topic IN (${termPlaceholders}) AND deleted_at IS NULL
 		 AND id NOT IN (${placeholders})`,
-	).bind(...termArray, ...entryIds).all();
+		)
+		.bind(...termArray, ...entryIds)
+		.all();
 
 	return graphEntries.map((r) => ({
 		id: r.id as string,
-		score_graph: 1.0 / (1 + maxHops),  // Decay by hop distance
+		score_graph: 1.0 / (1 + maxHops), // Decay by hop distance
 		graph_hops: 1,
 	}));
 }
@@ -335,9 +350,10 @@ export async function hybridSearch(
 	}
 
 	const idPlaceholders = sorted.map(() => "?").join(",");
-	const { results: entryRows } = await db.prepare(
-		`SELECT * FROM entries WHERE id IN (${idPlaceholders}) AND deleted_at IS NULL`,
-	).bind(...sorted.map((p) => p.id)).all();
+	const { results: entryRows } = await db
+		.prepare(`SELECT * FROM entries WHERE id IN (${idPlaceholders}) AND deleted_at IS NULL`)
+		.bind(...sorted.map((p) => p.id))
+		.all();
 
 	const entryMap = new Map<string, Entry>();
 	for (const r of entryRows) {
@@ -352,9 +368,8 @@ export async function hybridSearch(
 		...p,
 	}));
 
-	const nextCursor = page.length === limit && liveSorted.length > limit
-		? btoa(page[page.length - 1].id)
-		: null;
+	const nextCursor =
+		page.length === limit && liveSorted.length > limit ? btoa(page[page.length - 1].id) : null;
 
 	return {
 		items,

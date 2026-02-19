@@ -1,4 +1,4 @@
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/rudavko/lore-mcp)
+[![Use this template](https://img.shields.io/badge/Use_as_Template-blue?style=for-the-badge&logo=github)](https://github.com/rudavko/lore-mcp/generate) [![Connect to Cloudflare](https://img.shields.io/badge/Connect_to-Cloudflare-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://dash.cloudflare.com/?to=/:account/workers/new)
 
 # LORE
 
@@ -24,24 +24,24 @@ With one deployed LORE endpoint, every connected agent sees the same knowledge b
 
 ### Tools
 
-| Tool | Description |
-|---|---|
-| `store` | Create a knowledge entry with optional provenance |
-| `update` | Update an existing entry |
-| `query` | Hybrid search: FTS5 lexical + Vectorize semantic + graph expansion (combines `topic` + `content` when both are provided) |
-| `delete` | Soft-delete an entry or triple |
-| `relate` | Create a graph triple with conflict detection |
-| `query_graph` | Query triples by subject / predicate / object with cursor pagination |
-| `update_triple` | Update an existing triple |
-| `upsert_triple` | Create-or-update a triple by subject+predicate |
-| `resolve_conflict` | Resolve a detected triple conflict (replace / retain_both / reject) |
-| `upsert_entity` | Create or resolve a canonical entity by name |
-| `merge_entities` | Merge two canonical entities |
-| `undo` | Revert recent transactions |
-| `history` | View transaction history with cursor pagination |
-| `ingest` | Bulk-ingest text (sync for small inputs, async for large) |
-| `ingestion_status` | Check async ingestion progress |
-| `time` | Current time in any IANA timezone |
+| Tool               | Description                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `store`            | Create a knowledge entry with optional provenance                                                                        |
+| `update`           | Update an existing entry                                                                                                 |
+| `query`            | Hybrid search: FTS5 lexical + Vectorize semantic + graph expansion (combines `topic` + `content` when both are provided) |
+| `delete`           | Soft-delete an entry or triple                                                                                           |
+| `relate`           | Create a graph triple with conflict detection                                                                            |
+| `query_graph`      | Query triples by subject / predicate / object with cursor pagination                                                     |
+| `update_triple`    | Update an existing triple                                                                                                |
+| `upsert_triple`    | Create-or-update a triple by subject+predicate                                                                           |
+| `resolve_conflict` | Resolve a detected triple conflict (replace / retain_both / reject)                                                      |
+| `upsert_entity`    | Create or resolve a canonical entity by name                                                                             |
+| `merge_entities`   | Merge two canonical entities                                                                                             |
+| `undo`             | Revert recent transactions                                                                                               |
+| `history`          | View transaction history with cursor pagination                                                                          |
+| `ingest`           | Bulk-ingest text (sync for small inputs, async for large)                                                                |
+| `ingestion_status` | Check async ingestion progress                                                                                           |
+| `time`             | Current time in any IANA timezone                                                                                        |
 
 ### Resources (paginated, cursor-based)
 
@@ -87,27 +87,27 @@ When Vectorize is not bound, semantic weight is redistributed to lexical and gra
 
 ## Quick Start
 
-### Install on Cloudflare (one click)
+### Install on Cloudflare
 
-1. Click the button and follow the Cloudflare prompts.
-2. When prompted for `ACCESS_PASSPHRASE`, create a long, unique passphrase (use a password manager).
-3. Finish deploy, then open `https://<your-worker>.workers.dev/authorize`.
-4. On first login, scan the TOTP QR code with your authenticator app and verify.
-5. Connect your MCP client (see below).
+1. Click **Use as Template** to create a copy of this repository in your GitHub account.
+2. Click **Connect to Cloudflare** to open the Cloudflare dashboard.
+3. Create a new Worker application and connect it to your new repository.
+4. Configure the `ACCESS_PASSPHRASE` variable in your Worker settings (create a long, unique passphrase).
+5. (Optional) To enable updates, set the `UPSTREAM_REPO` variable to `rudavko/lore-mcp` in your repository settings.
+6. Finish deploy, then open `https://<your-worker>.workers.dev/authorize`.
+7. On first login, scan the TOTP QR code with your authenticator app and verify.
+8. Connect your MCP client (see below).
 
 ### Connect from Claude Desktop
 
 ```json
 {
-  "mcpServers": {
-    "lore": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "https://<your-worker>.<subdomain>.workers.dev/mcp"
-      ]
-    }
-  }
+	"mcpServers": {
+		"lore": {
+			"command": "npx",
+			"args": ["mcp-remote", "https://<your-worker>.<subdomain>.workers.dev/mcp"]
+		}
+	}
 }
 ```
 
@@ -142,13 +142,14 @@ If you want email-based OAuth on top of passphrase + 2FA:
 
 1. Create a Cloudflare Access application for your Worker URL.
 2. Add these Worker secrets:
-   - `CF_ACCESS_TEAM_DOMAIN` (your Access team subdomain, without `.cloudflareaccess.com`)
-   - `CF_ACCESS_AUD` (the Access app audience/tag)
+    - `CF_ACCESS_TEAM_DOMAIN` (your Access team subdomain, without `.cloudflareaccess.com`)
+    - `CF_ACCESS_AUD` (the Access app audience/tag)
 3. (Recommended) Add `OWNER_EMAIL` to lock access to one email address.
 
 If `OWNER_EMAIL` is not set, any email that passes your Cloudflare Access policy can sign in.
 
 Security details:
+
 - CSRF tokens on all auth forms
 - One-time nonces for OAuth requests and enrollment flows (KV with TTL)
 - Timing-safe comparison for passphrase and TOTP
@@ -156,6 +157,7 @@ Security details:
 - Security headers: CSP (with nonce for passkey JS), HSTS, X-Frame-Options, no-store
 
 To reset credentials:
+
 ```bash
 npx wrangler kv key delete --binding OAUTH_KV "ks:passkey:cred"   # reset passkey
 npx wrangler kv key delete --binding OAUTH_KV "ks:totp:secret"    # reset TOTP
@@ -170,6 +172,7 @@ npx wrangler dev
 ```
 
 Run tests:
+
 ```bash
 bun test
 ```
@@ -178,13 +181,13 @@ bun test
 
 Structured JSON events are emitted via `console.log` and auto-indexed by [Cloudflare Workers Logs](https://developers.cloudflare.com/workers/observability/logs/):
 
-| Event | Fields |
-|---|---|
-| `mutation` | `op`, `id`, `ok` |
-| `retrieval` | `mode`, `results`, `ms` |
-| `conflict` | `scope`, `conflict_id` |
-| `conflict_resolved` | `conflict_id`, `strategy`, `triple_id` |
-| `policy_rejection` | `op`, `reason`, `field` or `confidence` |
+| Event               | Fields                                  |
+| ------------------- | --------------------------------------- |
+| `mutation`          | `op`, `id`, `ok`                        |
+| `retrieval`         | `mode`, `results`, `ms`                 |
+| `conflict`          | `scope`, `conflict_id`                  |
+| `conflict_resolved` | `conflict_id`, `strategy`, `triple_id`  |
+| `policy_rejection`  | `op`, `reason`, `field` or `confidence` |
 
 ## Eval Suite
 
@@ -204,10 +207,10 @@ Click the badge above (or go to **Actions → Manual Update → Run workflow**) 
 
 **Prerequisites** (one-time setup in your fork's **Settings → Secrets and variables → Actions**):
 
-| Secret | Description |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | API token with Workers + D1 edit permissions |
-| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
+| Secret                  | Description                                  |
+| ----------------------- | -------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`  | API token with Workers + D1 edit permissions |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID                   |
 
 If the secrets are missing, the sync still runs but the deploy step is skipped.
 

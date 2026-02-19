@@ -71,10 +71,10 @@ Acceptance Criteria:
 - Then benchmark metrics are compared to a committed baseline at `evals/baselines/retrieval.json`
 - And evaluation results are written as an artifact at `evals/artifacts/retrieval.json`
 - And CI fails the gate when any of the following regressions occur versus baseline:
-  - `ndcg_at_10` decreases by more than 2% (relative)
-  - `mrr_at_10` decreases by more than 2% (relative)
-  - `recall_at_20` decreases by more than 1% (relative)
-  - `latency_p95_ms` increases by more than 10% (relative)
+    - `ndcg_at_10` decreases by more than 2% (relative)
+    - `mrr_at_10` decreases by more than 2% (relative)
+    - `recall_at_20` decreases by more than 1% (relative)
+    - `latency_p95_ms` increases by more than 10% (relative)
 - And CI runs this evaluation when changes touch `src/**`, `evals/**`, or `migrations/**`
 
 - Given evaluation results are produced
@@ -103,18 +103,18 @@ A hybrid `query` returns per-entry score breakdowns and pagination metadata. Eac
 ```jsonc
 // Tool result content array for: query({ topic: "deployment strategy", limit: 2 })
 [
-  {
-    "type": "text",
-    "text": "Found 12 entries; showing top 2 by hybrid score."
-  },
-  {
-    "type": "resource",
-    "resource": {
-      "uri": "knowledge://entries?topic=deployment+strategy&limit=2",
-      "mimeType": "application/json",
-      "text": "{\"items\":[{\"id\":\"e-42\",\"topic\":\"deployment\",\"content\":\"Use blue-green deploys for zero-downtime releases.\",\"score_total\":0.91,\"score_lexical\":0.45,\"score_semantic\":0.82,\"score_graph\":0.38,\"graph_hops\":1},{\"id\":\"e-103\",\"topic\":\"release rollback\",\"content\":\"Rollback within 5 min if error rate exceeds 1%.\",\"score_total\":0.84,\"score_lexical\":0.12,\"score_semantic\":0.79,\"score_graph\":0.55,\"graph_hops\":2}],\"next_cursor\":\"eyJvZmYiOjJ9\",\"retrieval_ms\":47}"
-    }
-  }
+	{
+		"type": "text",
+		"text": "Found 12 entries; showing top 2 by hybrid score.",
+	},
+	{
+		"type": "resource",
+		"resource": {
+			"uri": "knowledge://entries?topic=deployment+strategy&limit=2",
+			"mimeType": "application/json",
+			"text": "{\"items\":[{\"id\":\"e-42\",\"topic\":\"deployment\",\"content\":\"Use blue-green deploys for zero-downtime releases.\",\"score_total\":0.91,\"score_lexical\":0.45,\"score_semantic\":0.82,\"score_graph\":0.38,\"graph_hops\":1},{\"id\":\"e-103\",\"topic\":\"release rollback\",\"content\":\"Rollback within 5 min if error rate exceeds 1%.\",\"score_total\":0.84,\"score_lexical\":0.12,\"score_semantic\":0.79,\"score_graph\":0.55,\"graph_hops\":2}],\"next_cursor\":\"eyJvZmYiOjJ9\",\"retrieval_ms\":47}",
+		},
+	},
 ]
 ```
 

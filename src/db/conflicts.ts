@@ -27,9 +27,11 @@ export async function savePendingConflict(
 
 	await db.batch([
 		db.prepare(`DELETE FROM pending_conflicts WHERE expires_at <= ?`).bind(nowMs),
-		db.prepare(
-			`INSERT OR REPLACE INTO pending_conflicts (id, payload, expires_at) VALUES (?, ?, ?)`,
-		).bind(conflict.conflict_id, JSON.stringify(conflict), expiresAt),
+		db
+			.prepare(
+				`INSERT OR REPLACE INTO pending_conflicts (id, payload, expires_at) VALUES (?, ?, ?)`,
+			)
+			.bind(conflict.conflict_id, JSON.stringify(conflict), expiresAt),
 	]);
 }
 
@@ -40,9 +42,10 @@ export async function loadPendingConflict(
 	const nowMs = Date.now();
 	await sweepExpiredConflicts(db, nowMs);
 
-	const row = await db.prepare(
-		`SELECT payload FROM pending_conflicts WHERE id = ? AND expires_at > ? LIMIT 1`,
-	).bind(id, nowMs).first();
+	const row = await db
+		.prepare(`SELECT payload FROM pending_conflicts WHERE id = ? AND expires_at > ? LIMIT 1`)
+		.bind(id, nowMs)
+		.first();
 	if (!row) return null;
 
 	const payload = (row as Record<string, unknown>).payload;

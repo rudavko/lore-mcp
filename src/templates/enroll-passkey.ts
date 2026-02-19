@@ -21,7 +21,9 @@ export interface EnrollPasskeyParams {
 }
 
 export function renderEnrollPasskeyPage(p: EnrollPasskeyParams) {
-	const skipLabel = p.totpEnrolled ? "Skip — use authenticator code" : "Set up authenticator code instead";
+	const skipLabel = p.totpEnrolled
+		? "Skip — use authenticator code"
+		: "Set up authenticator code instead";
 	const skipAction = p.totpEnrolled ? "/complete-passkey-skip" : "/enroll-totp-redirect";
 
 	return html`<!DOCTYPE html>

@@ -34,10 +34,7 @@ export function resetPolicy(): void {
 	currentPolicy = { ...DEFAULT_POLICY };
 }
 
-export function checkPolicy(
-	op: string,
-	params: Record<string, unknown>,
-): void {
+export function checkPolicy(op: string, params: Record<string, unknown>): void {
 	// Check required fields
 	const required = currentPolicy.requiredFields[op];
 	if (required) {
@@ -45,9 +42,7 @@ export function checkPolicy(
 			const value = params[field];
 			if (value === undefined || value === null || value === "") {
 				logEvent("policy_rejection", { op, field, reason: "required" });
-				throw KnowledgeError.policy(
-					`Policy violation: '${field}' is required for '${op}'`,
-				);
+				throw KnowledgeError.policy(`Policy violation: '${field}' is required for '${op}'`);
 			}
 		}
 	}
@@ -58,7 +53,12 @@ export function checkPolicy(
 		typeof params.confidence === "number" &&
 		params.confidence < currentPolicy.minConfidence
 	) {
-		logEvent("policy_rejection", { op, confidence: params.confidence, min: currentPolicy.minConfidence, reason: "low_confidence" });
+		logEvent("policy_rejection", {
+			op,
+			confidence: params.confidence,
+			min: currentPolicy.minConfidence,
+			reason: "low_confidence",
+		});
 		throw KnowledgeError.policy(
 			`Policy violation: confidence ${params.confidence} is below minimum ${currentPolicy.minConfidence}`,
 		);
