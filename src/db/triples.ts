@@ -69,10 +69,7 @@ export function rowToTriple(r: Record<string, unknown>): Triple {
 	};
 }
 
-export async function createTriple(
-	db: D1Database,
-	params: CreateTripleParams,
-): Promise<Triple> {
+export async function createTriple(db: D1Database, params: CreateTripleParams): Promise<Triple> {
 	validateTripleFields({
 		subject: params.subject,
 		predicate: params.predicate,
@@ -97,14 +94,27 @@ export async function createTriple(
 	};
 
 	await db.batch([
-		db.prepare(
-			`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
+		db
+			.prepare(
+				`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
 			 VALUES (?, 'CREATE', 'triple', ?, NULL, ?, ?)`,
-		).bind(ulid(), id, JSON.stringify(triple), now),
-		db.prepare(
-			`INSERT INTO triples (id, subject, predicate, object, source, actor, confidence, status, created_at)
+			)
+			.bind(ulid(), id, JSON.stringify(triple), now),
+		db
+			.prepare(
+				`INSERT INTO triples (id, subject, predicate, object, source, actor, confidence, status, created_at)
 			 VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
-		).bind(id, params.subject, params.predicate, params.object, params.source ?? null, params.actor ?? null, params.confidence ?? null, now),
+			)
+			.bind(
+				id,
+				params.subject,
+				params.predicate,
+				params.object,
+				params.source ?? null,
+				params.actor ?? null,
+				params.confidence ?? null,
+				now,
+			),
 	]);
 
 	return triple;
@@ -117,9 +127,10 @@ export async function updateTriple(
 ): Promise<Triple> {
 	validateTripleFields({ predicate: params.predicate, object: params.object });
 
-	const row = await db.prepare(
-		`SELECT * FROM triples WHERE id = ? AND deleted_at IS NULL`,
-	).bind(id).first();
+	const row = await db
+		.prepare(`SELECT * FROM triples WHERE id = ? AND deleted_at IS NULL`)
+		.bind(id)
+		.first();
 
 	if (!row) throw KnowledgeError.notFound("Triple", id);
 
@@ -132,17 +143,29 @@ export async function updateTriple(
 		object: params.object ?? before.object,
 		source: params.source !== undefined ? (params.source ?? null) : before.source,
 		actor: params.actor !== undefined ? (params.actor ?? null) : before.actor,
-		confidence: params.confidence !== undefined ? (params.confidence ?? null) : before.confidence,
+		confidence:
+			params.confidence !== undefined ? (params.confidence ?? null) : before.confidence,
 	};
 
 	await db.batch([
-		db.prepare(
-			`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
+		db
+			.prepare(
+				`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
 			 VALUES (?, 'UPDATE', 'triple', ?, ?, ?, ?)`,
-		).bind(ulid(), id, JSON.stringify(before), JSON.stringify(updated), now),
-		db.prepare(
-			`UPDATE triples SET predicate = ?, object = ?, source = ?, actor = ?, confidence = ? WHERE id = ?`,
-		).bind(updated.predicate, updated.object, updated.source, updated.actor, updated.confidence, id),
+			)
+			.bind(ulid(), id, JSON.stringify(before), JSON.stringify(updated), now),
+		db
+			.prepare(
+				`UPDATE triples SET predicate = ?, object = ?, source = ?, actor = ?, confidence = ? WHERE id = ?`,
+			)
+			.bind(
+				updated.predicate,
+				updated.object,
+				updated.source,
+				updated.actor,
+				updated.confidence,
+				id,
+			),
 	]);
 
 	return updated;
@@ -153,9 +176,12 @@ export async function upsertTriple(
 	params: CreateTripleParams,
 ): Promise<{ triple: Triple; created: boolean }> {
 	// Find existing active triple with same subject+predicate
-	const row = await db.prepare(
-		`SELECT * FROM triples WHERE subject = ? AND predicate = ? AND deleted_at IS NULL LIMIT 1`,
-	).bind(params.subject, params.predicate).first();
+	const row = await db
+		.prepare(
+			`SELECT * FROM triples WHERE subject = ? AND predicate = ? AND deleted_at IS NULL LIMIT 1`,
+		)
+		.bind(params.subject, params.predicate)
+		.first();
 
 	if (row) {
 		const existing = rowToTriple(row as Record<string, unknown>);
@@ -173,9 +199,10 @@ export async function upsertTriple(
 }
 
 export async function deleteTriple(db: D1Database, id: string): Promise<void> {
-	const row = await db.prepare(
-		`SELECT * FROM triples WHERE id = ? AND deleted_at IS NULL`,
-	).bind(id).first();
+	const row = await db
+		.prepare(`SELECT * FROM triples WHERE id = ? AND deleted_at IS NULL`)
+		.bind(id)
+		.first();
 
 	if (!row) throw KnowledgeError.notFound("Triple", id);
 
@@ -183,13 +210,13 @@ export async function deleteTriple(db: D1Database, id: string): Promise<void> {
 	const now = sqliteNow();
 
 	await db.batch([
-		db.prepare(
-			`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
+		db
+			.prepare(
+				`INSERT INTO transactions (id, op, entity_type, entity_id, before_snapshot, after_snapshot, created_at)
 			 VALUES (?, 'DELETE', 'triple', ?, ?, NULL, ?)`,
-		).bind(ulid(), id, JSON.stringify(before), now),
-		db.prepare(
-			`UPDATE triples SET deleted_at = ? WHERE id = ?`,
-		).bind(now, id),
+			)
+			.bind(ulid(), id, JSON.stringify(before), now),
+		db.prepare(`UPDATE triples SET deleted_at = ? WHERE id = ?`).bind(now, id),
 	]);
 }
 
@@ -238,9 +265,10 @@ export async function findActiveTriples(
 	subject: string,
 	predicate: string,
 ): Promise<Triple[]> {
-	const { results } = await db.prepare(
-		`SELECT * FROM triples WHERE subject = ? AND predicate = ? AND deleted_at IS NULL`,
-	).bind(subject, predicate).all();
+	const { results } = await db
+		.prepare(`SELECT * FROM triples WHERE subject = ? AND predicate = ? AND deleted_at IS NULL`)
+		.bind(subject, predicate)
+		.all();
 
 	return results.map((r) => rowToTriple(r as Record<string, unknown>));
 }

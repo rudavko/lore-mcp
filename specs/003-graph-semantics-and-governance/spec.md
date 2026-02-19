@@ -91,18 +91,18 @@ When a `relate` call detects a contradiction with an existing triple, the server
 ```jsonc
 // Tool result content array for: relate({ subject: "Alice", predicate: "works_at", object: "Acme Corp", confidence: 0.88 })
 [
-  {
-    "type": "text",
-    "text": "Conflict detected: \"Alice works_at\" has an existing value. Review candidate resolutions."
-  },
-  {
-    "type": "resource",
-    "resource": {
-      "uri": "knowledge://graph/conflicts/c-1701",
-      "mimeType": "application/json",
-      "text": "{\"conflict_id\":\"c-1701\",\"scope\":{\"subject\":\"Alice\",\"predicate\":\"works_at\"},\"existing\":{\"triple_id\":\"t-302\",\"object\":\"Globex Inc\",\"confidence\":0.75,\"recorded_at\":\"2026-01-15T10:00:00Z\"},\"incoming\":{\"object\":\"Acme Corp\",\"confidence\":0.88,\"recorded_at\":\"2026-02-14T12:00:00Z\"},\"candidate_resolutions\":[{\"strategy\":\"replace\",\"description\":\"Replace existing triple with incoming (higher confidence).\"},{\"strategy\":\"retain_both\",\"description\":\"Keep both with validity markers; mark existing valid_to=now.\"},{\"strategy\":\"reject\",\"description\":\"Reject incoming write; keep existing triple unchanged.\"}]}"
-    }
-  }
+	{
+		"type": "text",
+		"text": "Conflict detected: \"Alice works_at\" has an existing value. Review candidate resolutions.",
+	},
+	{
+		"type": "resource",
+		"resource": {
+			"uri": "knowledge://graph/conflicts/c-1701",
+			"mimeType": "application/json",
+			"text": "{\"conflict_id\":\"c-1701\",\"scope\":{\"subject\":\"Alice\",\"predicate\":\"works_at\"},\"existing\":{\"triple_id\":\"t-302\",\"object\":\"Globex Inc\",\"confidence\":0.75,\"recorded_at\":\"2026-01-15T10:00:00Z\"},\"incoming\":{\"object\":\"Acme Corp\",\"confidence\":0.88,\"recorded_at\":\"2026-02-14T12:00:00Z\"},\"candidate_resolutions\":[{\"strategy\":\"replace\",\"description\":\"Replace existing triple with incoming (higher confidence).\"},{\"strategy\":\"retain_both\",\"description\":\"Keep both with validity markers; mark existing valid_to=now.\"},{\"strategy\":\"reject\",\"description\":\"Reject incoming write; keep existing triple unchanged.\"}]}",
+		},
+	},
 ]
 ```
 

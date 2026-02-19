@@ -12,44 +12,44 @@
 	"migrations": [
 		{
 			"new_sqlite_classes": ["MyMCP"],
-			"tag": "v1"
-		}
+			"tag": "v1",
+		},
 	],
 	"durable_objects": {
 		"bindings": [
 			{
 				"class_name": "MyMCP",
-				"name": "MCP_OBJECT"
-			}
-		]
+				"name": "MCP_OBJECT",
+			},
+		],
 	},
 	"kv_namespaces": [
 		{
 			"binding": "OAUTH_KV",
-			"id": "your-kv-namespace-id"
-		}
+			"id": "your-kv-namespace-id",
+		},
 	],
 	"d1_databases": [
 		{
 			"binding": "DB",
 			"database_name": "lore-mcp-db",
 			"database_id": "your-d1-database-id",
-			"migrations_dir": "migrations"
-		}
+			"migrations_dir": "migrations",
+		},
 	],
 	"ai": {
-		"binding": "AI"
+		"binding": "AI",
 	},
 	"vectorize": [
 		{
 			"binding": "VECTORIZE_INDEX",
-			"index_name": "lore-mcp-embeddings"
-		}
+			"index_name": "lore-mcp-embeddings",
+		},
 	],
 	"assets": {
-		"directory": "./public"
+		"directory": "./public",
 	},
 	"observability": {
-		"enabled": true
-	}
+		"enabled": true,
+	},
 }

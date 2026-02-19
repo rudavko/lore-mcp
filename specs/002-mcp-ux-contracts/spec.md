@@ -51,9 +51,9 @@ Acceptance Criteria:
 - When the server responds
 - Then it advertises at least the following resources:
 - And it includes a stable `uri` for each:
-  - `knowledge://entries`
-  - `knowledge://graph/triples`
-  - `knowledge://history/transactions`
+    - `knowledge://entries`
+    - `knowledge://graph/triples`
+    - `knowledge://history/transactions`
 - And each advertised resource includes `uri`, `name`, `description`, `mime_type` set to `application/json`, and a `version` integer
 
 - Given a client reads one of the advertised resources with optional pagination parameters (`limit` and `cursor`)
@@ -97,18 +97,18 @@ A `query` tool call returns both a human-readable text block and a machine-reada
 ```jsonc
 // Tool result content array for: query({ topic: "deployment" })
 [
-  {
-    "type": "text",
-    "text": "Found 2 entries matching \"deployment\"."
-  },
-  {
-    "type": "resource",
-    "resource": {
-      "uri": "knowledge://entries?topic=deployment",
-      "mimeType": "application/json",
-      "text": "{\"items\":[{\"id\":\"e-42\",\"topic\":\"deployment\",\"content\":\"Use blue-green deploys for zero-downtime releases.\",\"confidence\":0.92,\"recorded_at\":\"2026-02-10T14:30:00Z\"},{\"id\":\"e-87\",\"topic\":\"deployment rollback\",\"content\":\"Rollback within 5 min if error rate exceeds 1%.\",\"confidence\":0.85,\"recorded_at\":\"2026-02-12T09:15:00Z\"}],\"next_cursor\":null}"
-    }
-  }
+	{
+		"type": "text",
+		"text": "Found 2 entries matching \"deployment\".",
+	},
+	{
+		"type": "resource",
+		"resource": {
+			"uri": "knowledge://entries?topic=deployment",
+			"mimeType": "application/json",
+			"text": "{\"items\":[{\"id\":\"e-42\",\"topic\":\"deployment\",\"content\":\"Use blue-green deploys for zero-downtime releases.\",\"confidence\":0.92,\"recorded_at\":\"2026-02-10T14:30:00Z\"},{\"id\":\"e-87\",\"topic\":\"deployment rollback\",\"content\":\"Rollback within 5 min if error rate exceeds 1%.\",\"confidence\":0.85,\"recorded_at\":\"2026-02-12T09:15:00Z\"}],\"next_cursor\":null}",
+		},
+	},
 ]
 ```
 

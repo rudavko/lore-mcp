@@ -116,7 +116,9 @@ export function renderAuthPage(p: AuthPageParams) {
       <dt>Permissions</dt>
       <dd>${p.scopes}</dd>
     </dl>
-    ${p.passkeyOnly ? html`
+    ${
+		p.passkeyOnly
+			? html`
     <div id="status" class="status"><span class="spinner"></span>Authenticating with passkey&hellip;</div>
     <form id="authForm" action="/approve" method="POST" style="display:none">
       <input type="hidden" name="request_nonce" value="${p.requestNonce}" />
@@ -125,33 +127,66 @@ export function renderAuthPage(p: AuthPageParams) {
     </form>
     <noscript><div class="status error">JavaScript is required for passkey authentication.</div></noscript>
     ${p.fallbackUrl ? html`<a class="fallback-link" href="${p.fallbackUrl}">Use passphrase + code instead</a>` : html``}
-    ` : html`
+    `
+			: html`
     <form id="authForm" action="/approve" method="POST">
       <input type="hidden" name="request_nonce" value="${p.requestNonce}" />
       <input type="hidden" name="csrf_token" value="${p.csrfToken}" />
-      ${needsJs ? html`<input type="hidden" name="webauthn_response" id="webauthnResponse" />` : html``}
+      ${
+			needsJs
+				? html`
+						<input type="hidden" name="webauthn_response" id="webauthnResponse" />
+					`
+				: html``
+		}
       <label for="passphrase">Passphrase</label>
       <input id="passphrase" type="password" name="passphrase" required autocomplete="current-password" placeholder="Enter your passphrase" />
-      ${p.passkeyEnrolled && p.totpEnrolled ? html`
-      <details class="totp-fallback">
-        <summary>Use authenticator code instead</summary>
-        <label for="totp_code" style="margin-top:0.75rem">Authenticator code</label>
-        <input id="totp_code" type="text" name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="000000" />
-      </details>
-      ` : p.totpEnrolled ? html`
+      ${
+			p.passkeyEnrolled && p.totpEnrolled
+				? html`
+						<details class="totp-fallback">
+							<summary>Use authenticator code instead</summary>
+							<label for="totp_code" style="margin-top: 0.75rem">Authenticator code</label>
+							<input
+								id="totp_code"
+								type="text"
+								name="totp_code"
+								inputmode="numeric"
+								pattern="[0-9]{6}"
+								maxlength="6"
+								autocomplete="one-time-code"
+								placeholder="000000"
+							/>
+						</details>
+					`
+				: p.totpEnrolled
+					? html`
       <label for="totp_code" style="margin-top:0.75rem">Authenticator code</label>
-      <input id="totp_code" type="text" name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" ${totpRequired ? html`required` : html``} autocomplete="one-time-code" placeholder="000000" />
-      ` : html``}
+      <input id="totp_code" type="text" name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" ${
+			totpRequired
+				? html`
+						required
+					`
+				: html``
+		} autocomplete="one-time-code" placeholder="000000" />
+      `
+					: html``
+		}
       <button type="submit">Authorize</button>
     </form>
-    `}
+    `
+	}
     <div class="footer">
       This grants <strong>${p.clientName}</strong> read &amp; write access to your entries and triples.<br />
       Access stays active until OAuth tokens are revoked at <code>/token</code>; rotating your passphrase does not invalidate issued tokens.
     </div>
   </div>
-  ${needsJs ? html`${raw(`<script nonce="${p.cspNonce}">`)}
-  ${p.passkeyOnly ? html`(function(){
+  ${
+		needsJs
+			? html`${raw(`<script nonce="${p.cspNonce}">`)}
+  ${
+		p.passkeyOnly
+			? html`(function(){
     var statusEl = document.getElementById('status');
     function b64d(s) {
       s = s.replace(/-/g, '+').replace(/_/g, '/');
@@ -201,7 +236,8 @@ export function renderAuthPage(p: AuthPageParams) {
         statusEl.textContent = 'Passkey authentication failed: ' + err.message;
       }
     });
-  })();` : html`(function(){
+  })();`
+			: html`(function(){
     function b64d(s) {
       s = s.replace(/-/g, '+').replace(/_/g, '/');
       while (s.length % 4) s += '=';
@@ -252,8 +288,11 @@ export function renderAuthPage(p: AuthPageParams) {
         if (details) details.open = true;
       });
     });
-  })();`}
-  ${raw("</script>")}` : html``}
+  })();`
+  }
+  ${raw("</script>")}`
+			: html``
+  }
 </body>
 </html>`;
 }

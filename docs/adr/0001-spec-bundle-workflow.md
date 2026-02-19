@@ -18,10 +18,10 @@ For behavior-changing product work, we will use a spec bundle per feature:
 
 - Location pattern: `specs/NNN-feature-name/`
 - Required files:
-  - `spec.md`
-  - `plan.md`
-  - `tasks.md`
-  - `status.json`
+    - `spec.md`
+    - `plan.md`
+    - `tasks.md`
+    - `status.json`
 
 Specification requirements:
 
@@ -34,12 +34,12 @@ Specification requirements:
 ## Alternatives Considered
 
 1. Monolithic `USERSTORIES.md`
-   - Pros: simple to start.
-   - Cons: poor scalability, high merge conflict risk, weak execution traceability.
+    - Pros: simple to start.
+    - Cons: poor scalability, high merge conflict risk, weak execution traceability.
 
 2. Per-story files only (for example `US01.md`, `US02.md`)
-   - Pros: better than a monolith for diffs and ownership.
-   - Cons: still lacks explicit execution artifacts unless additional files are manually introduced.
+    - Pros: better than a monolith for diffs and ownership.
+    - Cons: still lacks explicit execution artifacts unless additional files are manually introduced.
 
 ## Consequences
 

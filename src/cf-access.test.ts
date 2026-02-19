@@ -1,10 +1,5 @@
 import { describe, test, expect, beforeAll, afterEach } from "bun:test";
-import {
-	decodeBase64Url,
-	parseJwt,
-	fetchJwkSet,
-	verifyCfAccessJwt,
-} from "./cf-access";
+import { decodeBase64Url, parseJwt, fetchJwkSet, verifyCfAccessJwt } from "./cf-access";
 
 // --- Test helpers ---
 
@@ -17,7 +12,12 @@ let rsaPublicJwk: JsonWebKey & { kid: string };
 
 beforeAll(async () => {
 	rsaKeyPair = await crypto.subtle.generateKey(
-		{ name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
+		{
+			name: "RSASSA-PKCS1-v1_5",
+			modulusLength: 2048,
+			publicExponent: new Uint8Array([1, 0, 1]),
+			hash: "SHA-256",
+		},
 		true,
 		["sign", "verify"],
 	);
@@ -82,10 +82,14 @@ function createMockKV(): KVNamespace {
 			return entry.value;
 		},
 		put: async (key: string, value: string, opts?: { expirationTtl?: number }) => {
-			const expireAt = opts?.expirationTtl ? Date.now() + opts.expirationTtl * 1000 : undefined;
+			const expireAt = opts?.expirationTtl
+				? Date.now() + opts.expirationTtl * 1000
+				: undefined;
 			store.set(key, { value, expireAt });
 		},
-		delete: async (key: string) => { store.delete(key); },
+		delete: async (key: string) => {
+			store.delete(key);
+		},
 		list: async () => ({ keys: [], list_complete: true, cacheStatus: null }),
 		getWithMetadata: async () => ({ value: null, metadata: null, cacheStatus: null }),
 	} as unknown as KVNamespace;
@@ -97,7 +101,8 @@ const originalFetch = globalThis.fetch;
 
 function mockFetch(handler: (url: string) => Response | Promise<Response>) {
 	globalThis.fetch = (input: RequestInfo | URL, _init?: RequestInit) => {
-		const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+		const url =
+			typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
 		return Promise.resolve(handler(url));
 	};
 }
@@ -105,7 +110,6 @@ function mockFetch(handler: (url: string) => Response | Promise<Response>) {
 afterEach(() => {
 	globalThis.fetch = originalFetch;
 });
-
 
 // ========== decodeBase64Url ==========
 
@@ -138,7 +142,6 @@ describe("decodeBase64Url", () => {
 	});
 });
 
-
 // ========== parseJwt ==========
 
 describe("parseJwt", () => {
@@ -164,7 +167,6 @@ describe("parseJwt", () => {
 	});
 });
 
-
 // ========== fetchJwkSet ==========
 
 describe("fetchJwkSet", () => {
@@ -174,7 +176,10 @@ describe("fetchJwkSet", () => {
 		await kv.put(`ks:cfaccess:jwks:${TEAM_DOMAIN}`, JSON.stringify(keys));
 
 		let fetchCalled = false;
-		mockFetch(() => { fetchCalled = true; return new Response("", { status: 500 }); });
+		mockFetch(() => {
+			fetchCalled = true;
+			return new Response("", { status: 500 });
+		});
 
 		const result = await fetchJwkSet(TEAM_DOMAIN, kv);
 		expect(result).toEqual(keys);
@@ -197,7 +202,10 @@ describe("fetchJwkSet", () => {
 	test("uses negative cache on repeated failure", async () => {
 		const kv = createMockKV();
 		let fetchCount = 0;
-		mockFetch(() => { fetchCount++; return new Response("", { status: 500 }); });
+		mockFetch(() => {
+			fetchCount++;
+			return new Response("", { status: 500 });
+		});
 
 		await expect(fetchJwkSet(TEAM_DOMAIN, kv)).rejects.toThrow("jwk_fetch_failed");
 		expect(fetchCount).toBe(1);
@@ -209,7 +217,9 @@ describe("fetchJwkSet", () => {
 
 	test("throws on network error", async () => {
 		const kv = createMockKV();
-		mockFetch(() => { throw new Error("network down"); });
+		mockFetch(() => {
+			throw new Error("network down");
+		});
 
 		await expect(fetchJwkSet(TEAM_DOMAIN, kv)).rejects.toThrow("jwk_fetch_failed");
 	});
@@ -221,7 +231,6 @@ describe("fetchJwkSet", () => {
 		await expect(fetchJwkSet(TEAM_DOMAIN, kv)).rejects.toThrow("jwk_fetch_failed");
 	});
 });
-
 
 // ========== verifyCfAccessJwt ==========
 
@@ -242,7 +251,9 @@ describe("verifyCfAccessJwt", () => {
 
 	test("rejects expired token", async () => {
 		const kv = kvWithKeys();
-		const token = await createSignedJwt(validPayload({ exp: Math.floor(Date.now() / 1000) - 120 }));
+		const token = await createSignedJwt(
+			validPayload({ exp: Math.floor(Date.now() / 1000) - 120 }),
+		);
 		const result = await verifyCfAccessJwt(token, TEAM_DOMAIN, AUD, kv);
 		expect(result).toEqual({ valid: false, reason: "token_expired" });
 	});
@@ -256,7 +267,9 @@ describe("verifyCfAccessJwt", () => {
 
 	test("rejects wrong issuer", async () => {
 		const kv = kvWithKeys();
-		const token = await createSignedJwt(validPayload({ iss: "https://evil.cloudflareaccess.com" }));
+		const token = await createSignedJwt(
+			validPayload({ iss: "https://evil.cloudflareaccess.com" }),
+		);
 		const result = await verifyCfAccessJwt(token, TEAM_DOMAIN, AUD, kv);
 		expect(result).toEqual({ valid: false, reason: "invalid_issuer" });
 	});
@@ -329,7 +342,12 @@ describe("verifyCfAccessJwt", () => {
 	test("rejects token signed with different key", async () => {
 		const kv = kvWithKeys();
 		const otherKeyPair = await crypto.subtle.generateKey(
-			{ name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
+			{
+				name: "RSASSA-PKCS1-v1_5",
+				modulusLength: 2048,
+				publicExponent: new Uint8Array([1, 0, 1]),
+				hash: "SHA-256",
+			},
 			true,
 			["sign", "verify"],
 		);

@@ -69,7 +69,9 @@ function createToolHarness(options: ToolHarnessOptions = {}): ToolHarness {
 			const parsed = z.object(tool.schema).safeParse(args);
 			if (!parsed.success) {
 				return formatError(
-					KnowledgeError.validation(parsed.error.issues[0]?.message ?? "Invalid arguments"),
+					KnowledgeError.validation(
+						parsed.error.issues[0]?.message ?? "Invalid arguments",
+					),
 				);
 			}
 
@@ -151,7 +153,9 @@ describe("mcp tools", () => {
 			content: "after",
 		});
 
-		const resource = result.content.find((b) => b.type === "resource") as ResourceBlock | undefined;
+		const resource = result.content.find((b) => b.type === "resource") as
+			| ResourceBlock
+			| undefined;
 		expect(resource).toBeDefined();
 		expect(resource!.resource.uri).toBe(`knowledge://entries/${created.id}`);
 
@@ -175,7 +179,9 @@ describe("mcp tools", () => {
 		await createEntry(db, { topic: "b", content: "c2", tags: ["x", "y"] });
 
 		const result = await tools.call("query", { tags: ["x"] });
-		const data = readResource<{ items: Array<{ id: string }>; next_cursor: string | null } & { retrieval_ms?: number }>(result);
+		const data = readResource<
+			{ items: Array<{ id: string }>; next_cursor: string | null } & { retrieval_ms?: number }
+		>(result);
 
 		expect(data.items).toHaveLength(2);
 		expect(data.next_cursor).toBeNull();
@@ -188,7 +194,10 @@ describe("mcp tools", () => {
 		await createEntry(db, { topic: "alpha two", content: "c2", tags: ["drop"] });
 
 		const result = await tools.call("query", { topic: "alpha", tags: ["keep"], limit: 10 });
-		const data = readResource<{ items: Array<{ topic: string; tags: string[] }>; retrieval_ms: number }>(result);
+		const data = readResource<{
+			items: Array<{ topic: string; tags: string[] }>;
+			retrieval_ms: number;
+		}>(result);
 
 		expect(data.items).toHaveLength(1);
 		expect(data.items[0].topic).toBe("alpha one");
@@ -203,13 +212,21 @@ describe("mcp tools", () => {
 		await createEntry(db, { topic: "cursor topic 3", content: "c" });
 
 		const result = await tools.call("query", { topic: "cursor", limit: 2 });
-		const data = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(result);
+		const data = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(
+			result,
+		);
 
 		expect(data.items).toHaveLength(2);
 		expect(data.next_cursor).not.toBeNull();
 
-		const page2Result = await tools.call("query", { topic: "cursor", limit: 2, cursor: data.next_cursor! });
-		const page2 = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(page2Result);
+		const page2Result = await tools.call("query", {
+			topic: "cursor",
+			limit: 2,
+			cursor: data.next_cursor!,
+		});
+		const page2 = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(
+			page2Result,
+		);
 		expect(page2.items).toHaveLength(1);
 		expect(page2.next_cursor).toBeNull();
 
@@ -223,7 +240,9 @@ describe("mcp tools", () => {
 			await createEntry(db, { topic: `tag-${i}`, content: "c", tags: ["t"] });
 		}
 		const result = await tools.call("query", { tags: ["t"], limit: 2 });
-		const data = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(result);
+		const data = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(
+			result,
+		);
 		expect(data.items).toHaveLength(2);
 		expect(data.next_cursor).not.toBeNull();
 	});
@@ -245,7 +264,9 @@ describe("mcp tools", () => {
 			await createTriple(db, { subject: "cursor-subj", predicate: "is", object: `o${i}` });
 		}
 		const result = await tools.call("query_graph", { subject: "cursor-subj", limit: 2 });
-		const data = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(result);
+		const data = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(
+			result,
+		);
 		expect(data.items).toHaveLength(2);
 		expect(data.next_cursor).not.toBeNull();
 	});
@@ -257,10 +278,18 @@ describe("mcp tools", () => {
 		}
 
 		const page1Result = await tools.call("query_graph", { subject: "cursor-page", limit: 2 });
-		const page1 = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(page1Result);
+		const page1 = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(
+			page1Result,
+		);
 		expect(page1.next_cursor).not.toBeNull();
-		const page2Result = await tools.call("query_graph", { subject: "cursor-page", limit: 2, cursor: page1.next_cursor! });
-		const page2 = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(page2Result);
+		const page2Result = await tools.call("query_graph", {
+			subject: "cursor-page",
+			limit: 2,
+			cursor: page1.next_cursor!,
+		});
+		const page2 = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(
+			page2Result,
+		);
 		const firstIds = new Set(page1.items.map((i) => i.id));
 		expect(page2.items.every((i) => !firstIds.has(i.id))).toBe(true);
 	});
@@ -309,7 +338,10 @@ describe("mcp tools", () => {
 				},
 			} as unknown as VectorizeIndex,
 		});
-		const entry = await createEntry(db, { topic: "delete-vectorize-failure", content: "content" });
+		const entry = await createEntry(db, {
+			topic: "delete-vectorize-failure",
+			content: "content",
+		});
 
 		const result = await tools.call("delete", { id: entry.id, entity_type: "entry" });
 		const data = readResource<{ id: string; entity_type: string; deleted: boolean }>(result);
@@ -323,7 +355,12 @@ describe("mcp tools", () => {
 		const tools = createToolHarness();
 		const result = await tools.call("relate", { subject: "A", predicate: "is", object: "B" });
 
-		const triple = readResource<{ id: string; subject: string; predicate: string; object: string }>(result);
+		const triple = readResource<{
+			id: string;
+			subject: string;
+			predicate: string;
+			object: string;
+		}>(result);
 		expect(triple.subject).toBe("A");
 		expect(triple.predicate).toBe("is");
 		expect(triple.object).toBe("B");
@@ -396,7 +433,11 @@ describe("mcp tools", () => {
 			conflict_id: conflict.conflict_id,
 			strategy: "replace",
 		});
-		const data = readResource<{ resolved: boolean; strategy: string; triple: { object: string } }>(result);
+		const data = readResource<{
+			resolved: boolean;
+			strategy: string;
+			triple: { object: string };
+		}>(result);
 
 		expect(data.resolved).toBe(true);
 		expect(data.strategy).toBe("replace");
@@ -452,16 +493,19 @@ describe("mcp tools", () => {
 			incoming: { subject: "A", predicate: "is", object: "C" },
 			candidate_resolutions: ["replace", "retain_both", "reject"],
 		};
-		await db.prepare(
-			`INSERT INTO conflicts (conflict_id, scope, data, created_at, expires_at)
+		await db
+			.prepare(
+				`INSERT INTO conflicts (conflict_id, scope, data, created_at, expires_at)
 			 VALUES (?, ?, ?, ?, ?)`,
-		).bind(
-			"expired-id",
-			"A/is",
-			JSON.stringify(fakeConflict),
-			new Date().toISOString(),
-			new Date(Date.now() - 1000).toISOString(),
-		).run();
+			)
+			.bind(
+				"expired-id",
+				"A/is",
+				JSON.stringify(fakeConflict),
+				new Date().toISOString(),
+				new Date(Date.now() - 1000).toISOString(),
+			)
+			.run();
 
 		const result = await tools.call("resolve_conflict", {
 			conflict_id: "expired-id",
@@ -486,8 +530,12 @@ describe("mcp tools", () => {
 
 	test("merge_entities: happy path returns merged_count", async () => {
 		const tools = createToolHarness();
-		const keep = readResource<{ id: string }>(await tools.call("upsert_entity", { name: "Alpha" }));
-		const merge = readResource<{ id: string }>(await tools.call("upsert_entity", { name: "Beta" }));
+		const keep = readResource<{ id: string }>(
+			await tools.call("upsert_entity", { name: "Alpha" }),
+		);
+		const merge = readResource<{ id: string }>(
+			await tools.call("upsert_entity", { name: "Beta" }),
+		);
 
 		await createTriple(db, { subject: "Beta", predicate: "is", object: "Thing" });
 
@@ -502,7 +550,9 @@ describe("mcp tools", () => {
 
 	test("merge_entities: requires both IDs", async () => {
 		const tools = createToolHarness();
-		const keep = readResource<{ id: string }>(await tools.call("upsert_entity", { name: "Alpha" }));
+		const keep = readResource<{ id: string }>(
+			await tools.call("upsert_entity", { name: "Alpha" }),
+		);
 
 		const result = await tools.call("merge_entities", {
 			keep_id: keep.id,
@@ -553,7 +603,9 @@ describe("mcp tools", () => {
 		await createEntry(db, { topic: "h2", content: "2" });
 
 		const result = await tools.call("history", { limit: 1 });
-		const data = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(result);
+		const data = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(
+			result,
+		);
 
 		expect(data.items).toHaveLength(1);
 		expect(data.next_cursor).not.toBeNull();
@@ -565,7 +617,9 @@ describe("mcp tools", () => {
 			await createEntry(db, { topic: `h-cursor-${i}`, content: "x" });
 		}
 		const result = await tools.call("history", { limit: 2 });
-		const data = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(result);
+		const data = readResource<{ items: Array<{ id: string }>; next_cursor: string | null }>(
+			result,
+		);
 		expect(data.items).toHaveLength(2);
 		expect(data.next_cursor).not.toBeNull();
 	});
@@ -602,7 +656,12 @@ describe("mcp tools", () => {
 		const task = readResource<{ task_id: string }>(ingest);
 
 		const statusResult = await tools.call("ingestion_status", { task_id: task.task_id });
-		const status = readResource<{ id: string; status: string; total_items: number; processed_items: number }>(statusResult);
+		const status = readResource<{
+			id: string;
+			status: string;
+			total_items: number;
+			processed_items: number;
+		}>(statusResult);
 
 		expect(status.id).toBe(task.task_id);
 		expect(status.status).toBe("pending");

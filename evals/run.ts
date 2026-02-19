@@ -81,7 +81,9 @@ async function main() {
 		await createTriple(db, triple);
 	}
 
-	console.log(`Seeded ${seedEntries.length} entries + ${seedTriples.length} triples, running ${queries.length} queries...`);
+	console.log(
+		`Seeded ${seedEntries.length} entries + ${seedTriples.length} triples, running ${queries.length} queries...`,
+	);
 
 	const perQuery: EvalResult["per_query"] = [];
 	const latencies: number[] = [];
@@ -139,20 +141,24 @@ async function main() {
 
 	await Bun.write(outputPath, JSON.stringify(evalResult, null, 2));
 	console.log(`Results written to ${outputPath}`);
-	console.log(`Metrics: ndcg@10=${avgNdcg.toFixed(4)}, mrr@10=${avgMrr.toFixed(4)}, recall@20=${avgRecall.toFixed(4)}, p95=${latencyP95.toFixed(1)}ms`);
+	console.log(
+		`Metrics: ndcg@10=${avgNdcg.toFixed(4)}, mrr@10=${avgMrr.toFixed(4)}, recall@20=${avgRecall.toFixed(4)}, p95=${latencyP95.toFixed(1)}ms`,
+	);
 
 	// Per-query breakdown
 	for (const pq of perQuery) {
 		const status = pq.result_count > 0 ? "OK" : "MISS";
-		console.log(`  [${status}] "${pq.query}" → ${pq.result_count} results, ndcg=${pq.ndcg.toFixed(3)}, mrr=${pq.mrr.toFixed(3)}, recall=${pq.recall.toFixed(3)}`);
+		console.log(
+			`  [${status}] "${pq.query}" → ${pq.result_count} results, ndcg=${pq.ndcg.toFixed(3)}, mrr=${pq.mrr.toFixed(3)}, recall=${pq.recall.toFixed(3)}`,
+		);
 	}
 
 	// Compare to baseline thresholds
 	const thresholds = {
-		ndcg_at_10: -0.02,   // max 2% regression
+		ndcg_at_10: -0.02, // max 2% regression
 		mrr_at_10: -0.02,
 		recall_at_20: -0.01, // max 1% regression
-		latency_p95_ms: 0.10, // max 10% increase (as ratio)
+		latency_p95_ms: 0.1, // max 10% increase (as ratio)
 	};
 
 	let failed = false;
@@ -162,12 +168,16 @@ async function main() {
 
 		if (metric === "latency_p95_ms") {
 			if (base > 0 && current > base * (1 + threshold)) {
-				console.error(`REGRESSION: ${metric} increased from ${base}ms to ${current}ms (>${threshold * 100}%)`);
+				console.error(
+					`REGRESSION: ${metric} increased from ${base}ms to ${current}ms (>${threshold * 100}%)`,
+				);
 				failed = true;
 			}
 		} else {
 			if (base > 0 && current - base < threshold) {
-				console.error(`REGRESSION: ${metric} dropped from ${base} to ${current} (threshold: ${threshold})`);
+				console.error(
+					`REGRESSION: ${metric} dropped from ${base} to ${current} (threshold: ${threshold})`,
+				);
 				failed = true;
 			}
 		}

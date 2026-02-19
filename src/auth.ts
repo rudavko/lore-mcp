@@ -53,8 +53,7 @@ const LOCK_PREFIX = "ks:authlock:";
 const TOTP_SECRET_KEY = "ks:totp:secret";
 const TOTP_PENDING_PREFIX = "ks:totp:pending:";
 const TOTP_PENDING_TTL_SECONDS = 10 * 60;
-const LOOPBACK_FORM_ACTION =
-	"http://127.0.0.1:* http://localhost:* http://[::1]:*";
+const LOOPBACK_FORM_ACTION = "http://127.0.0.1:* http://localhost:* http://[::1]:*";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -123,16 +122,16 @@ async function registerAuthFailure(c: { env: Bindings }, ip: string): Promise<vo
 }
 
 async function clearAuthFailures(c: { env: Bindings }, ip: string): Promise<void> {
-	await Promise.all([
-		c.env.OAUTH_KV.delete(failKey(ip)),
-		c.env.OAUTH_KV.delete(lockKey(ip)),
-	]);
+	await Promise.all([c.env.OAUTH_KV.delete(failKey(ip)), c.env.OAUTH_KV.delete(lockKey(ip))]);
 }
 
 // GEMINI-CONTEXT: enforceOwnerEmail verifies the CF Access JWT signature and extracts
 // email from the verified payload. The spoofable Cf-Access-Authenticated-User-Email
 // header is intentionally ignored. Opt-in: returns null when env vars are absent.
-async function enforceOwnerEmail(c: { env: Bindings; req: { header: (name: string) => string | undefined } }): Promise<Response | null> {
+async function enforceOwnerEmail(c: {
+	env: Bindings;
+	req: { header: (name: string) => string | undefined };
+}): Promise<Response | null> {
 	const teamDomain = (c.env.CF_ACCESS_TEAM_DOMAIN ?? "").trim();
 	const expectedAud = (c.env.CF_ACCESS_AUD ?? "").trim();
 
@@ -218,15 +217,20 @@ app.use("*", async (c, next) => {
 		`default-src 'none'; style-src 'unsafe-inline'; img-src 'self';${scriptSrc} manifest-src 'self'; form-action 'self' https: ${LOOPBACK_FORM_ACTION}; frame-ancestors 'none'; base-uri 'none'`,
 	);
 
-	const noStorePaths = ["/authorize", "/approve", "/enroll-totp", "/enroll-passkey", "/complete-passkey-skip", "/enroll-totp-redirect"];
+	const noStorePaths = [
+		"/authorize",
+		"/approve",
+		"/enroll-totp",
+		"/enroll-passkey",
+		"/complete-passkey-skip",
+		"/enroll-totp-redirect",
+	];
 	if (noStorePaths.includes(c.req.path)) {
 		c.header("Cache-Control", "no-store");
 	}
 });
 
-app.get("/", (c) =>
-	c.text("Knowledge Server MCP is running. Connect via /mcp"),
-);
+app.get("/", (c) => c.text("Knowledge Server MCP is running. Connect via /mcp"));
 
 // ── GET /authorize ──────────────────────────────────────────────────
 
@@ -279,11 +283,9 @@ app.get("/authorize", async (c) => {
 		}
 	}
 
-	await c.env.OAUTH_KV.put(
-		`${AUTH_REQ_PREFIX}${requestNonce}`,
-		JSON.stringify(stored),
-		{ expirationTtl: AUTH_REQUEST_TTL_SECONDS },
-	);
+	await c.env.OAUTH_KV.put(`${AUTH_REQ_PREFIX}${requestNonce}`, JSON.stringify(stored), {
+		expirationTtl: AUTH_REQUEST_TTL_SECONDS,
+	});
 
 	setCookie(c, CSRF_COOKIE_NAME, csrfToken, {
 		httpOnly: true,
@@ -293,19 +295,21 @@ app.get("/authorize", async (c) => {
 		maxAge: AUTH_REQUEST_TTL_SECONDS,
 	});
 
-	return c.html(renderAuthPage({
-		requestNonce,
-		csrfToken,
-		clientName,
-		clientUri,
-		scopes,
-		totpEnrolled,
-		passkeyEnrolled: passkeyOnly ? true : false,
-		passkeyOnly,
-		fallbackUrl,
-		authOptionsJSON,
-		cspNonce,
-	}));
+	return c.html(
+		renderAuthPage({
+			requestNonce,
+			csrfToken,
+			clientName,
+			clientUri,
+			scopes,
+			totpEnrolled,
+			passkeyEnrolled: passkeyOnly ? true : false,
+			passkeyOnly,
+			fallbackUrl,
+			authOptionsJSON,
+			cspNonce,
+		}),
+	);
 });
 
 // ── POST /approve ───────────────────────────────────────────────────
@@ -332,7 +336,12 @@ app.post("/approve", async (c) => {
 	const csrfBody = bodyString(body.csrf_token);
 	const csrfCookie = getCookie(c, CSRF_COOKIE_NAME) ?? "";
 
-	if (!requestNonce || !csrfBody || !csrfCookie || !(await safeStringEqual(csrfBody, csrfCookie))) {
+	if (
+		!requestNonce ||
+		!csrfBody ||
+		!csrfCookie ||
+		!(await safeStringEqual(csrfBody, csrfCookie))
+	) {
 		return c.text("Invalid authorization request", 400);
 	}
 
@@ -461,13 +470,15 @@ async function startPasskeyEnrollment(
 
 	c.set("cspNonce", cspNonce);
 
-	return c.html(renderEnrollPasskeyPage({
-		enrollNonce,
-		csrfToken,
-		optionsJSON: JSON.stringify(regOptions),
-		cspNonce,
-		totpEnrolled,
-	}));
+	return c.html(
+		renderEnrollPasskeyPage({
+			enrollNonce,
+			csrfToken,
+			optionsJSON: JSON.stringify(regOptions),
+			cspNonce,
+			totpEnrolled,
+		}),
+	);
 }
 
 // ── POST /enroll-passkey ────────────────────────────────────────────
@@ -484,7 +495,12 @@ app.post("/enroll-passkey", async (c) => {
 	const csrfBody = bodyString(body.csrf_token);
 	const csrfCookie = getCookie(c, CSRF_COOKIE_NAME) ?? "";
 
-	if (!enrollNonce || !csrfBody || !csrfCookie || !(await safeStringEqual(csrfBody, csrfCookie))) {
+	if (
+		!enrollNonce ||
+		!csrfBody ||
+		!csrfCookie ||
+		!(await safeStringEqual(csrfBody, csrfCookie))
+	) {
 		return c.text("Invalid enrollment request", 400);
 	}
 
@@ -594,12 +610,14 @@ app.get("/enroll-totp-redirect", async (c) => {
 		container: "svg",
 	});
 
-	return c.html(renderEnrollTotpPage({
-		qrSvg: qr.svg(),
-		secretDisplay: formatSecretForDisplay(pendingSecret),
-		enrollNonce,
-		csrfToken,
-	}));
+	return c.html(
+		renderEnrollTotpPage({
+			qrSvg: qr.svg(),
+			secretDisplay: formatSecretForDisplay(pendingSecret),
+			enrollNonce,
+			csrfToken,
+		}),
+	);
 });
 
 // ── POST /enroll-totp ───────────────────────────────────────────────
@@ -616,7 +634,12 @@ app.post("/enroll-totp", async (c) => {
 	const csrfBody = bodyString(body.csrf_token);
 	const csrfCookie = getCookie(c, CSRF_COOKIE_NAME) ?? "";
 
-	if (!enrollNonce || !csrfBody || !csrfCookie || !(await safeStringEqual(csrfBody, csrfCookie))) {
+	if (
+		!enrollNonce ||
+		!csrfBody ||
+		!csrfCookie ||
+		!(await safeStringEqual(csrfBody, csrfCookie))
+	) {
 		return c.text("Invalid enrollment request", 400);
 	}
 

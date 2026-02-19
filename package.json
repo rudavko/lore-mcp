@@ -2,12 +2,12 @@
 	"name": "mcp-knowledge-server",
 	"version": "0.1.0",
 	"private": true,
+	"homepage": "https://github.com/rudavko/lore-mcp#readme",
+	"author": "Andrii Rudavko",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/rudavko/lore-mcp.git"
 	},
-	"author": "Andrii Rudavko",
-	"homepage": "https://github.com/rudavko/lore-mcp#readme",
 	"scripts": {
 		"deploy": "wrangler d1 migrations apply DB --remote && wrangler deploy",
 		"setup": "node --experimental-strip-types scripts/setup.ts",

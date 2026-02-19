@@ -30,9 +30,7 @@ export interface ParsedJwt {
 	signedPart: string; // header.payload (for verification)
 }
 
-export type CfAccessResult =
-	| { valid: true; email: string }
-	| { valid: false; reason: string };
+export type CfAccessResult = { valid: true; email: string } | { valid: false; reason: string };
 
 export function decodeBase64Url(input: string): Uint8Array {
 	// Restore standard base64: replace url-safe chars, add padding
@@ -75,10 +73,7 @@ export function parseJwt(token: string): ParsedJwt {
 	return { header, payload, signatureBytes, signedPart };
 }
 
-export async function fetchJwkSet(
-	teamDomain: string,
-	kv: KVNamespace,
-): Promise<JwksKey[]> {
+export async function fetchJwkSet(teamDomain: string, kv: KVNamespace): Promise<JwksKey[]> {
 	const posKey = jwksCacheKey(teamDomain);
 	const negKey = jwksNegCacheKey(teamDomain);
 

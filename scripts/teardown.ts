@@ -51,12 +51,16 @@ console.log(`==> Tearing down: ${NAME}\n`);
 // 1. Delete worker
 console.log(`--- Deleting worker: ${NAME}`);
 const { stdout: wOut, stderr: wErr } = run(["delete", "--name", NAME]);
-console.log(`    ${(wOut + wErr).includes("Successfully") ? "done" : "not found / already deleted"}\n`);
+console.log(
+	`    ${(wOut + wErr).includes("Successfully") ? "done" : "not found / already deleted"}\n`,
+);
 
 // 2. Delete D1
 console.log(`--- Deleting D1: ${NAME}-db`);
 const { stdout: dOut, stderr: dErr } = run(["d1", "delete", `${NAME}-db`, "-y"]);
-console.log(`    ${(dOut + dErr).includes("successfully") ? "done" : "not found / already deleted"}\n`);
+console.log(
+	`    ${(dOut + dErr).includes("successfully") ? "done" : "not found / already deleted"}\n`,
+);
 
 // 3. Delete KV (look up ID by title first)
 console.log(`--- Deleting KV: ${NAME}-kv`);
@@ -65,7 +69,13 @@ const { stdout: listStdout } = run(["kv", "namespace", "list"]);
 const namespaces = extractJsonArray(listStdout) as { title: string; id: string }[];
 const kvMatch = namespaces.find((n) => n.title === `${NAME}-kv`);
 if (kvMatch) {
-	const { stdout: kvOut, stderr: kvErr } = run(["kv", "namespace", "delete", "--namespace-id", kvMatch.id]);
+	const { stdout: kvOut, stderr: kvErr } = run([
+		"kv",
+		"namespace",
+		"delete",
+		"--namespace-id",
+		kvMatch.id,
+	]);
 	console.log(`    ${(kvOut + kvErr).includes("Deleted") ? "done" : "failed"}\n`);
 } else {
 	console.log("    not found / already deleted\n");
@@ -74,7 +84,9 @@ if (kvMatch) {
 // 4. Delete Vectorize index
 console.log(`--- Deleting Vectorize: ${NAME}-embeddings`);
 const { stdout: vecOut, stderr: vecErr } = run(["vectorize", "delete", `${NAME}-embeddings`]);
-console.log(`    ${(vecOut + vecErr).includes("Successfully") ? "done" : "not found / already deleted"}\n`);
+console.log(
+	`    ${(vecOut + vecErr).includes("Successfully") ? "done" : "not found / already deleted"}\n`,
+);
 
 // 5. Reset wrangler.jsonc to placeholder IDs and restore vectorize (always — keeps git clean)
 console.log(`--- Resetting ${CONFIG} to placeholders`);

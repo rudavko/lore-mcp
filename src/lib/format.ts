@@ -25,11 +25,7 @@ export interface ToolResult {
 	isError?: boolean;
 }
 
-export function formatResult(
-	text: string,
-	data?: unknown,
-	uri?: string,
-): ToolResult {
+export function formatResult(text: string, data?: unknown, uri?: string): ToolResult {
 	const content: ContentBlock[] = [{ type: "text", text }];
 	if (data !== undefined && uri) {
 		content.push({

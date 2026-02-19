@@ -17,9 +17,9 @@ export class MyMCP extends McpAgent {
 
 	async init() {
 		await initSchema(this.env.DB);
-		await this.env.DB.prepare(
-			`DELETE FROM conflicts WHERE expires_at < ?`,
-		).bind(new Date().toISOString()).run();
+		await this.env.DB.prepare(`DELETE FROM conflicts WHERE expires_at < ?`)
+			.bind(new Date().toISOString())
+			.run();
 		registerTools(this.server, this.env, this.ctx.storage);
 		registerResources(this.server, this.env);
 		registerPrompts(this.server);

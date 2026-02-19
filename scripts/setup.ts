@@ -81,7 +81,8 @@ function getD1Id(dbName: string): string {
 
 	console.log(`    D1 '${dbName}' already exists, fetching ID...`);
 	const list = run(["d1", "list", "--json"]);
-	if (!list.ok) throw new Error(`d1 list failed:\nstdout: ${list.stdout}\nstderr: ${list.stderr}`);
+	if (!list.ok)
+		throw new Error(`d1 list failed:\nstdout: ${list.stdout}\nstderr: ${list.stderr}`);
 	const databases = extractJsonArray(list.stdout) as { name: string; uuid: string }[];
 	const match = databases.find((d) => d.name === dbName);
 	if (!match) throw new Error(`D1 '${dbName}' not found in list`);
@@ -100,7 +101,8 @@ function getKvId(title: string): string {
 	// wrangler kv namespace list has no --json flag; outputs JSON on stdout by default
 	console.log(`    KV '${title}' already exists, fetching ID...`);
 	const list = run(["kv", "namespace", "list"]);
-	if (!list.ok) throw new Error(`kv list failed:\nstdout: ${list.stdout}\nstderr: ${list.stderr}`);
+	if (!list.ok)
+		throw new Error(`kv list failed:\nstdout: ${list.stdout}\nstderr: ${list.stderr}`);
 	const namespaces = extractJsonArray(list.stdout) as { title: string; id: string }[];
 	const match = namespaces.find((n) => n.title === title);
 	if (!match) throw new Error(`KV '${title}' not found in list`);
@@ -147,9 +149,13 @@ try {
 			console.log(`    Skipping ${key} (empty)`);
 			continue;
 		}
-		const { stdout, stderr } = run(["secret", "put", key, "--name", NAME], { input: value + "\n" });
+		const { stdout, stderr } = run(["secret", "put", key, "--name", NAME], {
+			input: value + "\n",
+		});
 		const success = (stdout + stderr).includes("Success");
-		console.log(`    ${key}: ${success ? "set" : `FAILED — ${(stderr || stdout).trim().split("\n").pop()}`}`);
+		console.log(
+			`    ${key}: ${success ? "set" : `FAILED — ${(stderr || stdout).trim().split("\n").pop()}`}`,
+		);
 	}
 } catch {
 	console.log("    No .dev.vars found. Set secrets manually:");
@@ -159,7 +165,15 @@ try {
 
 // 5. Create Vectorize index (bge-base-en-v1.5 = 768 dimensions, cosine similarity)
 console.log(`==> Creating Vectorize index: ${NAME}-embeddings`);
-const vecResult = run(["vectorize", "create", `${NAME}-embeddings`, "--dimensions", "768", "--metric", "cosine"]);
+const vecResult = run([
+	"vectorize",
+	"create",
+	`${NAME}-embeddings`,
+	"--dimensions",
+	"768",
+	"--metric",
+	"cosine",
+]);
 const vecCombined = vecResult.stdout + vecResult.stderr;
 if (vecCombined.includes("already exists")) {
 	console.log(`    Vectorize '${NAME}-embeddings' already exists`);
@@ -175,7 +189,10 @@ if (vecCombined.includes("already exists")) {
 
 // 6. Migrations + deploy (inherit stdio for progress output)
 console.log("==> Applying D1 migrations");
-execFileSync(W, ["d1", "migrations", "apply", "DB", "--remote"], { stdio: "inherit", timeout: 180_000 });
+execFileSync(W, ["d1", "migrations", "apply", "DB", "--remote"], {
+	stdio: "inherit",
+	timeout: 180_000,
+});
 
 console.log(`==> Deploying worker: ${NAME}`);
 execFileSync(W, ["deploy"], { stdio: "inherit", timeout: 180_000 });

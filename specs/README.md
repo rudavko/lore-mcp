@@ -20,10 +20,10 @@ graph LR
 
 ## Index
 
-| Spec | Name | State | Depends On |
-|------|------|-------|------------|
-| [001](001-self-serve-updates/spec.md) | Self-Serve Updates | implementation_complete | — |
-| [002](002-mcp-ux-contracts/spec.md) | MCP UX Contracts | planned | — |
-| [003](003-graph-semantics-and-governance/spec.md) | Graph Semantics & Governance | planned | 002 |
-| [004](004-hybrid-retrieval-and-evals/spec.md) | Hybrid Retrieval & Evals | planned | 002, 003 |
-| [005](005-architectural-hardening/spec.md) | Architectural Hardening | implementation_complete | 002, 003, 004 |
+| Spec                                              | Name                         | State                   | Depends On    |
+| ------------------------------------------------- | ---------------------------- | ----------------------- | ------------- |
+| [001](001-self-serve-updates/spec.md)             | Self-Serve Updates           | implementation_complete | —             |
+| [002](002-mcp-ux-contracts/spec.md)               | MCP UX Contracts             | planned                 | —             |
+| [003](003-graph-semantics-and-governance/spec.md) | Graph Semantics & Governance | planned                 | 002           |
+| [004](004-hybrid-retrieval-and-evals/spec.md)     | Hybrid Retrieval & Evals     | planned                 | 002, 003      |
+| [005](005-architectural-hardening/spec.md)        | Architectural Hardening      | implementation_complete | 002, 003, 004 |

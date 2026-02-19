@@ -200,12 +200,25 @@
 	"queries": [
 		{
 			"query": "TypeScript type system",
-			"expected_refs": ["ts-generics", "ts-inference", "ts-conditional-types", "ts-mapped-types", "generic-programming"],
+			"expected_refs": [
+				"ts-generics",
+				"ts-inference",
+				"ts-conditional-types",
+				"ts-mapped-types",
+				"generic-programming"
+			],
 			"note": "Should rank entries about TS types higher. Tests multi-result ranking with 5 expected results."
 		},
 		{
 			"query": "TypeScript generics",
-			"expected_refs": ["ts-generics", "ts-conditional-types", "ts-mapped-types", "ts-inference", "generic-programming", "rust-traits"],
+			"expected_refs": [
+				"ts-generics",
+				"ts-conditional-types",
+				"ts-mapped-types",
+				"ts-inference",
+				"generic-programming",
+				"rust-traits"
+			],
 			"note": "Direct topic match plus related type system entries. Tests ranking: exact match > partial match."
 		},
 		{
@@ -225,7 +238,12 @@
 		},
 		{
 			"query": "Cloudflare D1 database",
-			"expected_refs": ["d1-batch-limits", "d1-migration", "d1-read-replication", "sqlite-wal"],
+			"expected_refs": [
+				"d1-batch-limits",
+				"d1-migration",
+				"d1-read-replication",
+				"sqlite-wal"
+			],
 			"note": "Should find all D1 entries plus related SQLite entry via graph."
 		},
 		{
@@ -250,12 +268,22 @@
 		},
 		{
 			"query": "generics and type parameters",
-			"expected_refs": ["ts-generics", "rust-traits", "generic-programming", "ts-conditional-types"],
+			"expected_refs": [
+				"ts-generics",
+				"rust-traits",
+				"generic-programming",
+				"ts-conditional-types"
+			],
 			"note": "Cross-language generics. Tests whether search finds conceptually related entries."
 		},
 		{
 			"query": "performance optimization",
-			"expected_refs": ["bun-bundler", "sqlite-wal", "d1-read-replication", "ts-enums-gotcha"],
+			"expected_refs": [
+				"bun-bundler",
+				"sqlite-wal",
+				"d1-read-replication",
+				"ts-enums-gotcha"
+			],
 			"note": "Entries tagged with 'performance' or discussing performance. Tests tag-agnostic content matching."
 		}
 	]

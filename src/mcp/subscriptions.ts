@@ -37,10 +37,7 @@ export function registerSubscriptions(_server: McpServer) {
 /** Notify subscribed clients that a specific resource changed.
  *  Sends per-URI notifications/resources/updated via the underlying Server,
  *  plus a transactions-resource notification so clients can read change details. */
-export function notifyResourceChange(
-	server: McpServer,
-	entityType: string,
-): void {
+export function notifyResourceChange(server: McpServer, entityType: string): void {
 	try {
 		const uri = ENTITY_URI_MAP[entityType] ?? "knowledge://entries";
 
