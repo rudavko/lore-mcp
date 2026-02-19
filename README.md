@@ -1,4 +1,4 @@
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/rudavko/lore-mcp)
+[![Use as Template](https://img.shields.io/badge/Use_as_Template-black?style=for-the-badge&logo=github&logoColor=white)](https://github.com/rudavko/lore-mcp/fork)
 
 # LORE
 
@@ -7,6 +7,16 @@
 > Research preview. The API surface may change between versions.
 
 Give all your AI agents the same memory. Store facts, relate them as a knowledge graph, and retrieve them with hybrid search from any MCP-capable client, including [claude.ai](https://claude.ai), [chatgpt.com](https://chatgpt.com), Claude Desktop, and Claude Code. Runs on Cloudflare Workers with zero ongoing cost at personal scale.
+
+### Deploy
+
+After forking, connect your repository to a cloud provider:
+
+[![Connect to Cloudflare](https://img.shields.io/badge/Connect_to_Cloudflare-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://dash.cloudflare.com/?to=/:account/workers-and-pages/create)
+
+<!-- Future providers: Azure, GCP -->
+<!-- [![Connect to Azure](https://img.shields.io/badge/Connect_to_Azure-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)](https://portal.azure.com) -->
+<!-- [![Connect to GCP](https://img.shields.io/badge/Connect_to_GCP-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)](https://console.cloud.google.com) -->
 
 ## Why
 
@@ -87,11 +97,15 @@ When Vectorize is not bound, semantic weight is redistributed to lexical and gra
 
 ## Quick Start
 
-### Install on Cloudflare (one click)
+### 1. Fork this repository
 
-1. Click the button and follow the Cloudflare prompts.
+Click **[Use as Template](https://github.com/rudavko/lore-mcp/fork)** at the top to fork LORE into your own GitHub account. Forking keeps an upstream link so you can pull updates later.
+
+### 2. Connect to Cloudflare
+
+1. Open your [Cloudflare dashboard → Workers & Pages](https://dash.cloudflare.com/?to=/:account/workers-and-pages/create) and create a new Worker connected to your fork.
 2. When prompted for `ACCESS_PASSPHRASE`, create a long, unique passphrase (use a password manager).
-3. Finish deploy, then open `https://<your-worker>.workers.dev/authorize`.
+3. Once deployed, open `https://<your-worker>.workers.dev/authorize`.
 4. On first login, scan the TOTP QR code with your authenticator app and verify.
 5. Connect your MCP client (see below).
 
