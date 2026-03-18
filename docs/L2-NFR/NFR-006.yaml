@@ -1,0 +1,14 @@
+id: NFR-006
+title: Security — concurrent auth sessions do not interfere
+scenarios:
+  - stimulus: Owner authenticates Claude Code on desktop then ChatGPT on mobile
+    response: Both OAuth sessions remain valid independently
+    measure: Second auth does not invalidate first; both clients can read/write concurrently
+  - stimulus: Owner revokes one client's access
+    response: Only that client's session is invalidated
+    measure: Other active sessions continue working
+priority: Phase 1 critical
+traces:
+  - CC-009: MCP endpoint security
+  - CC-001: Data ownership
+  - FR-011: Authenticate via OAuth 2.1 + 2FA

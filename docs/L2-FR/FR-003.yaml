@@ -1,0 +1,17 @@
+id: FR-003
+title: Create graph triple
+phase: 1
+statement: >
+  When an agent calls relate with subject, predicate, and object, the system
+  persists a triple and returns it (or ConflictInfo if subject+predicate
+  already exists with a different object) so that relationships between
+  concepts are captured.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-006: Undo capability (triples are logged in transaction history)
+verification:
+  manual:
+    - Call relate, verify triple exists via query_graph
+  machine:
+    - E2E: relate subject+predicate+object, query_graph, assert triple returned
+    - E2E: relate same subject+predicate with different object, assert ConflictInfo returned

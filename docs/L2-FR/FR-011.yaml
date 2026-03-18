@@ -1,0 +1,18 @@
+id: FR-011
+title: Authenticate via OAuth 2.1 + 2FA
+phase: 1
+statement: >
+  When a client connects, the system requires OAuth 2.1 authorization with
+  passphrase plus a second factor (passkey or TOTP) so that only the owner
+  can access the knowledge store.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-001: Data ownership
+  - CC-009: MCP endpoint security
+  - EC-006: OAuth 2.1
+verification:
+  manual:
+    - Attempt access without auth, verify rejected; authenticate with passphrase + 2FA, verify access granted
+  machine:
+    - E2E: unauthenticated request returns 401/403
+    - E2E: authenticated request with valid credentials succeeds

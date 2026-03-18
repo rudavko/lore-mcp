@@ -1,20 +1,12 @@
+/** @implements FR-011 — Type declaration for QR-code generation dependency used in auth enrollment flows. */
 declare module "qrcode-svg" {
-	interface QRCodeOptions {
+	interface QrCodeOptions {
 		content: string;
-		padding?: number;
-		width?: number;
-		height?: number;
-		color?: string;
-		background?: string;
-		ecl?: "L" | "M" | "Q" | "H";
-		join?: boolean;
-		container?: "svg" | "svg-viewbox" | "none";
+		[key: string]: unknown;
 	}
 
-	class QRCode {
-		constructor(options: QRCodeOptions | string);
+	export default class QrCode {
+		constructor(options: QrCodeOptions);
 		svg(): string;
 	}
-
-	export = QRCode;
 }

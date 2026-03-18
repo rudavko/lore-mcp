@@ -1,0 +1,19 @@
+id: FR-015
+title: Session-scoped rollback (batch undo)
+phase: 2
+statement: >
+  When an agent or owner requests a rollback by session ID or time range,
+  the system reverts all mutations within that scope in a single operation
+  so that mass knowledge pollution from a single session is recoverable
+  without undoing transactions one at a time.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-006: Undo capability
+  - CC-011: Prevent permanent data loss
+  - QAW scenario 1: Knowledge pollution
+verification:
+  manual:
+    - Store 10 entries in session A, rollback session A, verify all 10 entries gone
+  machine:
+    - E2E: store N entries with session marker, rollback by session, query, assert none remain
+    - E2E: rollback by time range, verify only mutations within range are reverted

@@ -1,0 +1,16 @@
+id: FR-009
+title: Canonicalize and merge entities
+phase: 1
+statement: >
+  When an agent calls upsert_entity, the system creates or resolves a
+  canonical entity. When an agent calls merge_entities, the system absorbs
+  one entity into another, updating all triple references, so that duplicate
+  entities are consolidated.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-002: Cross-agent knowledge sharing
+verification:
+  manual:
+    - Create two entities, merge, verify triples reference the kept entity
+  machine:
+    - E2E: create entities, relate triples to both, merge, assert all triples reference kept entity

@@ -1,0 +1,18 @@
+id: FR-019
+title: Knowledge summary and overview tool
+phase: 2
+statement: >
+  When an agent calls a summary tool, the system returns an overview of the
+  knowledge base including topic distribution, entry count, recent activity,
+  and a condensed digest so that agents can discover what knowledge exists
+  before querying.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-002: Cross-agent knowledge sharing
+  - QAW scenario 12: Knowledge discoverability
+verification:
+  manual:
+    - Store entries across multiple topics, call summary, verify topic distribution and counts
+  machine:
+    - E2E: store entries with distinct topics, call summary, assert counts and topics present
+    - E2E: call summary on empty instance, assert empty/zero response (no error)

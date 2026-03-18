@@ -1,0 +1,19 @@
+id: FR-018
+title: Credential rotation
+phase: 2
+statement: >
+  When the owner needs to rotate a compromised passphrase, TOTP secret, or
+  passkey credential, the system allows replacement without losing access or
+  requiring redeployment so that security incidents are recoverable without
+  service disruption.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-009: MCP endpoint security
+  - QAW scenario 9: Single-owner key rotation
+verification:
+  manual:
+    - Enroll new passkey, revoke old passkey, verify new passkey authenticates
+    - Rotate TOTP secret, verify old code rejected and new code accepted
+  machine:
+    - E2E: rotate passphrase, authenticate with new, assert old rejected
+    - E2E: rotate TOTP secret, verify enrollment flow completes, old code fails

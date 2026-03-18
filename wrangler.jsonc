@@ -5,20 +5,20 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "lore-mcp",
-	"main": "src/index.ts",
+	"main": "src/index.js",
 	"compatibility_date": "2025-03-10",
-	"compatibility_flags": ["nodejs_compat"],
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
 	"vars": {},
 	"migrations": [
 		{
-			"new_sqlite_classes": ["MyMCP"],
+			"new_sqlite_classes": ["LoreMcp"],
 			"tag": "v1"
 		}
 	],
 	"durable_objects": {
 		"bindings": [
 			{
-				"class_name": "MyMCP",
+				"class_name": "LoreMcp",
 				"name": "MCP_OBJECT"
 			}
 		]
@@ -33,7 +33,7 @@
 		{
 			"binding": "DB",
 			"database_name": "lore-mcp-db",
-			"database_id": "your-d1-database-id",
+			"database_id": "ec16b95e-5cac-4768-ae5c-2c8fd69a99ec",
 			"migrations_dir": "migrations"
 		}
 	],

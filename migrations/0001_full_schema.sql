@@ -1,5 +1,5 @@
--- Full schema for the knowledge server (pre-release, no migration needed).
--- Includes provenance (003), entities (003), ingestion (004), and indexes.
+-- Base schema for the knowledge server.
+-- Later migrations extend this with valid_to_state, embedding lifecycle, and TTL.
 
 CREATE TABLE IF NOT EXISTS transactions (
 	id TEXT PRIMARY KEY,
@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS entries (
 	valid_from TEXT,
 	valid_to TEXT,
 	status TEXT NOT NULL DEFAULT 'active',
+	knowledge_type TEXT NOT NULL DEFAULT 'observation',
+	memory_type TEXT NOT NULL DEFAULT 'fleeting',
 	canonical_entity_id TEXT,
 	created_at TEXT NOT NULL DEFAULT (datetime('now')),
 	updated_at TEXT NOT NULL DEFAULT (datetime('now')),

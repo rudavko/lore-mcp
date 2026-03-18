@@ -1,0 +1,42 @@
+nfrs:
+  - id: NFR-001
+    title: Performance — retrieval relevance threshold
+    priority: Phase 1 desired
+    impact: high
+    effort: medium
+    asr: false
+
+  - id: NFR-002
+    title: Reliability — knowledge does not degrade over time
+    priority: Phase 2 desired
+    impact: high
+    effort: high
+    asr: true
+
+  - id: NFR-003
+    title: Reliability — graph expansion is bounded
+    priority: Phase 1 critical
+    impact: high
+    effort: low
+    asr: false
+
+  - id: NFR-004
+    title: Reliability — embedding model change does not break retrieval
+    priority: Phase 2 desired
+    impact: medium
+    effort: medium
+    asr: true
+
+  - id: NFR-005
+    title: Usability — non-technical owner can assess instance health
+    priority: Phase 2 desired
+    impact: medium
+    effort: low
+    asr: false
+
+  - id: NFR-006
+    title: Security — concurrent auth sessions do not interfere
+    priority: Phase 1 critical
+    impact: high
+    effort: low
+    asr: false

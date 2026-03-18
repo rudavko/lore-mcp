@@ -1,0 +1,15 @@
+id: NFR-002
+title: Reliability — knowledge does not degrade over time
+scenarios:
+  - stimulus: Knowledge base accumulates entries over months with no maintenance
+    response: Retrieval quality remains stable; old entries do not pollute results for current queries
+    measure: Eval pipeline scores do not decline as entry count grows from 100 to 10,000+
+  - stimulus: Entry becomes factually outdated but is never explicitly deleted
+    response: System provides a mechanism to detect or signal staleness
+    measure: Entries have last-accessed or staleness metadata; agents can filter by recency
+priority: Phase 2 desired
+traces:
+  - CC-005: Retrieval relevance
+  - FR-002: Query knowledge entries with hybrid retrieval
+drives:
+  - ADR: Schema and retrieval pipeline must support staleness detection and recency-weighted ranking

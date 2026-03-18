@@ -1,0 +1,10 @@
+id: NFR-003
+title: Reliability — graph expansion is bounded
+scenarios:
+  - stimulus: Agent creates circular triples (A→B→C→A)
+    response: Graph expansion during retrieval terminates without looping
+    measure: 1-hop expansion limit prevents cycles from amplifying noise; query returns in bounded time regardless of graph topology
+priority: Phase 1 critical
+traces:
+  - CC-005: Retrieval relevance
+  - FR-002: Query knowledge entries with hybrid retrieval

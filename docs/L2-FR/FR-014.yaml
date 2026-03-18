@@ -1,0 +1,15 @@
+id: FR-014
+title: Update triple
+phase: 1
+statement: >
+  When an agent calls update_triple with a triple ID and changed fields, the
+  system updates the triple and logs the mutation so that relationships can
+  be corrected.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-006: Undo capability
+verification:
+  manual:
+    - Create triple, update object, verify changed via query_graph
+  machine:
+    - E2E: relate, update_triple, query_graph, assert updated fields

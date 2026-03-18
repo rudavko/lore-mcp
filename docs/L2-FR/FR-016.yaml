@@ -1,0 +1,18 @@
+id: FR-016
+title: Provenance-weighted retrieval
+phase: 2
+statement: >
+  When an agent queries knowledge with a provenance-weight option, the
+  system factors confidence scores and source trustworthiness into result
+  ranking alongside textual and semantic relevance so that higher-quality
+  knowledge surfaces above lower-quality knowledge.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-005: Retrieval relevance
+  - CC-007: Provenance tracking
+  - QAW scenario 2: Provenance trust
+verification:
+  manual:
+    - Store two conflicting entries with different confidence, query with provenance weighting, verify higher-confidence entry ranks first
+  machine:
+    - E2E: store entries with varying confidence, query with provenance weight, assert ordering respects confidence

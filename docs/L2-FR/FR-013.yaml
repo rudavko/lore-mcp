@@ -1,0 +1,16 @@
+id: FR-013
+title: Soft-delete entry or triple
+phase: 1
+statement: >
+  When an agent calls delete with an ID, the system soft-deletes the entity
+  (marks as deleted, not removed from storage) and logs the mutation so that
+  deletions are reversible via undo.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-011: Prevent permanent data loss
+  - CC-006: Undo capability
+verification:
+  manual:
+    - Store entry, delete, verify not returned by query; undo, verify restored
+  machine:
+    - E2E: store, delete, query returns empty; undo, query returns entry

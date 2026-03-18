@@ -1,0 +1,16 @@
+id: FR-012
+title: Update knowledge entry
+phase: 1
+statement: >
+  When an agent calls update with an entry ID and changed fields, the system
+  updates the entry and logs the mutation in the transaction history so that
+  knowledge can be corrected without delete-and-recreate.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-006: Undo capability
+  - CC-007: Provenance tracking
+verification:
+  manual:
+    - Store entry, update topic, verify changed; check history for transaction
+  machine:
+    - E2E: store, update, query, assert updated fields; history shows before/after

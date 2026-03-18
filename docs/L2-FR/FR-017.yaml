@@ -1,0 +1,18 @@
+id: FR-017
+title: Export and import knowledge base
+phase: 2
+statement: >
+  When the owner requests an export, the system produces a portable archive
+  containing all entries, triples, and entities. When the owner supplies an
+  archive to import, the system restores the data into a target instance so
+  that migration between accounts and offline backup are possible.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-001: Data ownership
+  - QAW scenario 6: Offline/migration portability
+verification:
+  manual:
+    - Export from instance A, import into instance B, verify all entries and triples present
+  machine:
+    - E2E: store entries + triples, export, clear instance, import, query, assert data matches original
+    - E2E: import into non-empty instance, verify no data loss of existing entries

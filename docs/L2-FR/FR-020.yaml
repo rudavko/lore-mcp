@@ -1,0 +1,19 @@
+id: FR-020
+title: Namespace and project scoping
+phase: 2
+statement: >
+  When one Lore instance is used across multiple projects, the system
+  supports namespace or project-level scoping beyond tags so that an agent
+  working on project A does not receive results from project B unless
+  explicitly requested.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-002: Cross-agent knowledge sharing
+  - QAW scenario 14: Accidental scope leakage
+verification:
+  manual:
+    - Store entry in namespace A, query from namespace B, verify entry not returned
+    - Query from namespace A, verify entry returned
+  machine:
+    - E2E: store entries in separate namespaces, query scoped to one, assert isolation
+    - E2E: query without namespace scope, assert all entries returned (backward compatible)

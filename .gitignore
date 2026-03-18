@@ -182,3 +182,9 @@ PLAN*.md
 auth-variants/
 backup/
 .DS_Store
+evalsORIGINAL/
+srcORIGINAL/
+Library/
+TODO/
+.tmp-home/
+reports/

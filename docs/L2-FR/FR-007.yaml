@@ -1,0 +1,17 @@
+id: FR-007
+title: Undo mutations via transaction log
+phase: 1
+statement: >
+  When an agent calls undo with an optional count, the system reverts the
+  last N mutations by replaying inverse operations (including entity merge
+  reversal) so that mistakes are recoverable.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-006: Undo capability
+  - CC-011: Prevent permanent data loss
+verification:
+  manual:
+    - Store entry, undo, verify entry no longer exists
+  machine:
+    - E2E: store entry, undo(1), query, assert entry gone
+    - E2E: merge entities, undo, assert entities separated

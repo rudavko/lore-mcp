@@ -1,0 +1,18 @@
+id: FR-002
+title: Query knowledge entries with hybrid retrieval
+phase: 1
+statement: >
+  When an agent calls query with optional topic, content, and tag filters,
+  the system returns matching entries ranked by combined lexical, semantic,
+  and graph signals so that retrieval works even when query wording differs
+  from stored text.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-005: Retrieval relevance
+  - EC-004: Vectorize optional — degrade gracefully without it
+verification:
+  manual:
+    - Store an entry, query with different wording, verify it appears in results
+  machine:
+    - E2E: store entry with topic "kubernetes deployment", query "k8s deploy", assert entry returned
+    - E2E: query without Vectorize binding, assert lexical+graph results still returned

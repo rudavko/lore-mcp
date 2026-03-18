@@ -1,0 +1,18 @@
+id: FR-006
+title: Detect and resolve triple conflicts
+phase: 1
+statement: >
+  When relate would create a duplicate subject+predicate with a different
+  object, the system returns ConflictInfo. When an agent calls
+  resolve_conflict with a strategy (replace, retain_both, reject), the
+  system applies it so that conflicting facts are handled explicitly.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-011: Prevent permanent data loss from agent actions
+verification:
+  manual:
+    - Create conflicting triple, resolve with each strategy, verify outcome
+  machine:
+    - E2E: relate conflict, resolve with replace, assert old triple updated
+    - E2E: relate conflict, resolve with retain_both, assert both triples exist
+    - E2E: relate conflict, resolve with reject, assert original unchanged

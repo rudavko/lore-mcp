@@ -2,14 +2,14 @@
 
 ## Problem Statement
 
-Users can deploy from a public repository, but post-deploy updates are not streamlined for non-technical operators. The product needs a clear and reliable self-serve update model with explicit opt-in auto-updates, a manual update path, and rollback/failure guidance.
+Users can deploy from a public repository, but post-deploy updates still need a clear self-serve path. The product needs a reliable model where the deploy repo is baked into the worker, `enable_auto_updates` installs the repository workflow on demand, and operators can then use the installed workflow for scheduled or manual updates with clear rollback/failure guidance.
 
 ## Goals
 
 1. Make initial deployment clear from the public repository.
-2. Provide a user-selectable update mode with manual updates as default.
-3. Support optional auto-updates without requiring Git/GitHub expertise.
-4. Keep a manual update path always available.
+2. Provide an explicit opt-in path for installing the update workflow into the deploy repository.
+3. Support scheduled updates without requiring users to edit workflow files manually.
+4. Keep a manual workflow-dispatch path available after the update workflow is installed.
 5. Make failure modes, overwrite risk, rollback, and data safety explicit.
 
 ## Non-Goals
@@ -57,67 +57,67 @@ Acceptance Criteria:
 
 - Given deployment has completed
 - When I follow the post-deploy checklist
-- Then I can verify required auth and owner configuration
+- Then I can verify passphrase setup, 2FA enrollment, and MCP connectivity
 
 - Given a required config value is missing
 - When I access protected auth routes
 - Then I receive clear actionable error messages
 
-### US-004 User-selectable update mode (manual default)
+### US-004 Opt-in update workflow installation
 
-As a user, I want to choose whether auto-updates are enabled, so I can control update risk.
-
-Acceptance Criteria:
-
-- Given I review update options
-- When I have not opted into auto-updates
-- Then manual update is the default mode
-
-- Given I change my preference later
-- When I use documented controls
-- Then I can switch modes without redeploying the project
-
-### US-005 Enable auto-update from UI/workflow
-
-As a user, I want a low-friction way to enable auto-updates, so I do not need to edit workflow files directly.
+As a user, I want scheduled updates to stay off until I explicitly install the update workflow, so I can control update risk.
 
 Acceptance Criteria:
 
-- Given auto-update is disabled
-- When I run the documented enable action from workflow UI
-- Then scheduled updates become active
+- Given I have not installed the update workflow
+- When I review the worker documentation
+- Then I see that scheduled updates are not active yet
 
-- Given enable action succeeds
-- When I read workflow logs
-- Then logs confirm schedule status and next expected behavior
+- Given the deploy repo is baked into the worker
+- When I run `enable_auto_updates` and complete the one-time setup page
+- Then `.github/workflows/upstream-sync.yml` is installed without redeploying the worker
 
-### US-006 Disable auto-update cleanly
+### US-005 Enable scheduled updates through the setup link
 
-As a user, I want to disable auto-updates at any time, so I can stop unattended changes immediately.
+As a user, I want a low-friction way to enable scheduled updates, so I do not need to edit workflow files directly.
 
 Acceptance Criteria:
 
-- Given auto-update is enabled
-- When I run the documented disable action from workflow UI
+- Given the worker knows my deploy repository
+- When I call `enable_auto_updates`
+- Then I receive a short-lived browser link for installing the workflow
+
+- Given I open the setup link and provide a PAT with workflow-file write access
+- When installation succeeds
+- Then the repository contains `upstream-sync.yml` with a schedule and `workflow_dispatch`
+
+### US-006 Disable scheduled updates cleanly
+
+As a user, I want to stop unattended updates at any time, so I can remove scheduled execution when needed.
+
+Acceptance Criteria:
+
+- Given `upstream-sync.yml` is installed
+- When I disable or remove that workflow in the repository
 - Then scheduled updates stop
 
-- Given disable action succeeds
-- When I review workflow output
-- Then I see confirmation that no further scheduled updates will run
+- Given I review the update docs
+- When I look for how to stop scheduled updates
+- Then the docs clearly explain that this is done through the repository workflow, not through a separate worker-side toggle
 
-### US-007 Manual update button/link to workflow run page
+### US-007 Manual update entrypoint after workflow install
 
-As a user, I want a manual update button that opens the workflow run page, so I can trigger updates on demand.
+As a user, I want a documented manual update entrypoint after the update workflow is installed, so I can trigger updates on demand.
 
 Acceptance Criteria:
 
-- Given I am in the repository README
-- When I click Manual Update
-- Then I land on the GitHub Actions workflow page where I can click Run workflow
+- Given the update workflow has been installed in my deploy repository
+- When I follow the documented manual update path
+- Then I land on the GitHub Actions page for `upstream-sync.yml` where I can click Run workflow
 
-- Given auto-update is disabled
+- Given the workflow is still present in the repository
 - When I need the latest upstream changes
-- Then manual update remains available and functional
+- Then manual `workflow_dispatch` remains available and functional
 
 ### US-008 Force-sync update behavior (explicitly allowed)
 
@@ -191,8 +191,8 @@ Acceptance Criteria:
 
 ## Edge Cases and Constraints
 
-1. Auto-update enable/disable must remain decoupled from manual update availability.
-2. Missing required configuration (for example, owner identity or passphrase) must fail loudly and clearly.
+1. Installing the update workflow must remain decoupled from worker redeploy once `TARGET_REPO` is baked in.
+2. Missing required configuration (for example, target repo or passphrase) must fail loudly and clearly.
 3. Force-sync behavior is intentional and must be prominently documented as overwrite-prone.
 4. Cloudflare resource state and GitHub repository state may drift; troubleshooting must account for both.
 5. Delete/redeploy is last-resort because it can be destructive for stateful resources.
@@ -200,8 +200,7 @@ Acceptance Criteria:
 ## Success Metrics
 
 1. Users can deploy and reach a functional endpoint without ad hoc support.
-2. Users can run manual updates from a single documented entrypoint.
-3. Users can explicitly opt in/out of scheduled auto-updates.
+2. Users can run manual updates from a single documented entrypoint after workflow installation.
+3. Users can explicitly opt into scheduled auto-updates through `enable_auto_updates`.
 4. Update failures include actionable guidance and rollback steps.
 5. Documentation makes destructive recovery paths unambiguous.
-

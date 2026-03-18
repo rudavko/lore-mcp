@@ -1,0 +1,13 @@
+id: NFR-001
+title: Performance — retrieval relevance threshold
+scenarios:
+  - stimulus: Agent queries with broad terms returning 50+ matches
+    response: System applies minimum relevance cutoff before returning results
+    measure: No result returned below configurable relevance threshold; default limit prevents context window waste
+  - stimulus: Agent queries with highly specific terms
+    response: System returns only closely matching results even if below the limit count
+    measure: Zero padding — never returns irrelevant results to fill the limit
+priority: Phase 1 desired
+traces:
+  - CC-005: Retrieval relevance
+  - FR-002: Query knowledge entries with hybrid retrieval

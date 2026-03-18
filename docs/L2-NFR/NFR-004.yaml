@@ -1,0 +1,13 @@
+id: NFR-004
+title: Reliability — embedding model change does not break retrieval
+scenarios:
+  - stimulus: Cloudflare updates or replaces bge-base-en-v1.5 on Workers AI
+    response: System detects model mismatch or provides re-embedding path
+    measure: Semantic search either works correctly with new model or degrades gracefully to lexical+graph only
+priority: Phase 2 desired
+traces:
+  - CC-008: Platform vendor changes
+  - EC-004: Vectorize optional — degrade gracefully
+  - FR-002: Query knowledge entries with hybrid retrieval
+drives:
+  - ADR: Embedding versioning strategy — track model ID per vector, re-embed on model change or degrade to lexical+graph

@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"target": "es2021",
-		"lib": ["es2021"],
+		"lib": ["es2022"],
 		"jsx": "react-jsx",
 		"module": "es2022",
 		"moduleResolution": "bundler",
@@ -10,11 +10,12 @@
 		"checkJs": false,
 		"noEmit": true,
 		"isolatedModules": true,
+		"rewriteRelativeImportExtensions": true,
 		"allowSyntheticDefaultImports": true,
 		"forceConsistentCasingInFileNames": true,
 		"strict": true,
 		"skipLibCheck": true
 	},
-	"include": ["worker-configuration.d.ts", "src/**/*.ts"],
-	"exclude": ["src/**/*.test.ts"]
+	"include": ["worker-configuration.d.ts", "test-preload.test.js", "src/**/*.js", "scripts/**/*.js"],
+	"exclude": ["src/**/*.test.js", "evalsORIGINAL/**", "srcORIGINAL/**"]
 }

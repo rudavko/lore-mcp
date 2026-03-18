@@ -1,0 +1,80 @@
+frs:
+  - id: FR-001
+    title: Store knowledge entry
+    phase: 1
+
+  - id: FR-002
+    title: Query knowledge entries with hybrid retrieval
+    phase: 1
+
+  - id: FR-003
+    title: Create graph triple
+    phase: 1
+
+  - id: FR-004
+    title: Query graph triples
+    phase: 1
+
+  - id: FR-005
+    title: Upsert triple by subject+predicate
+    phase: 1
+
+  - id: FR-006
+    title: Detect and resolve triple conflicts
+    phase: 1
+
+  - id: FR-007
+    title: Undo mutations via transaction log
+    phase: 1
+
+  - id: FR-008
+    title: View transaction history
+    phase: 1
+
+  - id: FR-009
+    title: Canonicalize and merge entities
+    phase: 1
+
+  - id: FR-010
+    title: Bulk ingest content
+    phase: 1
+
+  - id: FR-011
+    title: Authenticate via OAuth 2.1 + 2FA
+    phase: 1
+
+  - id: FR-012
+    title: Update knowledge entry
+    phase: 1
+
+  - id: FR-013
+    title: Soft-delete entry or triple
+    phase: 1
+
+  - id: FR-014
+    title: Update triple
+    phase: 1
+
+  - id: FR-015
+    title: Session-scoped rollback (batch undo)
+    phase: 2
+
+  - id: FR-016
+    title: Provenance-weighted retrieval
+    phase: 2
+
+  - id: FR-017
+    title: Export and import knowledge base
+    phase: 2
+
+  - id: FR-018
+    title: Credential rotation
+    phase: 2
+
+  - id: FR-019
+    title: Knowledge summary and overview tool
+    phase: 2
+
+  - id: FR-020
+    title: Namespace and project scoping
+    phase: 2

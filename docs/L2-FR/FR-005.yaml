@@ -1,0 +1,16 @@
+id: FR-005
+title: Upsert triple by subject+predicate
+phase: 1
+statement: >
+  When an agent calls upsert_triple with subject, predicate, and object, the
+  system creates the triple if none exists for that subject+predicate, or
+  updates the existing one, so that agents can set facts without checking
+  existence first.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-002: Cross-agent knowledge sharing
+verification:
+  manual:
+    - Upsert a triple, upsert again with different object, verify only one triple exists with new object
+  machine:
+    - E2E: upsert_triple, query_graph, assert one triple; upsert same subject+predicate with new object, assert updated

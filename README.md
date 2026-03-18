@@ -42,6 +42,7 @@ With one deployed LORE endpoint, every connected agent sees the same knowledge b
 | `ingest` | Bulk-ingest text (sync for small inputs, async for large) |
 | `ingestion_status` | Check async ingestion progress |
 | `time` | Current time in any IANA timezone |
+| `build_info` | Current `package.json` version and deployed build hash |
 
 ### Resources (paginated, cursor-based)
 
@@ -134,19 +135,6 @@ Single-owner, two-factor:
 - **Passphrase** — set via `ACCESS_PASSPHRASE` secret
 - **Passkey** (WebAuthn) — preferred 2FA, enrolled after first passphrase login
 - **TOTP** — fallback 2FA, enrolled via QR code if passkey is skipped
-- **Cloudflare Access** (optional) — adds an email-based identity layer with JWT verification
-
-### Optional: Email OAuth (Cloudflare Access)
-
-If you want email-based OAuth on top of passphrase + 2FA:
-
-1. Create a Cloudflare Access application for your Worker URL.
-2. Add these Worker secrets:
-   - `CF_ACCESS_TEAM_DOMAIN` (your Access team subdomain, without `.cloudflareaccess.com`)
-   - `CF_ACCESS_AUD` (the Access app audience/tag)
-3. (Recommended) Add `OWNER_EMAIL` to lock access to one email address.
-
-If `OWNER_EMAIL` is not set, any email that passes your Cloudflare Access policy can sign in.
 
 Security details:
 - CSRF tokens on all auth forms
@@ -188,21 +176,23 @@ Structured JSON events are emitted via `console.log` and auto-indexed by [Cloudf
 
 ## Eval Suite
 
-```bash
-bun run evals/run.ts
-```
+The evaluation runner is not currently included in this repository snapshot.
 
-Seeds 30 entries + 12 triples, runs 12 queries, and computes ndcg@10, mrr@10, recall@20, and latency p95. CI fails if metrics regress beyond thresholds.
-
-Baseline (FTS5-only, no Vectorize): ndcg=0.38, mrr=0.66, recall=0.29. Semantic search via Vectorize is expected to close the gap on the 4 deliberate misses in the eval set.
+See [docs/quality/evals.md](docs/quality/evals.md) for current status before wiring eval commands in CI.
 
 ## Updates
 
-[![Update from Source](https://img.shields.io/badge/Update_from_Source-blue?logo=github)](../../actions/workflows/manual-update.yml)
+Deploy Button forks do not keep the update workflows automatically. Install them after deploy through the `enable_auto_updates` MCP tool.
 
-Click the badge above (or go to **Actions → Manual Update → Run workflow**) to pull the latest version from upstream and redeploy.
+High-level flow:
 
-**Prerequisites** (one-time setup in your fork's **Settings → Secrets and variables → Actions**):
+- Deploy your fork to Cloudflare.
+- Call `enable_auto_updates`.
+- Open the one-time browser link returned by the tool.
+- Paste a GitHub PAT with permission to write workflow files for your deploy repo.
+- The worker writes `.github/workflows/upstream-sync.yml` into your repo.
+
+**Prerequisites** (one-time setup in your fork's **Settings → Secrets and variables → Actions** after the workflow is installed):
 
 | Secret | Description |
 |---|---|
@@ -211,52 +201,52 @@ Click the badge above (or go to **Actions → Manual Update → Run workflow**) 
 
 If the secrets are missing, the sync still runs but the deploy step is skipped.
 
-Two workflows are included:
-
-- **Manual Update** — click "Run workflow" to force-sync from upstream and redeploy
-- **Auto Update Control** (opt-in) — enable/disable daily scheduled upstream sync
+See [docs/operations/updates.md](docs/operations/updates.md) for the exact setup path and PAT requirements.
 
 ## Project Structure
 
 ```
 src/
-├── index.ts              # Worker entry, Durable Object, OAuth provider
-├── auth.ts               # Hono routes: /authorize, /approve, /enroll-totp, /enroll-passkey
-├── cf-access.ts          # Cloudflare Access JWT verification (zero-dep)
-├── totp.ts               # TOTP/HOTP via Web Crypto (zero-dep, RFC 4226/6238)
-├── webauthn.ts           # Passkey/WebAuthn verification (via @simplewebauthn/server)
+├── index.orch.0.js       # Worker entry orchestration and dependency wiring
+├── *.pure.js             # Pure logic (deterministic, no I/O)
+├── *.efct.js             # Effect boundaries (I/O, platform APIs)
+├── *.ops.efct.js         # Orchestrated effect operations
 ├── db/
-│   ├── schema.ts         # D1 schema init + FTS5 virtual table + triggers
-│   ├── entries.ts        # Entry CRUD with transaction logging
-│   ├── triples.ts        # Triple CRUD with transaction logging
-│   ├── entities.ts       # Canonical entity management + merge
-│   ├── search.ts         # Hybrid retrieval: lexical + semantic + graph
-│   └── history.ts        # Undo engine (supports merge reversal)
+│   ├── schema.efct.js
+│   ├── entries.*.js
+│   ├── triples.*.js
+│   ├── entities.*.js
+│   ├── search.*.js
+│   ├── conflicts.*.js
+│   ├── history.*.js
+│   └── summary.*.js
 ├── domain/
-│   ├── conflict.ts       # Advisory conflict detection for triples
-│   ├── policy.ts         # Mutation guardrails (required fields, min confidence)
-│   └── ingestion.ts      # Sync/async bulk ingestion with dedup
+│   ├── conflict.*.js
+│   ├── policy.*.js
+│   ├── ingestion.*.js
+│   └── github-workflow.*.js
 ├── mcp/
-│   ├── tools.ts          # All 16 MCP tool registrations
-│   ├── resources.ts      # Paginated resource handlers
-│   ├── prompts.ts        # Prompt templates
-│   └── subscriptions.ts  # Change notification via resources/updated
+│   ├── tools.*.js
+│   ├── resources.efct.js
+│   ├── prompts.*.js
+│   └── subscriptions.*.js
 ├── lib/
-│   ├── types.ts          # Shared interfaces
-│   ├── errors.ts         # Structured error codes
-│   ├── format.ts         # Tool response formatting + cursor helpers
-│   ├── observe.ts        # Structured event logging
-│   └── ulid.ts           # Monotonic ULID generator (zero-dep)
+│   ├── *.pure.js
+│   ├── *.efct.js
+│   └── *.type.js
+├── wiring/
+│   ├── runtime.efct.js
+│   ├── default-handler.efct.js
+│   ├── loremcp.efct.js
+│   └── schedule.pure.js
 └── templates/
-    ├── authorize.ts      # Auth page HTML (passkey auto-trigger + passphrase fallback)
-    ├── enroll-passkey.ts # Passkey enrollment page HTML
-    └── enroll-totp.ts    # TOTP enrollment page HTML
+    ├── auth-page.*.js
+    ├── enroll-passkey.*.js
+    ├── enroll-totp.*.js
+    └── install-workflow.*.js
 evals/
-├── run.ts                # Retrieval eval runner
-├── metrics.ts            # ndcg, mrr, recall, latency computation
-├── metrics.test.ts       # Metric function tests
-├── smoke-vectorize.ts    # Live Vectorize smoke test
-└── smoke-totp.ts         # TOTP smoke test
+├── baselines/            # Placeholder directory in current snapshot
+└── datasets/             # Placeholder directory in current snapshot
 ```
 
 ## Known Limitations

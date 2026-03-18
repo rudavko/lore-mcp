@@ -1,0 +1,15 @@
+id: FR-008
+title: View transaction history
+phase: 1
+statement: >
+  When an agent calls history with optional limit and entity_type filter,
+  the system returns paginated transaction records with before/after
+  snapshots so that agents can audit what changed.
+traces:
+  - Charter 3.1: Deliver the system described in L1-vision.md
+  - CC-007: Provenance tracking
+verification:
+  manual:
+    - Perform mutations, call history, verify transactions listed
+  machine:
+    - E2E: store entry, call history, assert transaction with after_snapshot

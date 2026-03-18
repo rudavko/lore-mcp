@@ -1,0 +1,9 @@
+id: NFR-005
+title: Usability — non-technical owner can assess instance health
+scenarios:
+  - stimulus: SH-003 deploys instance and wants to know if it's working
+    response: System exposes a health signal accessible without CLI or developer tools
+    measure: A single URL or MCP tool call returns instance status (DB reachable, entry count, last write timestamp)
+priority: Phase 2 desired
+traces:
+  - CC-004: Non-technical deployment
