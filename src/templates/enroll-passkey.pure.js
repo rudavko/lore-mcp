@@ -26,10 +26,32 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helve
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }`;
 /** Render the passkey enrollment page as an HTML string. */
 export function renderEnrollPasskeyPage(p) {
-	const skipLabel = p.totpEnrolled
-		? "Skip — use authenticator code"
-		: "Set up authenticator code instead";
-	const skipAction = p.totpEnrolled ? "/complete-passkey-skip" : "/enroll-totp-redirect";
+	let alternateActionHtml = "";
+	if (p.canSkipPasskey) {
+		alternateActionHtml +=
+			'<form action="/complete-passkey-skip" method="POST">' +
+			'<input type="hidden" name="enroll_nonce" value="' +
+			escapeHtml(p.enrollNonce) +
+			'" />' +
+			'<input type="hidden" name="csrf_token" value="' +
+			escapeHtml(p.csrfToken) +
+			'" />' +
+			'<button type="submit" class="fallback-link" style="background:none;border:none;padding:0">Skip passkey setup for now</button>' +
+			"</form>";
+	}
+	if (p.canStartTotpEnrollment) {
+		alternateActionHtml +=
+			'<form action="/enroll-totp-redirect" method="POST">' +
+			'<input type="hidden" name="enroll_nonce" value="' +
+			escapeHtml(p.enrollNonce) +
+			'" />' +
+			'<input type="hidden" name="csrf_token" value="' +
+			escapeHtml(p.csrfToken) +
+			'" />' +
+			'<button type="submit" class="fallback-link" style="background:none;border:none;padding:0">Set up authenticator code instead</button>' +
+			"</form>";
+	}
+	const optionsJSON = p.optionsJSON.replace(/<\//g, "<\\/");
 	const webauthnScript =
 		'<script nonce="' +
 			escapeHtml(p.cspNonce) +
@@ -39,7 +61,7 @@ export function renderEnrollPasskeyPage(p) {
 		"function b64e(buf){var b=new Uint8Array(buf),s='';for(var i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s).replace(/[+]/g,'-').replace(/[/]/g,'_').replace(/=/g,'');}" +
 		"if(!window.PublicKeyCredential){statusEl.className='status error';statusEl.textContent='Passkeys not supported.';return;}" +
 		"var opts=" +
-		p.optionsJSON +
+		optionsJSON +
 		";" +
 		"opts.challenge=b64d(opts.challenge);opts.user.id=b64d(opts.user.id);" +
 		"if(opts.excludeCredentials){opts.excludeCredentials=opts.excludeCredentials.map(function(c){return Object.assign({},c,{id:b64d(c.id)});});}" +
@@ -75,15 +97,7 @@ export function renderEnrollPasskeyPage(p) {
 			'<input type="hidden" name="registration_response" id="registrationResponse" />' +
 			"</form>" +
 			'<noscript><div class="status error">JavaScript is required to register a passkey.</div></noscript>' +
-			'<a class="fallback-link" href="' +
-			escapeHtml(skipAction) +
-			"?nonce=" +
-			escapeHtml(p.enrollNonce) +
-			"&csrf=" +
-			escapeHtml(p.csrfToken) +
-			'">' +
-			escapeHtml(skipLabel) +
-			"</a>" +
+			alternateActionHtml +
 			'<div class="footer">Your passkey is stored on your device. It never leaves your hardware.</div>' +
 			"</div>" +
 			webauthnScript,

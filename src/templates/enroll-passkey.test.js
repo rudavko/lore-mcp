@@ -7,7 +7,8 @@ describe("templates/enroll-passkey.pure", () => {
 		csrfToken: "csrf789",
 		optionsJSON: "{}",
 		cspNonce: "csp1",
-		totpEnrolled: false,
+		canSkipPasskey: false,
+		canStartTotpEnrollment: false,
 	};
 	test("returns non-empty HTML", () => {
 		expect(renderEnrollPasskeyPage(baseParams).length).toBeGreaterThan(100);
@@ -24,14 +25,34 @@ describe("templates/enroll-passkey.pure", () => {
 	test("contains enroll nonce", () => {
 		expect(renderEnrollPasskeyPage(baseParams).indexOf("enonce1")).toBeGreaterThan(-1);
 	});
-	test("contains skip link when totp not enrolled", () => {
-		expect(
-			renderEnrollPasskeyPage(baseParams).indexOf("authenticator code instead"),
-		).toBeGreaterThan(-1);
+	test("contains TOTP enrollment form when requested", () => {
+		const text = renderEnrollPasskeyPage({ ...baseParams, canStartTotpEnrollment: true });
+		expect(text.indexOf('<form action="/enroll-totp-redirect" method="POST">')).toBeGreaterThan(-1);
 	});
-	test("contains skip link when totp enrolled", () => {
-		const text = renderEnrollPasskeyPage({ ...baseParams, totpEnrolled: true });
-		expect(text.indexOf("Skip")).toBeGreaterThan(-1);
+	test("contains skip form when alternate factor is already satisfied", () => {
+		const text = renderEnrollPasskeyPage({ ...baseParams, canSkipPasskey: true });
+		expect(text.indexOf('<form action="/complete-passkey-skip" method="POST">')).toBeGreaterThan(-1);
+		expect(text.indexOf("Skip passkey setup for now")).toBeGreaterThan(-1);
+	});
+	test("renders both alternate POST actions when both transitions are allowed", () => {
+		const text = renderEnrollPasskeyPage({
+			...baseParams,
+			canSkipPasskey: true,
+			canStartTotpEnrollment: true,
+		});
+		expect(text.indexOf('<form action="/complete-passkey-skip" method="POST">')).toBeGreaterThan(-1);
+		expect(text.indexOf('<form action="/enroll-totp-redirect" method="POST">')).toBeGreaterThan(-1);
+	});
+	test("does not expose nonce and csrf in query links", () => {
+		const text = renderEnrollPasskeyPage({
+			...baseParams,
+			canStartTotpEnrollment: true,
+			canSkipPasskey: true,
+		});
+		expect(text.indexOf("?nonce=")).toBe(-1);
+		expect(text.indexOf("&csrf=")).toBe(-1);
+		expect(text.indexOf('href="/enroll-totp-redirect')).toBe(-1);
+		expect(text.indexOf('href="/complete-passkey-skip')).toBe(-1);
 	});
 	test("contains navigator.credentials.create script", () => {
 		expect(

@@ -43,7 +43,7 @@ export async function selectAliasIdsByEntity(db, entityId) {
 	return results;
 }
 export async function queryCanonicalEntityRows(db, whereClause, binds, limit) {
-	const sql = `SELECT ce.id, ce.name, ce.created_at FROM canonical_entities ce WHERE ${whereClause} ORDER BY ce.id DESC LIMIT ?`;
+	const sql = `SELECT ce.* FROM canonical_entities ce WHERE ${whereClause} ORDER BY ce.id DESC LIMIT ?`;
 	const { results } = await db
 		.prepare(sql)
 		.bind(...binds, limit)

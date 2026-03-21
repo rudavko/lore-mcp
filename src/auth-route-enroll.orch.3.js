@@ -1,7 +1,13 @@
 /** @implements FR-018 — Enrollment route orchestration for passkey skip and TOTP flows. */
-import { CSRF_COOKIE_NAME } from "./auth-shared.pure.js";
 import {
-	validateQueryCsrfAndConsume,
+	AUTH_ACTION_REGISTER_PASSKEY,
+	canSkipPasskeyEnrollment,
+	canStartTotpEnrollment,
+} from "./auth-flow-state.pure.js";
+import { TOTP_SECRET_KEY } from "./auth-shared.pure.js";
+import {
+	consumePasskeyEnrollmentChallenge,
+	parseEnrollActionInput,
 	prepareTotpEnrollmentData,
 	renderTotpEnrollPage,
 	verifyAndCompletePasskeyEnroll,
@@ -12,41 +18,91 @@ export async function handleEnrollPasskey(deps) {
 	if (await deps.isIpLocked()) {
 		return deps.textResponse("Too many failed attempts. Please try again later.", 429);
 	}
-	const body = await deps.parseBody();
-	const enrollNonce = deps.bodyString(body.enroll_nonce);
-	const registrationResponseRaw = deps.bodyString(body.registration_response);
-	const csrfBody = deps.bodyString(body.csrf_token);
-	const csrfCookie = deps.getCookie(CSRF_COOKIE_NAME);
-	if (
-		!enrollNonce ||
-		!csrfBody ||
-		!csrfCookie ||
-		!(await deps.safeStringEqual(csrfBody, csrfCookie))
-	) {
+	const input = await parseEnrollActionInput(deps);
+	const challengeResult = await consumePasskeyEnrollmentChallenge(
+		deps,
+		input.enrollNonce,
+		input.csrfBody,
+		input.csrfCookie,
+	);
+	if (challengeResult.kind === "invalid_request") {
 		return deps.textResponse("Invalid enrollment request", 400);
 	}
-	const challenge = await deps.consumeChallenge(enrollNonce);
-	deps.deleteCookie(CSRF_COOKIE_NAME);
-	if (!challenge || challenge.type !== "registration") {
+	if (challengeResult.kind === "missing") {
 		return deps.textResponse("Enrollment expired. Please start over.", 400);
 	}
-	return verifyAndCompletePasskeyEnroll(deps, registrationResponseRaw, challenge);
+	if (challengeResult.kind === "invalid_state") {
+		return deps.textResponse("Invalid enrollment state. Please start over.", 400);
+	}
+	if (
+		challengeResult.challenge.type !== "registration" ||
+		!challengeResult.challenge.flowState.allowedMethods.includes(AUTH_ACTION_REGISTER_PASSKEY)
+	) {
+		return deps.textResponse("Invalid enrollment state. Please start over.", 400);
+	}
+	return verifyAndCompletePasskeyEnroll(
+		deps,
+		input.registrationResponseRaw,
+		challengeResult.challenge,
+	);
 }
 
 export async function handleCompletePasskeySkip(deps) {
-	const result = await validateQueryCsrfAndConsume(deps);
-	if (result.error) {
-		return result.error;
+	if (await deps.isIpLocked()) {
+		return deps.textResponse("Too many failed attempts. Please try again later.", 429);
 	}
-	return deps.redirectResponse(await deps.completeAuthorization(result.challenge.oauthReq));
+	const input = await parseEnrollActionInput(deps);
+	const result = await consumePasskeyEnrollmentChallenge(
+		deps,
+		input.enrollNonce,
+		input.csrfBody,
+		input.csrfCookie,
+	);
+	if (result.kind === "invalid_request") {
+		return deps.textResponse("Invalid enrollment request", 400);
+	}
+	if (result.kind === "missing") {
+		return deps.textResponse("Enrollment expired. Please start over.", 400);
+	}
+	if (
+		result.kind === "invalid_state" ||
+		result.challenge.type !== "registration" ||
+		!canSkipPasskeyEnrollment(result.challenge.flowState)
+	) {
+		return deps.textResponse("Invalid enrollment state. Please start over.", 400);
+	}
+	await deps.clearAuthFailures();
+	return deps.redirectResponse(await deps.completeAuthorization(result.challenge.flowState.oauthReq));
 }
 
 export async function handleEnrollTotpRedirect(deps) {
-	const result = await validateQueryCsrfAndConsume(deps);
-	if (result.error) {
-		return result.error;
+	if (await deps.isIpLocked()) {
+		return deps.textResponse("Too many failed attempts. Please try again later.", 429);
 	}
-	const enrollData = await prepareTotpEnrollmentData(deps, result.challenge.oauthReq);
+	const input = await parseEnrollActionInput(deps);
+	const result = await consumePasskeyEnrollmentChallenge(
+		deps,
+		input.enrollNonce,
+		input.csrfBody,
+		input.csrfCookie,
+	);
+	if (result.kind === "invalid_request") {
+		return deps.textResponse("Invalid enrollment request", 400);
+	}
+	if (result.kind === "missing") {
+		return deps.textResponse("Enrollment expired. Please start over.", 400);
+	}
+	if (
+		result.kind === "invalid_state" ||
+		result.challenge.type !== "registration" ||
+		!canStartTotpEnrollment(result.challenge.flowState)
+	) {
+		return deps.textResponse("Invalid enrollment state. Please start over.", 400);
+	}
+	if ((await deps.kvGet(TOTP_SECRET_KEY)) !== null) {
+		return deps.textResponse("Authenticator code is already enrolled. Retry authorization.", 400);
+	}
+	const enrollData = await prepareTotpEnrollmentData(deps, result.challenge.flowState);
 	return renderTotpEnrollPage(
 		deps,
 		enrollData.pendingSecret,
@@ -59,18 +115,25 @@ export async function handleEnrollTotp(deps) {
 	if (await deps.isIpLocked()) {
 		return deps.textResponse("Too many failed attempts. Please try again later.", 429);
 	}
-	const body = await deps.parseBody();
-	const enrollNonce = deps.bodyString(body.enroll_nonce);
-	const totpCode = deps.bodyString(body.totp_code);
-	const csrfBody = deps.bodyString(body.csrf_token);
-	const csrfCookie = deps.getCookie(CSRF_COOKIE_NAME);
-	if (
-		!enrollNonce ||
-		!csrfBody ||
-		!csrfCookie ||
-		!(await deps.safeStringEqual(csrfBody, csrfCookie))
-	) {
+	const input = await parseEnrollActionInput(deps);
+	if ((await deps.kvGet(TOTP_SECRET_KEY)) !== null) {
+		return deps.textResponse("Authenticator code is already enrolled. Retry authorization.", 400);
+	}
+	const result = await consumeAndVerifyTotp(
+		deps,
+		input.enrollNonce,
+		input.csrfBody,
+		input.csrfCookie,
+		input.totpCode,
+	);
+	if (result.kind === "invalid_request") {
 		return deps.textResponse("Invalid enrollment request", 400);
 	}
-	return consumeAndVerifyTotp(deps, enrollNonce, totpCode);
+	if (result.kind === "missing") {
+		return deps.textResponse("Enrollment expired. Please start over.", 400);
+	}
+	if (result.kind === "invalid_state") {
+		return deps.textResponse("Invalid enrollment state", 400);
+	}
+	return result.response;
 }

@@ -49,7 +49,24 @@ describe("auth wiring authorize e2e", () => {
 		expect(body).not.toContain("Authenticating with passkey");
 	});
 
-	test("GET /authorize passkey mode CSP allows Claude callback and localhost loopback form actions", async () => {
+	test("GET /authorize returns 400 when stored passkey state is malformed JSON", async () => {
+		const env = { OAUTH_KV: createMemoryKv(), ACCESS_PASSPHRASE };
+		const ctx = createCtx();
+		const client = await registerClient(env, ctx);
+		await env.OAUTH_KV.put("ks:passkey:cred", "{bad");
+		const step = await workerFetchWithCookies({
+			env,
+			ctx,
+			jar: new Map(),
+			path: buildAuthorizePath(client.client_id),
+		});
+		expect(step.response.status).toBe(400);
+		expect(await step.response.text()).toContain(
+			"Invalid authorization state. Retry authorization.",
+		);
+	});
+
+	test("GET /authorize passkey mode CSP allows ChatGPT, Claude, and localhost loopback form actions", async () => {
 		const env = { OAUTH_KV: createMemoryKv(), ACCESS_PASSPHRASE };
 		const ctx = createCtx();
 		const client = await registerClient(env, ctx);
@@ -63,6 +80,7 @@ describe("auth wiring authorize e2e", () => {
 		const csp = step.response.headers.get("content-security-policy") || "";
 		expect(step.response.status).toBe(200);
 		expect(csp).toContain("form-action 'self'");
+		expect(csp).toContain("https://chatgpt.com");
 		expect(csp).toContain("https://claude.ai");
 		expect(csp).toContain("http://localhost:*");
 		expect(csp).toContain("http://127.0.0.1:*");

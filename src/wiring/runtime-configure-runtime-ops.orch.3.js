@@ -86,6 +86,7 @@ function createRuntimeOps(core, deps, env) {
 		buildEntityQueryState: deps.buildEntityQueryState,
 		buildEntityQueryItems: deps.buildEntityQueryItems,
 		insertEntityRow: deps.insertEntityRow,
+		updateEntityRow: deps.updateEntityRow,
 		resolveAliasRow: deps.resolveAliasRow,
 		selectEntityByName: deps.selectEntityByName,
 		selectEntityRow: deps.selectEntityRow,

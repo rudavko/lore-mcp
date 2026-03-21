@@ -1,5 +1,6 @@
 /** @implements FR-001 — Regression: passkey verification should not require UV when passphrase is first factor. */
 import { expect, test } from "bun:test";
+import { csrfCookieNameForNonce } from "../auth-shared.pure.js";
 import { registerAuthRoutes } from "../auth.orch.1.js";
 import { renderAuthPage } from "../templates/auth-page.pure.js";
 import { renderEnrollPasskeyPage } from "../templates/enroll-passkey.pure.js";
@@ -38,11 +39,18 @@ test("POST /approve passes requireUserVerification=false to verifyAuthentication
 	await kv.put(
 		"ks:authreq:req-1",
 		JSON.stringify({
-			oauthReq: {
-				responseType: "code",
-				clientId: "client-id",
-				redirectUri: "http://localhost/callback",
-				scope: [],
+			csrfToken: "csrf-1",
+			flowState: {
+				version: 1,
+				stage: "awaiting_passkey",
+				oauthReq: {
+					responseType: "code",
+					clientId: "client-id",
+					redirectUri: "http://localhost/callback",
+					scope: [],
+				},
+				allowedMethods: ["approve_passkey"],
+				requiredNextAction: "approve_passkey",
 			},
 			webauthnChallenge: "challenge-1",
 		}),
@@ -76,7 +84,7 @@ test("POST /approve passes requireUserVerification=false to verifyAuthentication
 			method: "POST",
 			headers: {
 				"content-type": "application/x-www-form-urlencoded",
-				cookie: "ks_csrf=csrf-1",
+				cookie: `${csrfCookieNameForNonce("req-1")}=csrf-1`,
 			},
 			body,
 		}),

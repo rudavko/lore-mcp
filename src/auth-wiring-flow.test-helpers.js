@@ -1,16 +1,19 @@
 /** @implements FR-011 — Shared auth E2E flows over the exported worker. */
 import { expect } from "bun:test";
-import { TOTP_SECRET_KEY } from "./auth-shared.pure.js";
+import { TOTP_SECRET_KEY, csrfCookieNameForNonce } from "./auth-shared.pure.js";
 import { PASSKEY_CRED_KEY } from "./webauthn.pure.js";
 import { lockKey } from "./lib/auth-helpers.pure.js";
 import {
 	ACCESS_PASSPHRASE,
+	extractHiddenInputValue,
 	VALID_PASSKEY_CREDENTIAL,
 	createCtx,
 	createMcpBindingStub,
 	createMemoryKv,
 	registerClient,
 	seedPasskeyCredential,
+	workerFetch,
+	workerFetchWithCookies,
 } from "./auth-wiring-env.test-helpers.js";
 import {
 	requestAuthorizeForm,
@@ -50,8 +53,8 @@ export async function seedPasskeyAndTotp(env) {
 	await env.OAUTH_KV.put(TOTP_SECRET_KEY, TEST_TOTP_SECRET);
 }
 
-export async function requestAuthorizeWithFallback(env, ctx, clientId) {
-	return await requestAuthorizeForm({ env, ctx, clientId, fallback: true });
+export async function requestAuthorizeWithPassphraseMode(env, ctx, clientId) {
+	return await requestAuthorizeForm({ env, ctx, clientId, authMode: "passphrase" });
 }
 
 export async function requestAuthorizeSession(env, ctx, path) {
@@ -60,7 +63,7 @@ export async function requestAuthorizeSession(env, ctx, path) {
 		env,
 		ctx,
 		clientId: url.searchParams.get("client_id") || "",
-		fallback: url.searchParams.get("fallback") === "1",
+		authMode: url.searchParams.get("auth_mode") || undefined,
 	});
 }
 
@@ -129,7 +132,7 @@ export async function enrollTotpAndAuthorize(env, ctx, clientId) {
 export async function runPassphraseAndTotpOAuthFlow() {
 	const testContext = await createAuthTestContext();
 	await seedPasskeyAndTotp(testContext.env);
-	const authorize = await requestAuthorizeWithFallback(
+	const authorize = await requestAuthorizeWithPassphraseMode(
 		testContext.env,
 		testContext.ctx,
 		testContext.client.client_id,
@@ -153,38 +156,33 @@ export async function runPassphraseAndTotpOAuthFlow() {
 	expect(typeof tokenResponse.access_token).toBe("string");
 }
 
-export async function runFallbackPassphraseOnlyWithPasskeyFlow() {
+export async function runPassphraseModeDoesNotBypassPasskeyFlow() {
 	const testContext = await createAuthTestContext();
 	await testContext.env.OAUTH_KV.put(
 		PASSKEY_CRED_KEY,
 		JSON.stringify(VALID_PASSKEY_CREDENTIAL),
 	);
-	const authorize = await requestAuthorizeWithFallback(
+	const authorize = await requestAuthorizeWithPassphraseMode(
 		testContext.env,
 		testContext.ctx,
 		testContext.client.client_id,
 	);
+	expect(authorize.html).toContain("Authenticating with passkey");
 	const approval = await submitApproveForm({
 		env: testContext.env,
 		ctx: testContext.ctx,
 		jar: authorize.jar,
 		requestNonce: authorize.requestNonce,
 		csrfToken: authorize.csrfToken,
+		passphrase: ACCESS_PASSPHRASE,
 	});
-	expect(approval.response.status).toBe(302);
-	const { tokenResponse } = await exchangeAuthorizationLocation({
-		env: testContext.env,
-		ctx: testContext.ctx,
-		clientId: testContext.client.client_id,
-		location: approval.response.headers.get("location") || "",
-	});
-	expect(typeof tokenResponse.access_token).toBe("string");
+	expect(approval.response.status).toBe(403);
 }
 
 export async function runOAuthAndReturnAccessToken() {
 	const testContext = await createAuthTestContext();
 	await seedPasskeyAndTotp(testContext.env);
-	const authorize = await requestAuthorizeWithFallback(
+	const authorize = await requestAuthorizeWithPassphraseMode(
 		testContext.env,
 		testContext.ctx,
 		testContext.client.client_id,
@@ -203,7 +201,11 @@ export async function runOAuthAndReturnAccessToken() {
 		clientId: testContext.client.client_id,
 		location: approved.location,
 	});
-	return { ...testContext, accessToken: tokenResponse.access_token };
+	return {
+		...testContext,
+		accessToken: tokenResponse.access_token,
+		refreshToken: tokenResponse.refresh_token,
+	};
 }
 
 export async function runIpLockoutScenario() {
@@ -244,4 +246,111 @@ export async function runPasskeySkipToTotpOAuthFlow() {
 		clientId: testContext.client.client_id,
 		location,
 	});
+}
+
+export async function runMismatchedAuthorizeCsrfPairFailsFlow() {
+	const testContext = await createAuthTestContext();
+	const firstAuthorize = await requestAuthorizeForm({
+		env: testContext.env,
+		ctx: testContext.ctx,
+		clientId: testContext.client.client_id,
+	});
+	const secondAuthorize = await requestAuthorizeForm({
+		env: testContext.env,
+		ctx: testContext.ctx,
+		clientId: testContext.client.client_id,
+	});
+	const response = await workerFetch(testContext.env, testContext.ctx, "/approve", {
+		method: "POST",
+		headers: {
+			"content-type": "application/x-www-form-urlencoded",
+			cookie: `${csrfCookieNameForNonce(secondAuthorize.requestNonce)}=${secondAuthorize.csrfToken}`,
+		},
+		body: new URLSearchParams({
+			request_nonce: firstAuthorize.requestNonce,
+			csrf_token: secondAuthorize.csrfToken,
+			passphrase: ACCESS_PASSPHRASE,
+		}).toString(),
+	});
+	expect(response.status).toBe(400);
+	expect(await response.text()).toContain("Invalid authorization request");
+}
+
+export async function runPasskeySkipWithoutAlternateFactorFailsFlow() {
+	const testContext = await createAuthTestContext();
+	const authorize = await requestAuthorizeForm({
+		env: testContext.env,
+		ctx: testContext.ctx,
+		clientId: testContext.client.client_id,
+	});
+	const approve = await submitApproveForm({
+		env: testContext.env,
+		ctx: testContext.ctx,
+		jar: authorize.jar,
+		requestNonce: authorize.requestNonce,
+		csrfToken: authorize.csrfToken,
+	});
+	expect(approve.response.status).toBe(200);
+	const passkeyEnrollHtml = await approve.response.text();
+	const response = await workerFetchWithCookies({
+		env: testContext.env,
+		ctx: testContext.ctx,
+		jar: approve.jar,
+		path: "/complete-passkey-skip",
+		init: {
+			method: "POST",
+			headers: { "content-type": "application/x-www-form-urlencoded" },
+			body: new URLSearchParams({
+				enroll_nonce: extractHiddenInputValue(passkeyEnrollHtml, "enroll_nonce"),
+				csrf_token: extractHiddenInputValue(passkeyEnrollHtml, "csrf_token"),
+			}).toString(),
+		},
+	});
+	expect(response.response.status).toBe(400);
+	expect(await response.response.text()).toContain("Invalid enrollment state");
+}
+
+export async function runMismatchedEnrollmentCsrfPairFailsFlow() {
+	const testContext = await createAuthTestContext();
+	const firstAuthorize = await requestAuthorizeForm({
+		env: testContext.env,
+		ctx: testContext.ctx,
+		clientId: testContext.client.client_id,
+	});
+	const secondAuthorize = await requestAuthorizeForm({
+		env: testContext.env,
+		ctx: testContext.ctx,
+		clientId: testContext.client.client_id,
+	});
+	const firstApprove = await submitApproveForm({
+		env: testContext.env,
+		ctx: testContext.ctx,
+		jar: firstAuthorize.jar,
+		requestNonce: firstAuthorize.requestNonce,
+		csrfToken: firstAuthorize.csrfToken,
+	});
+	const secondApprove = await submitApproveForm({
+		env: testContext.env,
+		ctx: testContext.ctx,
+		jar: secondAuthorize.jar,
+		requestNonce: secondAuthorize.requestNonce,
+		csrfToken: secondAuthorize.csrfToken,
+	});
+	const firstPasskeyHtml = await firstApprove.response.text();
+	const secondPasskeyHtml = await secondApprove.response.text();
+	const response = await workerFetch(testContext.env, testContext.ctx, "/enroll-totp-redirect", {
+		method: "POST",
+		headers: {
+			"content-type": "application/x-www-form-urlencoded",
+			cookie:
+				`${csrfCookieNameForNonce(extractHiddenInputValue(secondPasskeyHtml, "enroll_nonce"))}=` +
+				`${extractHiddenInputValue(secondPasskeyHtml, "csrf_token")}`,
+		},
+		body: new URLSearchParams({
+			enroll_nonce: extractHiddenInputValue(firstPasskeyHtml, "enroll_nonce"),
+			csrf_token: extractHiddenInputValue(secondPasskeyHtml, "csrf_token"),
+		}).toString(),
+	});
+	expect(response.status).toBe(400);
+	expect(await response.text()).toContain("Invalid enrollment request");
 }

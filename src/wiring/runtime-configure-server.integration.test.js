@@ -1,4 +1,4 @@
-/** @implements FR-001, FR-020 — Verify runtime server configuration registers the MCP surface and wires request-origin auto-update links. */
+/** @implements FR-001, FR-020 — Verify runtime server configuration registers the v0 MCP surface and wires prompts/resources. */
 import { describe, expect, test } from "bun:test";
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createGlobalTestStd } from "../test-helpers/runtime.shared.test.js";
@@ -22,6 +22,15 @@ function createConfigureLoreServerDeps(overrides = {}) {
 		resolveAliasRow: async () => null,
 		selectEntityByName: async () => null,
 		toConflictInfo: (value) => value,
+		querySummaryCounts: async () => [
+			{
+				results: [
+					{ t: "entries", c: 1 },
+					{ t: "triples", c: 2 },
+					{ t: "entities", c: 3 },
+				],
+			},
+		],
 		...overrides,
 	};
 }
@@ -53,7 +62,7 @@ function createRecordingServer() {
 }
 
 describe("wiring/runtime configureLoreServer integration", () => {
-	test("registers tools, prompts, and resources on the configured MCP server", async () => {
+	test("registers v0 tools, prompts, and resources on the configured MCP server", async () => {
 		const configureLoreServer = makeConfigureLoreServer(createConfigureLoreServerDeps());
 		const { server, tools, prompts, resources } = createRecordingServer();
 
@@ -64,8 +73,12 @@ describe("wiring/runtime configureLoreServer integration", () => {
 			BUILD_HASH: "build-hash-123",
 		});
 
-		expect(Array.from(tools.keys())).toContain("build_info");
-		expect(Array.from(tools.keys())).toContain("enable_auto_updates");
+		expect(Array.from(tools.keys())).toEqual([
+			"link_object",
+			"object_create",
+			"retrieve",
+			"engine_check",
+		]);
 		expect(prompts.map((item) => item.name)).toEqual([
 			"ingest-memory",
 			"retrieve-context",
@@ -78,7 +91,7 @@ describe("wiring/runtime configureLoreServer integration", () => {
 		]);
 	});
 
-	test("configured build_info tool reflects env build metadata", async () => {
+	test("configured engine_check help action returns the supported actions", async () => {
 		const configureLoreServer = makeConfigureLoreServer(createConfigureLoreServerDeps());
 		const { server, tools } = createRecordingServer();
 
@@ -89,43 +102,35 @@ describe("wiring/runtime configureLoreServer integration", () => {
 			BUILD_HASH: "build-hash-xyz",
 		});
 
-		const result = await tools.get("build_info").handler({});
-		expect(extractText(result)).toContain("Build 9.9.9-test (build-hash-xyz)");
+		const result = await tools.get("engine_check").handler({ action: "help" });
+		const text = extractText(result);
+		expect(text).toContain("Engine help");
 	});
 
-	test("configured enable_auto_updates tool derives an absolute URL from request headers", async () => {
-		const configureLoreServer = makeConfigureLoreServer(createConfigureLoreServerDeps());
-		const { server, tools } = createRecordingServer();
-
-		await configureLoreServer(server, {
-			DB: {},
-			ACCESS_PASSPHRASE: "test-pass",
-			TARGET_REPO: "owner/example-repo",
-			BUILD_HASH: "build-hash-xyz",
-		});
-
-		const result = await tools.get("enable_auto_updates").handler(
-			{},
-			{
-				requestInfo: {
-					headers: {
-						host: "lore.example.com",
-						"x-forwarded-proto": "https",
+	test("configured object_create entity path uses the injected upsert entity runtime", async () => {
+		const configureLoreServer = makeConfigureLoreServer(
+			createConfigureLoreServerDeps({
+				upsertEntityOrch: async (input) => ({
+					entity: {
+						id: "entity-1",
+						name: typeof input === "string" ? input : input.name,
+						entity_type: "service",
+						source: "test",
+						confidence: 0.9,
+						valid_from: null,
+						valid_to: null,
+						valid_to_state: "unspecified",
+						tags: ["core"],
+						produced_by: null,
+						about: null,
+						affects: null,
+						specificity: null,
+						created_at: "2026-01-01T00:00:00.000Z",
+						updated_at: "2026-01-01T00:00:00.000Z",
 					},
-				},
-			},
-		);
-		const text = extractText(result);
-		expect(text).toContain("Target repo: owner/example-repo");
-		expect(text).toContain("URL: https://lore.example.com/admin/install-workflow?setup_token=");
-		expect(text.includes("\nPath: ")).toBe(false);
-	});
-
-	test("configured query_entities tool returns a normalized empty result", async () => {
-		const configureLoreServer = makeConfigureLoreServer(
-			createConfigureLoreServerDeps({
-				queryCanonicalEntityRows: async () => [],
-				queryAliasRowsByEntityIds: async () => [],
+					created: true,
+					updated: false,
+				}),
 			}),
 		);
 		const { server, tools } = createRecordingServer();
@@ -137,107 +142,22 @@ describe("wiring/runtime configureLoreServer integration", () => {
 			BUILD_HASH: "build-hash-xyz",
 		});
 
-		const result = await tools.get("query_entities").handler({ name: "missing-topic" });
-		const text = extractText(result);
+		const result = await tools.get("object_create").handler({
+			kind: "entity",
+			payload: { name: "Payments API" },
+			entity_type: "service",
+			source: "test",
+			confidence: 0.9,
+			tags: ["core"],
+		});
 		const content = Array.isArray(result.content) ? result.content : [];
-		let resourceItem = null;
-		for (let i = 0; i < content.length; i++) {
-			if (content[i] && content[i].type === "resource") {
-				resourceItem = content[i];
-				break;
-			}
-		}
-
-		expect(text).toContain("No entities found");
+		const resourceItem = content.find((item) => item && item.type === "resource");
 		expect(resourceItem).toBeDefined();
-		expect(resourceItem.resource.uri).toBe("knowledge://entities");
-		expect(JSON.parse(resourceItem.resource.text)).toEqual({
-			items: [],
-			next_cursor: null,
-		});
+		expect(resourceItem.resource.uri).toBe("knowledge://entities/entity-1");
+		const payload = JSON.parse(resourceItem.resource.text);
+		expect(payload.kind).toBe("entity");
+		expect(payload.name).toBe("Payments API");
+		expect(payload.created).toBe(true);
 	});
 
-	test("configured store and update tools forward entry orchestration deps", async () => {
-		const calls = [];
-		const configureLoreServer = makeConfigureLoreServer(
-			createConfigureLoreServerDeps({
-				handleStore: async (args, runtimeDeps) => {
-					calls.push({ name: "store", args, runtimeDeps });
-					return { ok: true, name: "store" };
-				},
-				handleUpdate: async (args, runtimeDeps) => {
-					calls.push({ name: "update", args, runtimeDeps });
-					return { ok: true, name: "update" };
-				},
-			}),
-		);
-		const { server, tools } = createRecordingServer();
-
-		await configureLoreServer(server, {
-			DB: {},
-			ACCESS_PASSPHRASE: "test-pass",
-			TARGET_REPO: "owner/example-repo",
-			BUILD_HASH: "build-hash-xyz",
-		});
-
-		expect(await tools.get("store").handler({ topic: "topic", content: "content" })).toEqual(
-			{
-				ok: true,
-				name: "store",
-			},
-		);
-		expect(
-			await tools.get("update").handler({
-				id: "entry-1",
-				content: "updated",
-			}),
-		).toEqual({
-			ok: true,
-			name: "update",
-		});
-
-		expect(calls).toHaveLength(2);
-		expect(typeof calls[0].runtimeDeps.createAndEmbed).toBe("function");
-		expect(typeof calls[0].runtimeDeps.checkPolicy).toBe("function");
-		expect(typeof calls[1].runtimeDeps.updateAndEmbed).toBe("function");
-		expect(typeof calls[1].runtimeDeps.updateAndEmbed).toBe("function");
-	});
-
-	test("configured query tool forwards hybrid and plain search deps", async () => {
-		const calls = [];
-		const configureLoreServer = makeConfigureLoreServer(
-			createConfigureLoreServerDeps({
-				handleQueryPlain: async (args, runtimeDeps) => {
-					calls.push({ name: "query-plain", args, runtimeDeps });
-					return { ok: true, mode: "plain" };
-				},
-				handleQueryHybrid: async (args, runtimeDeps) => {
-					calls.push({ name: "query-hybrid", args, runtimeDeps });
-					return { ok: true, mode: "hybrid" };
-				},
-			}),
-		);
-		const { server, tools } = createRecordingServer();
-
-		await configureLoreServer(server, {
-			DB: {},
-			ACCESS_PASSPHRASE: "test-pass",
-			TARGET_REPO: "owner/example-repo",
-			BUILD_HASH: "build-hash-xyz",
-		});
-
-		expect(await tools.get("query").handler({ limit: 5 })).toEqual({
-			ok: true,
-			mode: "plain",
-		});
-		expect(await tools.get("query").handler({ topic: "topic" })).toEqual({
-			ok: true,
-			mode: "hybrid",
-		});
-		expect(calls).toHaveLength(2);
-		expect(typeof calls[0].runtimeDeps.queryEntries).toBe("function");
-		expect(typeof calls[0].runtimeDeps.normalizeValidToState).toBe("function");
-		expect(typeof calls[1].runtimeDeps.hybridSearch).toBe("function");
-		expect(typeof calls[1].runtimeDeps.normalizeValidToState).toBe("function");
-	});
 });

@@ -1,18 +1,17 @@
 id: FR-006
-title: Detect and resolve triple conflicts
+title: Record mutation history
 phase: 1
 statement: >
-  When relate would create a duplicate subject+predicate with a different
-  object, the system returns ConflictInfo. When an agent calls
-  resolve_conflict with a strategy (replace, retain_both, reject), the
-  system applies it so that conflicting facts are handled explicitly.
+  The system records public mutations in the transaction log and exposes that
+  audit trail through engine_check(action="history") so that mutation history
+  is a system guarantee instead of a standalone public tool contract.
 traces:
   - Charter 3.1: Deliver the system described in L1-vision.md
-  - CC-011: Prevent permanent data loss from agent actions
+  - CC-006: Undo capability
+  - CC-007: Provenance tracking
 verification:
   manual:
-    - Create conflicting triple, resolve with each strategy, verify outcome
+    - Create and update objects, then inspect engine_check(history) and verify the mutations are recorded
   machine:
-    - E2E: relate conflict, resolve with replace, assert old triple updated
-    - E2E: relate conflict, resolve with retain_both, assert both triples exist
-    - E2E: relate conflict, resolve with reject, assert original unchanged
+    - E2E: object_create(note), engine_check(history), assert the creation mutation is present
+    - E2E: link_object update, engine_check(history), assert the link mutation is present with transaction snapshots

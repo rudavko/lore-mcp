@@ -1,59 +1,47 @@
 frs:
   - id: FR-001
-    title: Store knowledge entry
+    title: Create object
     phase: 1
 
   - id: FR-002
-    title: Query knowledge entries with hybrid retrieval
+    title: Retrieve knowledge
     phase: 1
 
   - id: FR-003
-    title: Create graph triple
+    title: Link objects
     phase: 1
 
   - id: FR-004
-    title: Query graph triples
+    title: Expand retrieval with explicit and auto links
     phase: 1
 
   - id: FR-005
-    title: Upsert triple by subject+predicate
+    title: Inspect engine state
     phase: 1
 
   - id: FR-006
-    title: Detect and resolve triple conflicts
+    title: Record mutation history
     phase: 1
 
   - id: FR-007
-    title: Undo mutations via transaction log
+    title: Preserve first-class entity metadata
     phase: 1
 
   - id: FR-008
-    title: View transaction history
+    title: Bulk ingestion pipeline
     phase: 1
 
   - id: FR-009
-    title: Canonicalize and merge entities
-    phase: 1
-
-  - id: FR-010
-    title: Bulk ingest content
-    phase: 1
-
-  - id: FR-011
     title: Authenticate via OAuth 2.1 + 2FA
     phase: 1
 
-  - id: FR-012
-    title: Update knowledge entry
+  - id: FR-010
+    title: Admin update workflow installation
     phase: 1
 
-  - id: FR-013
-    title: Soft-delete entry or triple
-    phase: 1
-
-  - id: FR-014
-    title: Update triple
-    phase: 1
+  # FR-011 through FR-014 were retired when the phase-1 bundle was
+  # consolidated around the current v0 public surface plus internal/admin
+  # capabilities that remain part of the product.
 
   - id: FR-015
     title: Session-scoped rollback (batch undo)
@@ -72,9 +60,9 @@ frs:
     phase: 2
 
   - id: FR-019
-    title: Knowledge summary and overview tool
+    title: Engine status overview
     phase: 2
 
   - id: FR-020
-    title: Namespace and project scoping
+    title: Namespace and project scoping (future public contract)
     phase: 2

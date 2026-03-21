@@ -103,6 +103,7 @@ function buildToolsDeps(core, runtimeOps, deps, env) {
 		queryEntries: runtimeOps.entryAndTriple.queryEntries,
 		queryEntities: runtimeOps.entityAndHistory.queryEntities,
 		queryTriples: runtimeOps.entryAndTriple.queryTriples,
+		querySummaryCounts: () => deps.querySummaryCounts(env.DB),
 		randomToken,
 		removeConflict: runtimeOps.conflictRemove,
 		resolveAutoUpdatesTargetRepo: async () => {

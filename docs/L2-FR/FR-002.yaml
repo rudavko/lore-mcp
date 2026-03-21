@@ -1,18 +1,20 @@
 id: FR-002
-title: Query knowledge entries with hybrid retrieval
+title: Retrieve knowledge
 phase: 1
 statement: >
-  When an agent calls query with optional topic, content, and tag filters,
-  the system returns matching entries ranked by combined lexical, semantic,
-  and graph signals so that retrieval works even when query wording differs
-  from stored text.
+  When an agent calls retrieve with query and optional pagination and as_of
+  inputs, the system returns a paginated mixed result set across notes,
+  entities, and links so that clients can search stored knowledge through one
+  heterogeneous retrieval path.
 traces:
   - Charter 3.1: Deliver the system described in L1-vision.md
   - CC-005: Retrieval relevance
   - EC-004: Vectorize optional — degrade gracefully without it
 verification:
   manual:
-    - Store an entry, query with different wording, verify it appears in results
+    - Create a note, entity, and link, then call retrieve and verify relevant results can be returned without choosing a per-type query tool
   machine:
-    - E2E: store entry with topic "kubernetes deployment", query "k8s deploy", assert entry returned
-    - E2E: query without Vectorize binding, assert lexical+graph results still returned
+    - E2E: object_create(note), retrieve, assert the created note is returned
+    - E2E: object_create(entity), retrieve, assert the entity is returned with mixed result kinds allowed in one page
+    - E2E: retrieve with cursor and limit, assert pagination advances through a mixed result set
+    - E2E: retrieve with as_of, assert inactive objects are filtered out

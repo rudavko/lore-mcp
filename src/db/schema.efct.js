@@ -53,7 +53,19 @@ export async function initSchema(db) {
 		db.prepare(`CREATE TABLE IF NOT EXISTS canonical_entities (
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
-			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+			entity_type TEXT,
+			source TEXT,
+			confidence REAL,
+			valid_from TEXT,
+			valid_to TEXT,
+			valid_to_state TEXT NOT NULL DEFAULT 'unspecified',
+			tags TEXT NOT NULL DEFAULT '[]',
+			produced_by TEXT,
+			about TEXT,
+			affects TEXT,
+			specificity TEXT,
+			created_at TEXT NOT NULL DEFAULT (datetime('now')),
+			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 		)`),
 		db.prepare(`CREATE TABLE IF NOT EXISTS entity_aliases (
 			id TEXT PRIMARY KEY,
@@ -88,6 +100,7 @@ export async function initSchema(db) {
 		db.prepare(`CREATE INDEX IF NOT EXISTS idx_entries_expires_at ON entries(expires_at)`),
 	]);
 	await ensureEntryColumns(db);
+	await ensureEntityColumns(db);
 	await initFts5(db);
 }
 async function ensureEntryColumns(db) {
@@ -114,6 +127,43 @@ async function ensureEntryColumns(db) {
 			),
 		);
 	}
+	if (statements.length > 0) {
+		await db.batch(statements);
+	}
+}
+async function ensureEntityColumns(db) {
+	const { results } = await db.prepare(`PRAGMA table_info(canonical_entities)`).all();
+	const names = {};
+	for (let i = 0; i < results.length; i++) {
+		const name = results[i].name;
+		if (typeof name === "string") {
+			names[name] = true;
+		}
+	}
+	const statements = [];
+	const addColumn = (name, sql) => {
+		if (names[name] !== true) {
+			statements.push(db.prepare(sql));
+		}
+	};
+	addColumn("entity_type", `ALTER TABLE canonical_entities ADD COLUMN entity_type TEXT`);
+	addColumn("source", `ALTER TABLE canonical_entities ADD COLUMN source TEXT`);
+	addColumn("confidence", `ALTER TABLE canonical_entities ADD COLUMN confidence REAL`);
+	addColumn("valid_from", `ALTER TABLE canonical_entities ADD COLUMN valid_from TEXT`);
+	addColumn("valid_to", `ALTER TABLE canonical_entities ADD COLUMN valid_to TEXT`);
+	addColumn(
+		"valid_to_state",
+		`ALTER TABLE canonical_entities ADD COLUMN valid_to_state TEXT NOT NULL DEFAULT 'unspecified'`,
+	);
+	addColumn("tags", `ALTER TABLE canonical_entities ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'`);
+	addColumn("produced_by", `ALTER TABLE canonical_entities ADD COLUMN produced_by TEXT`);
+	addColumn("about", `ALTER TABLE canonical_entities ADD COLUMN about TEXT`);
+	addColumn("affects", `ALTER TABLE canonical_entities ADD COLUMN affects TEXT`);
+	addColumn("specificity", `ALTER TABLE canonical_entities ADD COLUMN specificity TEXT`);
+	addColumn(
+		"updated_at",
+		`ALTER TABLE canonical_entities ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))`,
+	);
 	if (statements.length > 0) {
 		await db.batch(statements);
 	}

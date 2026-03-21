@@ -1,8 +1,30 @@
+import { deriveValidToStateFromInput, normalizeValidToState } from "../lib/validity.pure.js";
 /** @implements FR-003, NFR-001 — Pure entity mapping and merge snapshot helpers. */
 /** Sentinel for TDD hook. */
 export const _MODULE = "entities.pure";
 export function escapeEntityLike(value) {
 	return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
+function parseTags(raw) {
+	if (typeof raw !== "string" || raw.length === 0) {
+		return [];
+	}
+	try {
+		const parsed = JSON.parse(raw);
+		if (!Array.isArray(parsed)) {
+			return [];
+		}
+		const tags = [];
+		for (let i = 0; i < parsed.length; i++) {
+			if (typeof parsed[i] === "string") {
+				tags.push(parsed[i]);
+			}
+		}
+		return tags;
+	} catch {
+		return [];
+	}
 }
 
 export function buildEntityQueryState(params, decodedCursor) {
@@ -41,9 +63,7 @@ export function buildEntityQueryItems(pageRows, aliasRows) {
 		const id = pageRows[i].id;
 		const aliases = aliasMap[id] || [];
 		items.push({
-			id,
-			name: pageRows[i].name,
-			created_at: pageRows[i].created_at,
+			...rowToEntity(pageRows[i]),
 			aliases,
 			alias_count: aliases.length,
 		});
@@ -52,10 +72,23 @@ export function buildEntityQueryItems(pageRows, aliasRows) {
 }
 
 export function rowToEntity(r) {
+	const validTo = r.valid_to ?? null;
 	return {
 		id: r.id,
 		name: r.name,
+		entity_type: r.entity_type ?? null,
+		source: r.source ?? null,
+		confidence: r.confidence ?? null,
+		valid_from: r.valid_from ?? null,
+		valid_to: validTo,
+		valid_to_state: normalizeValidToState(r.valid_to_state, validTo),
+		tags: parseTags(r.tags),
+		produced_by: r.produced_by ?? null,
+		about: r.about ?? null,
+		affects: r.affects ?? null,
+		specificity: r.specificity ?? null,
 		created_at: r.created_at,
+		updated_at: r.updated_at ?? r.created_at,
 	};
 }
 export function rowToAlias(r) {
@@ -66,8 +99,26 @@ export function rowToAlias(r) {
 		created_at: r.created_at,
 	};
 }
-export function buildEntityObject(id, name, now) {
-	return { id, name, created_at: now };
+export function buildEntityObject(id, input, now) {
+	const params = typeof input === "string" ? { name: input } : input;
+	const normalizedValidity = deriveValidToStateFromInput(params.valid_to ?? null);
+	return {
+		id,
+		name: params.name,
+		entity_type: params.entity_type ?? null,
+		source: params.source ?? null,
+		confidence: params.confidence ?? null,
+		valid_from: params.valid_from ?? null,
+		valid_to: normalizedValidity.validTo ?? null,
+		valid_to_state: params.valid_to_state ?? normalizedValidity.validToState,
+		tags: params.tags ?? [],
+		produced_by: params.produced_by ?? null,
+		about: params.about ?? null,
+		affects: params.affects ?? null,
+		specificity: params.specificity ?? null,
+		created_at: now,
+		updated_at: now,
+	};
 }
 export function buildAliasObject(id, alias, entityId, now) {
 	return {

@@ -7,3 +7,4 @@ scenarios:
 priority: Phase 2 desired
 traces:
   - CC-004: Non-technical deployment
+  - FR-005: Inspect engine state

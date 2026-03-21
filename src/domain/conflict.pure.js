@@ -24,6 +24,8 @@ export function buildConflictInfo(conflictId, existing, incoming) {
 			confidence: incoming.confidence,
 			source: incoming.source,
 			actor: incoming.actor,
+			valid_from: incoming.valid_from,
+			valid_to: incoming.valid_to,
 		},
 		candidate_resolutions: ["replace", "retain_both", "reject"],
 	};

@@ -7,4 +7,4 @@ scenarios:
 priority: Phase 1 critical
 traces:
   - CC-005: Retrieval relevance
-  - FR-002: Query knowledge entries with hybrid retrieval
+  - FR-002: Retrieve knowledge

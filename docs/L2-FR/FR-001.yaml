@@ -1,16 +1,18 @@
 id: FR-001
-title: Store knowledge entry
+title: Create object
 phase: 1
 statement: >
-  When an agent calls store with topic and content, the system persists a
-  knowledge entry with provenance fields (tags, source, actor, confidence)
-  and returns the created entry so that knowledge accumulates across sessions.
+  When an agent calls object_create with kind="note" or kind="entity", the
+  system persists the requested object with provenance, validity, tags, and
+  related-link inputs, and returns the stored object so that note and entity
+  creation share one public mutation path.
 traces:
   - Charter 3.1: Deliver the system described in L1-vision.md
   - CC-002: Cross-agent knowledge sharing
   - CC-007: Provenance tracking
 verification:
   manual:
-    - Call store with topic and content, verify entry is retrievable via query
+    - Call object_create for a note and for an entity, then verify retrieve returns the stored objects
   machine:
-    - E2E: store entry, query by topic, assert entry fields match input
+    - E2E: object_create(note), retrieve by note text, assert the created note is returned with provenance fields
+    - E2E: object_create(entity), retrieve by entity name, assert the created or updated entity is returned

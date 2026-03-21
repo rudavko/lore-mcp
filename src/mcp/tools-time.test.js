@@ -32,4 +32,20 @@ describe("mcp/tools.pure time", () => {
 			retryable: false,
 		});
 	});
+	test("rejects empty timezone instead of silently defaulting to UTC", () => {
+		const result = handleTime(
+			{ timezone: "" },
+			{
+				dateNow: () => "2026-03-04T10:00:00.000Z",
+				validateTimezone: (timezone) => timezone === "UTC",
+				formatError: (error) => error,
+				formatResult: (text) => ({ text }),
+			},
+		);
+		expect(result).toEqual({
+			code: "validation",
+			message: "Invalid timezone",
+			retryable: false,
+		});
+	});
 });

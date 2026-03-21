@@ -42,5 +42,5 @@ test("GET /authorize fails closed when OAuth lookup implementation is unavailabl
 		},
 	);
 	expect(response.status).toBe(500);
-	expect(await response.text()).toContain("Internal auth error: OAuth client lookup is unavailable.");
+	expect(await response.text()).toContain("Internal auth error.");
 });

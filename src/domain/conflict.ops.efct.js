@@ -19,5 +19,7 @@ export async function detectConflict(params, deps) {
 		confidence: params.incomingConfidence ?? undefined,
 		source: params.incomingSource ?? undefined,
 		actor: params.incomingActor ?? undefined,
+		valid_from: params.incomingValidFrom ?? undefined,
+		valid_to: params.incomingValidTo ?? undefined,
 	});
 }

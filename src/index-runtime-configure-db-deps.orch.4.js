@@ -60,7 +60,7 @@ import {
 	buildEntityQueryState,
 	buildEntityQueryItems,
 } from "./db/entities.pure.js";
-import { insertEntityRow } from "./db/entities-write.efct.js";
+import { insertEntityRow, updateEntityRow } from "./db/entities-write.efct.js";
 import {
 	resolveAliasRow,
 	selectEntityByName,
@@ -101,6 +101,7 @@ import {
 	graphNeighborRows,
 	selectEntriesByIds,
 } from "./db/search.efct.js";
+import { querySummaryCounts } from "./db/summary.efct.js";
 
 function createConfigureLoreServerDbDeps() {
 	return {
@@ -153,6 +154,7 @@ function createConfigureLoreServerDbDeps() {
 		buildEntityQueryState,
 		buildEntityQueryItems,
 		insertEntityRow,
+		updateEntityRow,
 		resolveAliasRow,
 		selectEntityByName,
 		selectEntityRow,
@@ -179,6 +181,7 @@ function createConfigureLoreServerDbDeps() {
 		likeSearchRows,
 		graphNeighborRows,
 		selectEntriesByIds,
+		querySummaryCounts,
 	};
 }
 

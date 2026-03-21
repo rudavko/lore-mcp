@@ -9,10 +9,7 @@ import {
 } from "./auth-route-enroll.orch.3.js";
 
 function formatAuthHandlerError(error) {
-	if (error instanceof Error && typeof error.message === "string" && error.message.length > 0) {
-		return `Internal auth error: ${error.message}`;
-	}
-	return "Internal auth error: unknown failure";
+	return error instanceof Error ? "Internal auth error." : "Internal auth error.";
 }
 
 function wrapAuthHandler(deps, handler) {

@@ -10,6 +10,6 @@ scenarios:
 priority: Phase 2 desired
 traces:
   - CC-005: Retrieval relevance
-  - FR-002: Query knowledge entries with hybrid retrieval
+  - FR-002: Retrieve knowledge
 drives:
   - ADR: Schema and retrieval pipeline must support staleness detection and recency-weighted ranking

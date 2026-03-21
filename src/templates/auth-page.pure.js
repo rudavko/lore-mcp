@@ -62,12 +62,12 @@ function clientInfoHtml(p) {
 	);
 }
 function passkeyOnlyHtml(p) {
-	let fallback = "";
-	if (p.fallbackUrl) {
-		fallback =
+	let passphraseModeLink = "";
+	if (p.passphraseModeUrl) {
+		passphraseModeLink =
 			'<a class="fallback-link" href="' +
-				escapeHtml(p.fallbackUrl) +
-			'">Use passphrase + code instead</a>';
+				escapeHtml(p.passphraseModeUrl) +
+			'">Switch to the passphrase + authenticator form</a>';
 	}
 	return (
 		'<div id="status" class="status"><span class="spinner"></span>Authenticating with passkey&hellip;</div>' +
@@ -81,7 +81,7 @@ function passkeyOnlyHtml(p) {
 		'<input type="hidden" name="webauthn_response" id="webauthnResponse" />' +
 		"</form>" +
 		'<noscript><div class="status error">JavaScript is required for passkey authentication.</div></noscript>' +
-		fallback
+			passphraseModeLink
 	);
 }
 function passphraseFormHtml(p) {
@@ -124,6 +124,7 @@ function webauthnScript(p) {
 	if (!p.authOptionsJSON || !p.cspNonce) {
 		return "";
 	}
+	const authOptionsJSON = p.authOptionsJSON.replace(/<\//g, "<\\/");
 	const helpers =
 		"function b64d(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';var bin=atob(s),a=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a.buffer;}" +
 		"function b64e(buf){var b=new Uint8Array(buf),s='';for(var i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s).replace(/[+]/g,'-').replace(/[/]/g,'_').replace(/=/g,'');}";
@@ -136,9 +137,9 @@ function webauthnScript(p) {
 			helpers +
 			"if(!window.PublicKeyCredential){statusEl.className='status error';statusEl.textContent='Passkeys not supported.';return;}" +
 			"var opts=" +
-			p.authOptionsJSON +
+			authOptionsJSON +
 			";" +
-			"if(!opts||typeof opts.challenge!=='string'){statusEl.className='status error';statusEl.textContent='Passkey configuration invalid. Use passphrase + code instead.';return;}" +
+			"if(!opts||typeof opts.challenge!=='string'){statusEl.className='status error';statusEl.textContent='Passkey configuration invalid. Switch to the passphrase + authenticator form.';return;}" +
 			"opts.challenge=b64d(opts.challenge);" +
 			"if(opts.allowCredentials){opts.allowCredentials=opts.allowCredentials.filter(function(c){return c&&typeof c.id==='string'&&c.id.length>0;}).map(function(c){return Object.assign({},c,{id:b64d(c.id)});});}" +
 			"navigator.credentials.get({publicKey:opts}).then(function(cred){" +
@@ -161,7 +162,7 @@ function webauthnScript(p) {
 		"if(totpField&&totpField.value.length===6)return;" +
 		"e.preventDefault();" +
 		"var opts=" +
-		p.authOptionsJSON +
+		authOptionsJSON +
 		";" +
 		"if(!opts||typeof opts.challenge!=='string')return;" +
 		"opts.challenge=b64d(opts.challenge);" +

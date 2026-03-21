@@ -1,5 +1,6 @@
 /** @implements FR-011 — Exported-worker OAuth auth-flow E2E checks. */
 import { describe, expect, test } from "bun:test";
+import { csrfCookieNameForNonce } from "./auth-shared.pure.js";
 import {
 	ACCESS_PASSPHRASE,
 	PASSKEY_CRED_KEY,
@@ -10,10 +11,13 @@ import {
 } from "./auth-wiring-env.test-helpers.js";
 import {
 	createAuthTestContext,
+	runMismatchedAuthorizeCsrfPairFailsFlow,
+	runMismatchedEnrollmentCsrfPairFailsFlow,
 	requestAuthorizeSession,
-	runFallbackPassphraseOnlyWithPasskeyFlow,
 	runIpLockoutScenario,
+	runPasskeySkipWithoutAlternateFactorFailsFlow,
 	runPasskeySkipToTotpOAuthFlow,
+	runPassphraseModeDoesNotBypassPasskeyFlow,
 	runPassphraseAndTotpOAuthFlow,
 	startTotpEnrollmentViaPasskeySkip,
 } from "./auth-wiring-flow.test-helpers.js";
@@ -72,8 +76,8 @@ describe("auth wiring oauth e2e", () => {
 	);
 
 	test(
-		"fallback passphrase flow completes OAuth when passkey is enrolled and TOTP is not",
-		runFallbackPassphraseOnlyWithPasskeyFlow,
+		"explicit passphrase mode does not bypass passkey when no alternate factor is enrolled",
+		runPassphraseModeDoesNotBypassPasskeyFlow,
 	);
 
 	test("consumes authorization nonce after first approve attempt (replay blocked)", async () => {
@@ -103,7 +107,7 @@ describe("auth wiring oauth e2e", () => {
 			method: "POST",
 			headers: {
 				"content-type": "application/x-www-form-urlencoded",
-				cookie: `ks_csrf=${authorize.csrfToken}`,
+				cookie: `${csrfCookieNameForNonce(authorize.requestNonce)}=${authorize.csrfToken}`,
 			},
 			body: new URLSearchParams({
 				request_nonce: authorize.requestNonce,
@@ -118,8 +122,23 @@ describe("auth wiring oauth e2e", () => {
 	test("locks out client IP after repeated auth failures", runIpLockoutScenario);
 
 	test(
+		"mismatched authorize CSRF and request nonce pairs fail with a controlled client error",
+		runMismatchedAuthorizeCsrfPairFailsFlow,
+	);
+
+	test(
 		"supports passkey-skip to TOTP enrollment and completes OAuth",
 		runPasskeySkipToTotpOAuthFlow,
+	);
+
+	test(
+		"passkey enrollment skip without an allowed alternate factor does not redirect",
+		runPasskeySkipWithoutAlternateFactorFailsFlow,
+	);
+
+	test(
+		"mismatched enrollment CSRF and nonce pairs fail with a controlled client error",
+		runMismatchedEnrollmentCsrfPairFailsFlow,
 	);
 
 	test("invalid TOTP enrollment code invalidates pending enrollment nonce", async () => {
@@ -153,7 +172,7 @@ describe("auth wiring oauth e2e", () => {
 			method: "POST",
 			headers: {
 				"content-type": "application/x-www-form-urlencoded",
-				cookie: `ks_csrf=${csrfToken}`,
+				cookie: `${csrfCookieNameForNonce(enrollNonce)}=${csrfToken}`,
 			},
 			body: new URLSearchParams({
 				enroll_nonce: enrollNonce,

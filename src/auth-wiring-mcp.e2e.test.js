@@ -5,6 +5,8 @@ import {
 	createCtx,
 	createMcpBindingStub,
 	createMemoryKv,
+	expireIssuedAccessTokens,
+	refreshAccessToken,
 	workerFetch,
 } from "./auth-wiring-env.test-helpers.js";
 import { runOAuthAndReturnAccessToken } from "./auth-wiring-flow.test-helpers.js";
@@ -44,6 +46,66 @@ describe("auth wiring mcp e2e", () => {
 		const body = await response.text();
 		expect(body).toContain("/authorize");
 		expect(body).toContain("/token");
+		expect(body).toContain("refresh_token");
+	});
+
+	test("refreshed access token restores /mcp access after the original token expires", async () => {
+		const flow = await runOAuthAndReturnAccessToken();
+		expect(typeof flow.refreshToken).toBe("string");
+		expect(flow.refreshToken.length > 0).toBe(true);
+		await expireIssuedAccessTokens(flow.env);
+
+		const expiredResponse = await workerFetch(flow.env, flow.ctx, "/mcp", {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${flow.accessToken}`,
+				"content-type": "application/json",
+				accept: "application/json",
+			},
+			body: JSON.stringify({
+				jsonrpc: "2.0",
+				id: "expired-mcp-probe",
+				method: "initialize",
+				params: {
+					protocolVersion: "2024-11-05",
+					capabilities: {},
+					clientInfo: { name: "expired-e2e", version: "1.0.0" },
+				},
+			}),
+		});
+		expect(expiredResponse.status).toBe(401);
+		expect(await expiredResponse.text()).toContain("invalid_token");
+
+		const refreshed = await refreshAccessToken(
+			flow.env,
+			flow.ctx,
+			flow.client.client_id,
+			flow.refreshToken,
+		);
+		expect(typeof refreshed.access_token).toBe("string");
+		expect(refreshed.access_token.length > 0).toBe(true);
+		expect(typeof refreshed.refresh_token).toBe("string");
+		expect(refreshed.refresh_token.length > 0).toBe(true);
+
+		const refreshedResponse = await workerFetch(flow.env, flow.ctx, "/mcp", {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${refreshed.access_token}`,
+				"content-type": "application/json",
+				accept: "application/json",
+			},
+			body: JSON.stringify({
+				jsonrpc: "2.0",
+				id: "refreshed-mcp-probe",
+				method: "initialize",
+				params: {
+					protocolVersion: "2024-11-05",
+					capabilities: {},
+					clientInfo: { name: "refreshed-e2e", version: "1.0.0" },
+				},
+			}),
+		});
+		expect(refreshedResponse.status >= 500).toBe(false);
 	});
 
 	test("unauthenticated initialize on /mcp is rejected", async () => {
@@ -103,7 +165,7 @@ describe("auth wiring mcp e2e", () => {
 		expect(await response.text()).toContain("invalid_token");
 	});
 
-	test("unauthenticated build_info tool call on /mcp is rejected", async () => {
+	test("unauthenticated retrieve tool call on /mcp is rejected", async () => {
 		const env = {
 			OAUTH_KV: createMemoryKv(),
 			ACCESS_PASSPHRASE,
@@ -114,9 +176,9 @@ describe("auth wiring mcp e2e", () => {
 			headers: { "content-type": "application/json", accept: "application/json" },
 			body: JSON.stringify({
 				jsonrpc: "2.0",
-				id: "unauth-build-info-probe",
+				id: "unauth-retrieve-probe",
 				method: "tools/call",
-				params: { name: "build_info", arguments: {} },
+				params: { name: "retrieve", arguments: { query: "Alice" } },
 			}),
 		});
 		expect(response.status).toBe(401);

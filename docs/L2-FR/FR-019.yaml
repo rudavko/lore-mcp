@@ -1,18 +1,18 @@
 id: FR-019
-title: Knowledge summary and overview tool
+title: Engine status overview
 phase: 2
 statement: >
-  When an agent calls a summary tool, the system returns an overview of the
-  knowledge base including topic distribution, entry count, recent activity,
-  and a condensed digest so that agents can discover what knowledge exists
-  before querying.
+  When an agent calls engine_check with action="status", the system returns a
+  concise overview of instance state including object counts, last write
+  timestamp, and build identity so that agents can assess what is in the
+  engine without a separate summary tool.
 traces:
   - Charter 3.1: Deliver the system described in L1-vision.md
-  - CC-002: Cross-agent knowledge sharing
+  - CC-004: Non-technical deployment
   - QAW scenario 12: Knowledge discoverability
 verification:
   manual:
-    - Store entries across multiple topics, call summary, verify topic distribution and counts
+    - Call engine_check(status) before and after writes, and verify the overview reflects the instance state
   machine:
-    - E2E: store entries with distinct topics, call summary, assert counts and topics present
-    - E2E: call summary on empty instance, assert empty/zero response (no error)
+    - E2E: engine_check(status) returns counts and build metadata after object creation
+    - E2E: engine_check(status) on an empty instance returns zero counts without error

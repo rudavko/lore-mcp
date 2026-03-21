@@ -1,23 +1,23 @@
 # Updates
 
-Use the `enable_auto_updates` MCP tool to create a short-lived browser link for installing the update workflow in your fork. The workflow runs on a schedule to sync your fork with upstream.
+This repo now commits the default GitHub sync workflow at `.github/workflows/upstream-sync.yml`. The admin install flow still exists for writing the same workflow into another deploy repo through the GitHub API.
 
-Workflow created: `.github/workflows/upstream-sync.yml`
+Workflow path: `.github/workflows/upstream-sync.yml`
 
 ## Why This Path
 
-In Deploy Button clones, `.github` workflow files are not preserved in the fork, so repository-committed update workflows are not reliable. The admin UI writes the workflow file directly to your fork via the GitHub API.
+The checked-in workflow keeps this repo configured by default. The admin UI remains useful when a deployed worker needs to install or update the workflow in a different target repo.
 
 ## Setup
 
 1. Deploy the worker from your fork. The deploy step bakes the fork repo into the worker as `TARGET_REPO`.
-2. Call the `enable_auto_updates` MCP tool with no arguments.
-3. Open the returned one-time browser link before it expires.
+2. Generate or obtain a valid one-time admin install link for `/admin/install-workflow`.
+3. Open the one-time browser link before it expires.
 4. Confirm the fixed target repo shown on the page.
 5. Enter a GitHub PAT that can read repo metadata and write `.github/workflows/*` in that repo. The PAT is used once and is not stored.
 6. Click **Install**. The worker writes `.github/workflows/upstream-sync.yml` to that repo's default branch.
 
-The tool now derives the browser URL from the live MCP request origin. No separate public-base URL configuration is required.
+The install flow derives the browser URL from the live request origin. No separate public-base URL configuration is required.
 
 ## Prerequisites (Fork Secrets)
 
@@ -39,9 +39,10 @@ Accepted GitHub token shapes:
 
 ## Runtime Configuration
 
-By default, the installed workflow syncs from `rudavko/lore-mcp`.
+By default, the committed and installed workflow sync from `rudavko/lore-mcp`.
 
 Optional:
 
 - Set repository variable `UPSTREAM_REPO` to `owner/repo` to override the default upstream.
-- Set repository variable `FORCE_OVERWRITE=true` to allow hard reset when histories diverge.
+- `force_overwrite` defaults to `true` in manual dispatches, and the workflow also falls back to `FORCE_OVERWRITE=true` when no repository variable is set.
+- Set repository variable `FORCE_OVERWRITE=false` to require fast-forward-only sync and fail on divergence.

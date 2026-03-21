@@ -5,27 +5,10 @@ import { createGlobalTestStd } from "../test-helpers/runtime.shared.test.js";
 import { zStub } from "../test-helpers/mcp-zod-stub.test.js";
 const std = createGlobalTestStd(globalThis);
 const EXPECTED_TOOLS = [
-	"store",
-	"update",
-	"query",
-	"delete",
-	"set_type",
-	"extract_lessons",
-	"relate",
-	"query_graph",
-	"update_triple",
-	"upsert_triple",
-	"resolve_conflict",
-	"upsert_entity",
-	"merge_entities",
-	"query_entities",
-	"history",
-	"undo",
-	"ingest",
-	"ingestion_status",
-	"build_info",
-	"time",
-	"enable_auto_updates",
+	"link_object",
+	"object_create",
+	"retrieve",
+	"engine_check",
 ];
 describe("mcp/tools.pure surface", () => {
 	test("registers every supported tool on the MCP server surface", () => {
@@ -49,14 +32,8 @@ describe("mcp/tools.pure surface", () => {
 		}
 	});
 
-	test("enable_auto_updates registration forwards request headers and link helpers", async () => {
+	test("engine_check help returns machine-readable action metadata", async () => {
 		const handlers = {};
-		const autoUpdatesLinkTtlSeconds = 900;
-		const buildEnableAutoUpdatesPath = (token) => `/admin/install-workflow?setup_token=${token}`;
-		const buildEnableAutoUpdatesUrl = (baseUrl, token) =>
-			`${baseUrl}/admin/install-workflow?setup_token=${token}`;
-		const resolveEnableAutoUpdatesBaseUrl = (headers) =>
-			headers.host === "lore.example.com" ? "https://lore.example.com" : "";
 		registerTools(
 			{
 				tool: (name, _description, _schema, handler) => {
@@ -68,27 +45,17 @@ describe("mcp/tools.pure surface", () => {
 				std,
 				formatResult: (_text, data) => data,
 				formatError: (error) => error,
-				autoUpdatesLinkTtlSeconds,
-				buildEnableAutoUpdatesPath,
-				buildEnableAutoUpdatesUrl,
-				resolveEnableAutoUpdatesBaseUrl,
-				efctEnableAutoUpdates: async (_args, deps) => deps,
 			},
 		);
-		const result = await handlers.enable_auto_updates(
-			{},
-			{
-				requestInfo: {
-					headers: {
-						host: "lore.example.com",
-					},
-				},
-			},
-		);
-		expect(result.requestHeaders).toEqual({ host: "lore.example.com" });
-		expect(result.autoUpdatesLinkTtlSeconds).toBe(autoUpdatesLinkTtlSeconds);
-		expect(result.buildEnableAutoUpdatesPath).toBe(buildEnableAutoUpdatesPath);
-		expect(result.buildEnableAutoUpdatesUrl).toBe(buildEnableAutoUpdatesUrl);
-		expect(result.resolveEnableAutoUpdatesBaseUrl).toBe(resolveEnableAutoUpdatesBaseUrl);
+		const result = await handlers.engine_check({ action: "help" });
+		expect(result.action).toBe("help");
+		expect(result.tools).toEqual(["link_object", "object_create", "retrieve", "engine_check"]);
+		expect(Array.isArray(result.actions)).toBe(true);
+		expect(result.actions[0].name).toBe("help");
+		expect(result.actions[2].name).toBe("history");
+		expect(result.actions[2].optional).toContain("limit");
+		expect(result.actions[3].required).toContain("task_id");
+		expect(result.examples.retrieve.query).toContain("Alice");
+		expect(result.deprecations.replaced_by.update).toContain("supersedes");
 	});
 });

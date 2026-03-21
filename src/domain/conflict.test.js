@@ -46,12 +46,16 @@ describe("domain/conflict.pure", () => {
 				confidence: 0.9,
 				source: "docs",
 				actor: "bot",
+				valid_from: "2025-01-01T00:00:00.000Z",
+				valid_to: "2025-12-31T00:00:00.000Z",
 			});
 			expect(info.conflict_id).toBe("ulid_01");
 			expect(info.scope).toBe("Bun/version");
 			expect(info.existing.id).toBe("t_01");
 			expect(info.incoming.object).toBe("1.0");
 			expect(info.incoming.confidence).toBe(0.9);
+			expect(info.incoming.valid_from).toBe("2025-01-01T00:00:00.000Z");
+			expect(info.incoming.valid_to).toBe("2025-12-31T00:00:00.000Z");
 			expect(info.candidate_resolutions.length).toBe(3);
 			expect(info.candidate_resolutions).toEqual(["replace", "retain_both", "reject"]);
 		});
@@ -65,6 +69,8 @@ describe("domain/conflict.pure", () => {
 			expect(info.incoming.confidence).toBeUndefined();
 			expect(info.incoming.source).toBeUndefined();
 			expect(info.incoming.actor).toBeUndefined();
+			expect(info.incoming.valid_from).toBeUndefined();
+			expect(info.incoming.valid_to).toBeUndefined();
 		});
 	});
 });

@@ -20,8 +20,8 @@ function createPasskeyEnrollmentDeps(deps) {
 export function createAuthRouteDeps(deps) {
 	return {
 		...deps,
-		startPasskeyEnrollment: (oauthReq, totpEnrolled) =>
-			startPasskeyEnrollment(createPasskeyEnrollmentDeps(deps), oauthReq, totpEnrolled),
+		startPasskeyEnrollment: (flowState) =>
+			startPasskeyEnrollment(createPasskeyEnrollmentDeps(deps), flowState),
 	};
 }
 
@@ -30,7 +30,7 @@ export function registerAuthRouteTable(router, handlers) {
 	router.get("/authorize", handlers.handleAuthorize);
 	router.post("/approve", handlers.handleApprove);
 	router.post("/enroll-passkey", handlers.handleEnrollPasskey);
-	router.get("/complete-passkey-skip", handlers.handleCompletePasskeySkip);
-	router.get("/enroll-totp-redirect", handlers.handleEnrollTotpRedirect);
+	router.post("/complete-passkey-skip", handlers.handleCompletePasskeySkip);
+	router.post("/enroll-totp-redirect", handlers.handleEnrollTotpRedirect);
 	router.post("/enroll-totp", handlers.handleEnrollTotp);
 }

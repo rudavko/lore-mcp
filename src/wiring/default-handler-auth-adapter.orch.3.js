@@ -222,11 +222,11 @@ function createDefaultHandlerAuthRouteDeps(ctx) {
 		return { verified: true, newCounter: authenticationInfo.newCounter };
 	};
 
-	const storeChallenge = async (nonce, challenge, oauthReq, type) => {
+	const storeChallenge = async (nonce, record) => {
 		await authState.kvPutTtl(
 			kv,
 			authState.challengeKey(nonce),
-			platform.jsonStringify({ challenge, oauthReq, type }),
+			platform.jsonStringify(record),
 			authState.challengeTtlSeconds,
 		);
 	};

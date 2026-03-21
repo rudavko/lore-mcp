@@ -8,9 +8,9 @@ import {
 	workerFetch,
 	workerFetchWithCookies,
 } from "./auth-wiring-env.test-helpers.js";
+import { csrfCookieNameForNonce } from "./auth-shared.pure.js";
 import {
 	extractHiddenInputValue,
-	extractHref,
 	extractSecretDisplay,
 } from "./test-helpers/html-scrape.test.js";
 
@@ -43,12 +43,19 @@ function buildTotpEnrollmentBody({ enrollNonce, csrfToken, totpCode }) {
 	}).toString();
 }
 
-export async function requestAuthorizeForm({ env, ctx, clientId, fallback = false, jar = new Map() }) {
+function buildEnrollmentActionBody({ enrollNonce, csrfToken }) {
+	return new URLSearchParams({
+		enroll_nonce: enrollNonce,
+		csrf_token: csrfToken,
+	}).toString();
+}
+
+export async function requestAuthorizeForm({ env, ctx, clientId, authMode, jar = new Map() }) {
 	const step = await workerFetchWithCookies({
 		env,
 		ctx,
 		jar,
-		path: buildAuthorizePath(clientId, fallback ? { fallback: true } : undefined),
+		path: buildAuthorizePath(clientId, authMode ? { authMode } : undefined),
 	});
 	const html = await step.response.text();
 	return {
@@ -106,7 +113,7 @@ export async function submitLockedApproveForm({
 		headers: {
 			"content-type": "application/x-www-form-urlencoded",
 			"CF-Connecting-IP": ip,
-			cookie: `ks_csrf=${csrfToken}`,
+			cookie: `${csrfCookieNameForNonce(requestNonce)}=${csrfToken}`,
 		},
 		body: buildApproveBody({
 			requestNonce,
@@ -117,12 +124,21 @@ export async function submitLockedApproveForm({
 }
 
 export async function followPasskeySkipToTotp({ env, ctx, jar, passkeyEnrollHtml }) {
-	const skipPath = extractHref(passkeyEnrollHtml, "/enroll-totp-redirect");
+	const enrollNonce = extractHiddenInputValue(passkeyEnrollHtml, "enroll_nonce");
+	const csrfToken = extractHiddenInputValue(passkeyEnrollHtml, "csrf_token");
 	const step = await workerFetchWithCookies({
 		env,
 		ctx,
 		jar,
-		path: skipPath,
+		path: "/enroll-totp-redirect",
+		init: {
+			method: "POST",
+			headers: { "content-type": "application/x-www-form-urlencoded" },
+			body: buildEnrollmentActionBody({
+				enrollNonce,
+				csrfToken,
+			}),
+		},
 	});
 	const totpPageHtml = await step.response.text();
 	return {

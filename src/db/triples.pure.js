@@ -27,6 +27,9 @@ export function validateTripleFields(params) {
 	}
 	return { ok: true, value: undefined };
 }
+export function escapeTripleLike(value) {
+	return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
 export function rowToTriple(r) {
 	const validTo = r.valid_to ?? null;
 	return {
@@ -69,16 +72,16 @@ export function buildTripleQueryConditions(params, decodedCursor) {
 		binds.push(decodedCursor);
 	}
 	if (params.subject) {
-		conditions.push("subject = ?");
-		binds.push(params.subject);
+		conditions.push("subject LIKE ? ESCAPE '\\'");
+		binds.push("%" + escapeTripleLike(params.subject) + "%");
 	}
 	if (params.predicate) {
-		conditions.push("predicate = ?");
-		binds.push(params.predicate);
+		conditions.push("predicate LIKE ? ESCAPE '\\'");
+		binds.push("%" + escapeTripleLike(params.predicate) + "%");
 	}
 	if (params.object) {
-		conditions.push("object = ?");
-		binds.push(params.object);
+		conditions.push("object LIKE ? ESCAPE '\\'");
+		binds.push("%" + escapeTripleLike(params.object) + "%");
 	}
 	return { conditions, binds };
 }

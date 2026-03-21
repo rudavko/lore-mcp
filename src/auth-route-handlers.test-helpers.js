@@ -52,7 +52,12 @@ export function createAuthRouteHarness(overrides = {}) {
 		textResponse: (payload, status = 200) => ({ status, body: payload, kind: "text" }),
 		redirectResponse: (location) => ({ status: 302, location, kind: "redirect" }),
 		setCspNonce: (_nonce) => undefined,
-		parseAuthRequest: async () => ({ clientId: "test-client", scope: ["read", "write"] }),
+		parseAuthRequest: async () => ({
+			responseType: "code",
+			clientId: "test-client",
+			redirectUri: "https://client.example/callback",
+			scope: ["read", "write"],
+		}),
 		lookupClient: async () => ({ clientName: "Test Client", clientUri: "https://client.example" }),
 		completeAuthorization: async () => "https://client.example/callback?code=ok",
 		getCredential: async () => null,
@@ -62,8 +67,8 @@ export function createAuthRouteHarness(overrides = {}) {
 		verifyRegistration: async () => ({ id: "cred-1", publicKey: "pk-1" }),
 		createAuthenticationOptions: async () => ({ challenge: "auth-challenge" }),
 		verifyAuthentication: async () => ({ verified: false, newCounter: 0 }),
-		storeChallenge: async (nonce, challenge, oauthReq, type) => {
-			challengeMap.set(nonce, { challenge, oauthReq, type });
+		storeChallenge: async (nonce, record) => {
+			challengeMap.set(nonce, record);
 		},
 		consumeChallenge: async (nonce) => {
 			const value = challengeMap.get(nonce) || null;

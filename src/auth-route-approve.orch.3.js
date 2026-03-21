@@ -1,5 +1,12 @@
 /** @implements FR-018 — Approve route orchestration for passkey/passphrase/TOTP flows. */
-import { decidePassphraseApprovalAction } from "./auth-shared.pure.js";
+import {
+	AUTH_ACTION_APPROVE_PASSKEY,
+	AUTH_ACTION_APPROVE_PASSPHRASE,
+	AUTH_ACTION_APPROVE_PASSPHRASE_TOTP,
+	createPasskeyEnrollmentFlowState,
+	resolvePassphraseApprovalAction,
+} from "./auth-flow-state.pure.js";
+import { TOTP_SECRET_KEY } from "./auth-shared.pure.js";
 import {
 	parseApproveInput,
 	consumeStoredAuthRequest,
@@ -34,9 +41,13 @@ async function verifyPasskeyResponse({
 	}
 }
 
-async function startPasskeyEnrollmentAfterPassphrase(deps, oauthReqInfo, totpEnrolled) {
+async function startPasskeyEnrollmentForFlow(deps, flowState) {
 	await deps.clearAuthFailures();
-	return deps.startPasskeyEnrollment(oauthReqInfo, totpEnrolled);
+	return deps.startPasskeyEnrollment(flowState);
+}
+
+function denyAuthorizationWithoutFailure(deps) {
+	return deps.textResponse("Authorization failed", 403);
 }
 
 async function verifyApprovedTotpAndContinue(input) {
@@ -44,7 +55,14 @@ async function verifyApprovedTotpAndContinue(input) {
 		return failAuthorization(input.deps);
 	}
 	if (!input.passkeyUsable) {
-		return startPasskeyEnrollmentAfterPassphrase(input.deps, input.oauthReqInfo, true);
+		return startPasskeyEnrollmentForFlow(
+			input.deps,
+			createPasskeyEnrollmentFlowState({
+				oauthReq: input.oauthReqInfo,
+				alternateFactorSatisfied: true,
+				allowTotpEnrollment: false,
+			}),
+		);
 	}
 	return completeApprovedAuthorization(input.deps, input.oauthReqInfo);
 }
@@ -73,23 +91,23 @@ async function approveViaPassphrase({
 	accessPassphrase,
 	totpCode,
 	oauthReqInfo,
-	allowPassphraseFallback,
+	flowState,
 }) {
+	const passphraseAction = resolvePassphraseApprovalAction(flowState);
+	if (passphraseAction === null) {
+		return denyAuthorizationWithoutFailure(deps);
+	}
 	if (!(await deps.safeStringEqual(passphrase, accessPassphrase))) {
 		return failAuthorization(deps);
 	}
-	const passkeyCredential = await deps.getCredential();
-	const passkeyUsable = await hasUsablePasskeyCredential(deps, passkeyCredential);
-	const enrolledTotpSecret = await deps.kvGet("ks:totp:secret");
-	switch (
-		decidePassphraseApprovalAction({
-			hasTotpCode: !!totpCode,
-			totpEnrolled: enrolledTotpSecret !== null,
-			passkeyUsable,
-			allowPassphraseFallback,
-		})
-	) {
-		case "verify_totp":
+	switch (passphraseAction) {
+		case AUTH_ACTION_APPROVE_PASSPHRASE_TOTP: {
+			const enrolledTotpSecret = await deps.kvGet(TOTP_SECRET_KEY);
+			if (enrolledTotpSecret === null) {
+				return deps.textResponse("Authorization state changed. Retry authorization.", 400);
+			}
+			const passkeyCredential = await deps.getCredential();
+			const passkeyUsable = await hasUsablePasskeyCredential(deps, passkeyCredential);
 			return verifyApprovedTotpAndContinue({
 				deps,
 				enrolledTotpSecret,
@@ -97,12 +115,18 @@ async function approveViaPassphrase({
 				oauthReqInfo,
 				passkeyUsable,
 			});
-		case "start_passkey_enroll":
-			return startPasskeyEnrollmentAfterPassphrase(deps, oauthReqInfo, false);
-		case "complete":
-			return completeApprovedAuthorization(deps, oauthReqInfo);
+		}
+		case AUTH_ACTION_APPROVE_PASSPHRASE:
+			return startPasskeyEnrollmentForFlow(
+				deps,
+				createPasskeyEnrollmentFlowState({
+					oauthReq: oauthReqInfo,
+					alternateFactorSatisfied: false,
+					allowTotpEnrollment: true,
+				}),
+			);
 		default:
-			return failAuthorization(deps);
+			return denyAuthorizationWithoutFailure(deps);
 	}
 }
 
@@ -122,17 +146,32 @@ export async function handleApprove(deps) {
 	) {
 		return deps.textResponse("Invalid authorization request", 400);
 	}
-	const stored = await consumeStoredAuthRequest(deps, input.requestNonce);
-	if (!stored) {
+	const stored = await consumeStoredAuthRequest(
+		deps,
+		input.requestNonce,
+		input.csrfBody,
+		input.csrfCookie,
+	);
+	if (stored.kind === "missing") {
 		return deps.textResponse("Authorization request expired. Retry authorization.", 400);
 	}
-	const oauthReqInfo = stored.oauthReq || stored;
-	const fallbackRequested = stored.fallbackRequested === true;
-	if (input.webauthnResponseRaw && stored.webauthnChallenge) {
+	if (stored.kind === "invalid") {
+		return deps.textResponse("Invalid authorization state. Retry authorization.", 400);
+	}
+	const flowState = stored.record.flowState;
+	const oauthReqInfo = flowState.oauthReq;
+	if (input.webauthnResponseRaw) {
+		if (
+			flowState.requiredNextAction !== AUTH_ACTION_APPROVE_PASSKEY ||
+			typeof stored.record.webauthnChallenge !== "string" ||
+			stored.record.webauthnChallenge.length === 0
+		) {
+			return deps.textResponse("Invalid authorization state. Retry authorization.", 400);
+		}
 		return approveViaPasskey(
 			deps,
 			input.webauthnResponseRaw,
-			stored.webauthnChallenge,
+			stored.record.webauthnChallenge,
 			oauthReqInfo,
 		);
 	}
@@ -142,6 +181,6 @@ export async function handleApprove(deps) {
 		accessPassphrase: deps.accessPassphrase,
 		totpCode: input.totpCode,
 		oauthReqInfo,
-		allowPassphraseFallback: fallbackRequested,
+		flowState,
 	});
 }

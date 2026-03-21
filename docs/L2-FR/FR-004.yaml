@@ -1,16 +1,19 @@
 id: FR-004
-title: Query graph triples
+title: Expand retrieval with explicit and auto links
 phase: 1
 statement: >
-  When an agent calls query_graph with optional subject, predicate, or object
-  filters, the system returns matching triples with pagination so that agents
-  can explore the knowledge graph.
+  When an agent calls retrieve with include_links and/or
+  include_auto_links,
+  the system expands returned objects with explicit stored links and
+  engine-derived auto links so that retrieval can return local graph context
+  without a second public call.
 traces:
   - Charter 3.1: Deliver the system described in L1-vision.md
   - CC-002: Cross-agent knowledge sharing
+  - CC-005: Retrieval relevance
 verification:
   manual:
-    - Create triples, query with subject filter, verify correct triples returned
+    - Create linked objects, call retrieve with link-expansion flags, and verify the response includes explicit and derived link context
   machine:
-    - E2E: create triples, query_graph with subject filter, assert filtered results
-    - E2E: query_graph with cursor, assert pagination works
+    - E2E: link_object creates a link and retrieve(include_links=true) returns it alongside the matching object
+    - E2E: retrieve(include_auto_links=true) returns supported engine-derived links for matching objects

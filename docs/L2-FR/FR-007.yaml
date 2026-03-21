@@ -1,17 +1,19 @@
 id: FR-007
-title: Undo mutations via transaction log
+title: Preserve first-class entity metadata
 phase: 1
 statement: >
-  When an agent calls undo with an optional count, the system reverts the
-  last N mutations by replaying inverse operations (including entity merge
-  reversal) so that mistakes are recoverable.
+  When an agent calls object_create with kind="entity", the system stores and
+  retrieves first-class entity metadata including entity_type, source,
+  confidence, valid_from, valid_to, tags, produced_by, about, affects, and
+  specificity so that entity facts are preserved structurally instead of being
+  flattened into note text.
 traces:
   - Charter 3.1: Deliver the system described in L1-vision.md
-  - CC-006: Undo capability
-  - CC-011: Prevent permanent data loss
+  - CC-002: Cross-agent knowledge sharing
+  - CC-007: Provenance tracking
 verification:
   manual:
-    - Store entry, undo, verify entry no longer exists
+    - Create an entity with first-class metadata, retrieve it, and verify the metadata is preserved in the returned entity object
   machine:
-    - E2E: store entry, undo(1), query, assert entry gone
-    - E2E: merge entities, undo, assert entities separated
+    - E2E: object_create(entity) persists first-class metadata and retrieve returns it
+    - E2E: object_create(entity) with validity and tags returns those fields unchanged on retrieval

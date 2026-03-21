@@ -1,10 +1,20 @@
 /** @implements FR-018 — Authorize route orchestration for OAuth/passkey selection. */
 import {
+	authPageMode,
+	createAuthorizeFlowState,
+	isPassphraseModeAvailable,
+	requiresTotp,
+} from "./auth-flow-state.pure.js";
+import {
 	parseRequestContext,
 	fetchEnrollmentState,
 	preparePasskeyAuthData,
 	persistAndRenderAuthPage,
 } from "./auth-route-common.orch.3.js";
+
+function isAuthDependencyError(error) {
+	return error instanceof Error && error.name === "AuthDependencyError";
+}
 
 export async function handleAuthorize(deps) {
 	if (!deps.accessPassphrase || deps.accessPassphrase.length === 0) {
@@ -26,44 +36,59 @@ export async function handleAuthorize(deps) {
 	const clientName = clientInfo.clientName || oauthReq.clientId;
 	const clientUri = clientInfo.clientUri || "";
 	const scopes = oauthReq.scope.length > 0 ? oauthReq.scope.join(", ") : "full access";
-	const enrollState = await fetchEnrollmentState(deps.getCredential, deps.kvGet);
+	let enrollState;
+	try {
+		enrollState = await fetchEnrollmentState(deps.getCredential, deps.kvGet);
+	} catch (error) {
+		if (isAuthDependencyError(error)) {
+			return deps.textResponse("Invalid authorization state. Retry authorization.", 400);
+		}
+		throw error;
+	}
 	const reqCtx = parseRequestContext(deps.getRequestUrl, deps.queryParam, deps.parseUrl);
-	let passkeyOnly = false;
-	const stored = {
+	const authData =
+		enrollState.passkeyEnrolled
+			? await preparePasskeyAuthData(
+					deps,
+					reqCtx.url,
+					enrollState.passkeyCredential,
+					enrollState.totpEnrolled,
+				)
+			: null;
+	const flowState = createAuthorizeFlowState({
 		oauthReq: oauthReqInfo,
-		fallbackRequested: reqCtx.fallbackRequested,
-	};
+		passkeyUsable: authData !== null,
+		totpEnrolled: enrollState.totpEnrolled,
+	});
+	const renderPassphraseMode =
+		reqCtx.passphraseModeRequested && isPassphraseModeAvailable(flowState);
+	const passkeyOnly = authPageMode(flowState) === "passkey" && !renderPassphraseMode;
 	let authOptionsJSON = "";
 	let cspNonce = "";
-	let fallbackUrl = "";
-	if (enrollState.passkeyEnrolled && !reqCtx.fallbackRequested) {
-		const authData = await preparePasskeyAuthData(
-			deps,
-			reqCtx.url,
-			enrollState.passkeyCredential,
-			enrollState.totpEnrolled,
-		);
-		if (authData !== null) {
-			passkeyOnly = true;
-			stored.webauthnChallenge = authData.webauthnChallenge;
-			authOptionsJSON = authData.authOptionsJSON;
-			cspNonce = authData.cspNonce;
-			fallbackUrl = authData.fallbackUrl;
+	let passphraseModeUrl = "";
+	let webauthnChallenge = "";
+	if (passkeyOnly && authData !== null) {
+		authOptionsJSON = authData.authOptionsJSON;
+		cspNonce = authData.cspNonce;
+		webauthnChallenge = authData.webauthnChallenge;
+		if (isPassphraseModeAvailable(flowState)) {
+			passphraseModeUrl = authData.passphraseModeUrl;
 		}
 	}
 	return persistAndRenderAuthPage({
 		deps,
 		requestNonce,
 		csrfToken,
-		stored,
+		flowState,
+		webauthnChallenge,
 		pageData: {
 			clientName,
 			clientUri,
 			scopes,
-			totpEnrolled: enrollState.totpEnrolled,
+			totpEnrolled: renderPassphraseMode ? true : requiresTotp(flowState),
 			passkeyEnrolled: passkeyOnly,
 			passkeyOnly,
-			fallbackUrl: fallbackUrl || undefined,
+			passphraseModeUrl: passphraseModeUrl || undefined,
 			authOptionsJSON: authOptionsJSON || undefined,
 			cspNonce: cspNonce || undefined,
 		},

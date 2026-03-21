@@ -41,7 +41,12 @@ describe("auth.orch", () => {
 				textResponse: () => ({}),
 				redirectResponse: () => ({}),
 				setCspNonce: () => undefined,
-				parseAuthRequest: async () => ({ clientId: "client-id", scope: [] }),
+				parseAuthRequest: async () => ({
+					responseType: "code",
+					clientId: "client-id",
+					redirectUri: "https://client.example/callback",
+					scope: [],
+				}),
 				lookupClient: async () => ({ clientName: "Client" }),
 				completeAuthorization: async () => "",
 				getCredential: async () => null,
@@ -67,14 +72,14 @@ describe("auth.orch", () => {
 			},
 		);
 
-		expect(routes).toEqual([
-			"GET /",
-			"GET /authorize",
-			"POST /approve",
-			"POST /enroll-passkey",
-			"GET /complete-passkey-skip",
-			"GET /enroll-totp-redirect",
-			"POST /enroll-totp",
-		]);
+			expect(routes).toEqual([
+				"GET /",
+				"GET /authorize",
+				"POST /approve",
+				"POST /enroll-passkey",
+				"POST /complete-passkey-skip",
+				"POST /enroll-totp-redirect",
+				"POST /enroll-totp",
+			]);
+		});
 	});
-});

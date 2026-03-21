@@ -2,6 +2,7 @@
 import { describe, test, expect } from "bun:test";
 import {
 	validateTripleFields,
+	escapeTripleLike,
 	rowToTriple,
 	buildTripleObject,
 	buildTripleQueryConditions,
@@ -114,9 +115,22 @@ describe("buildTripleQueryConditions", () => {
 		const { conditions } = buildTripleQueryConditions({}, null);
 		expect(conditions).toContain("deleted_at IS NULL");
 	});
-	test("subject filter adds exact match", () => {
+	test("subject filter adds substring match", () => {
 		const { conditions, binds } = buildTripleQueryConditions({ subject: "A" }, null);
-		expect(conditions).toContain("subject = ?");
-		expect(binds).toContain("A");
+		expect(conditions).toContain("subject LIKE ? ESCAPE '\\'");
+		expect(binds).toContain("%A%");
+	});
+	test("predicate and object filters also use substring matching", () => {
+		const { conditions, binds } = buildTripleQueryConditions(
+			{ predicate: "kn", object: "Par" },
+			null,
+		);
+		expect(conditions).toContain("predicate LIKE ? ESCAPE '\\'");
+		expect(conditions).toContain("object LIKE ? ESCAPE '\\'");
+		expect(binds).toContain("%kn%");
+		expect(binds).toContain("%Par%");
+	});
+	test("substring filters escape SQL wildcard characters", () => {
+		expect(escapeTripleLike("50%_done\\now")).toBe("50\\%\\_done\\\\now");
 	});
 });

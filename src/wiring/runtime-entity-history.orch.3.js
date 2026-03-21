@@ -64,6 +64,7 @@ function buildEntityAndHistoryOps(ctx) {
 			resolveAliasRow: ctx.resolveAliasRow,
 			selectEntityByName: ctx.selectEntityByName,
 			insertEntityRow: ctx.insertEntityRow,
+			updateEntityRow: ctx.updateEntityRow,
 			rowToEntity: ctx.rowToEntity,
 			buildEntityObject: ctx.buildEntityObject,
 			generateId: ctx.generateId,

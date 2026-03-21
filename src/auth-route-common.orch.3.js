@@ -1,12 +1,24 @@
 /** @implements FR-018, FR-011 — Shared auth-route helpers across authorize, approve, and enrollment flows. */
 import {
 	AUTH_REQUEST_TTL_SECONDS,
-	CSRF_COOKIE_NAME,
 	AUTH_REQ_PREFIX,
 	TOTP_SECRET_KEY,
 	TOTP_PENDING_PREFIX,
 	TOTP_PENDING_TTL_SECONDS,
+	csrfCookieNameForNonce,
 } from "./auth-shared.pure.js";
+import {
+	AUTH_ACTION_ENROLL_TOTP,
+	buildPendingTotpRecord,
+	buildStoredAuthRequestRecord,
+	buildStoredChallengeRecord,
+	canSkipPasskeyEnrollment,
+	canStartTotpEnrollment,
+	createTotpEnrollmentFlowState,
+	parsePendingTotpRecord,
+	parseStoredAuthRequestRecord,
+	parseStoredChallengeRecord,
+} from "./auth-flow-state.pure.js";
 
 function hasUsableStoredPasskeyCredential(passkeyCredential) {
 	return !!(
@@ -31,15 +43,18 @@ async function verifyTotpAndComplete(deps, pending, totpCode) {
 		await deps.registerAuthFailure();
 		return deps.textResponse("Invalid verification code. Please start over.", 403);
 	}
+	if ((await deps.kvGet(TOTP_SECRET_KEY)) !== null) {
+		return deps.textResponse("Authenticator code is already enrolled. Retry authorization.", 400);
+	}
 	await deps.kvPut(TOTP_SECRET_KEY, pending.secret);
 	await deps.clearAuthFailures();
-	return deps.redirectResponse(await deps.completeAuthorization(pending.oauthReq));
+	return deps.redirectResponse(await deps.completeAuthorization(pending.flowState.oauthReq));
 }
 
 export function parseRequestContext(getRequestUrl, queryParam, parseUrl) {
 	const url = parseUrl(getRequestUrl());
-	const fallbackRequested = queryParam("fallback") !== "";
-	return { url, fallbackRequested };
+	const passphraseModeRequested = queryParam("auth_mode") === "passphrase";
+	return { url, passphraseModeRequested };
 }
 
 export async function fetchEnrollmentState(getCredential, kvGet) {
@@ -63,13 +78,13 @@ export async function preparePasskeyAuthData(deps, url, passkeyCredential, totpE
 	const authOptionsJSON = deps.jsonStringify(authOptions);
 	const cspNonce = deps.randomToken();
 	deps.setCspNonce(cspNonce);
-	let fallbackUrl = "";
+	let passphraseModeUrl = "";
 	if (totpEnrolled) {
-		const hasQuery = url.search.length > 0;
-		const separator = hasQuery ? "&" : "?";
-		fallbackUrl = url.pathname + url.search + separator + "fallback=1";
+		const passphraseUrl = new URL(url.toString());
+		passphraseUrl.searchParams.set("auth_mode", "passphrase");
+		passphraseModeUrl = passphraseUrl.pathname + passphraseUrl.search;
 	}
-	return { authOptionsJSON, cspNonce, fallbackUrl, webauthnChallenge: authOptions.challenge };
+	return { authOptionsJSON, cspNonce, passphraseModeUrl, webauthnChallenge: authOptions.challenge };
 }
 
 export async function hasUsablePasskeyCredential(deps, passkeyCredential) {
@@ -85,15 +100,16 @@ export async function persistAndRenderAuthPage({
 	deps,
 	requestNonce,
 	csrfToken,
-	stored,
+	flowState,
+	webauthnChallenge,
 	pageData,
 }) {
 	await deps.kvPut(
 		AUTH_REQ_PREFIX + requestNonce,
-		deps.jsonStringify(stored),
+		deps.jsonStringify(buildStoredAuthRequestRecord(flowState, csrfToken, webauthnChallenge)),
 		AUTH_REQUEST_TTL_SECONDS,
 	);
-	deps.setCookie(CSRF_COOKIE_NAME, csrfToken);
+	deps.setCookie(csrfCookieNameForNonce(requestNonce), csrfToken);
 	return deps.htmlResponse(
 		deps.renderAuthPage({
 			requestNonce,
@@ -103,8 +119,8 @@ export async function persistAndRenderAuthPage({
 	);
 }
 
-function renderPasskeyEnrollPage({ deps, enrollNonce, csrfToken, cspNonce, regOptions, totpEnrolled }) {
-	deps.setCookie(CSRF_COOKIE_NAME, csrfToken);
+function renderPasskeyEnrollPage({ deps, enrollNonce, csrfToken, cspNonce, regOptions, flowState }) {
+	deps.setCookie(csrfCookieNameForNonce(enrollNonce), csrfToken);
 	deps.setCspNonce(cspNonce);
 	return deps.htmlResponse(
 		deps.renderEnrollPasskeyPage({
@@ -112,49 +128,84 @@ function renderPasskeyEnrollPage({ deps, enrollNonce, csrfToken, cspNonce, regOp
 			csrfToken,
 			optionsJSON: deps.jsonStringify(regOptions),
 			cspNonce,
-			totpEnrolled,
+			canSkipPasskey: canSkipPasskeyEnrollment(flowState),
+			canStartTotpEnrollment: canStartTotpEnrollment(flowState),
 		}),
 	);
 }
 
-export async function startPasskeyEnrollment(deps, oauthReq, totpEnrolled) {
+export async function startPasskeyEnrollment(deps, flowState) {
 	const url = deps.parseUrl(deps.getRequestUrl());
 	const existingCred = await deps.getCredential();
 	const regOptions = await deps.createRegistrationOptions(url.hostname, "Lore", existingCred);
 	const enrollNonce = deps.randomToken();
 	const csrfToken = deps.randomToken();
 	const cspNonce = deps.randomToken();
-	await deps.storeChallenge(enrollNonce, regOptions.challenge, oauthReq, "registration");
+	await deps.storeChallenge(
+		enrollNonce,
+		buildStoredChallengeRecord(regOptions.challenge, flowState, "registration", csrfToken),
+	);
 	return renderPasskeyEnrollPage({
 		deps,
 		enrollNonce,
 		csrfToken,
 		cspNonce,
 		regOptions,
-		totpEnrolled,
+		flowState,
 	});
 }
 
 export async function parseApproveInput(deps) {
 	const body = await deps.parseBody();
+	const requestNonce = deps.bodyString(body.request_nonce);
 	return {
 		passphrase: deps.bodyString(body.passphrase),
-		requestNonce: deps.bodyString(body.request_nonce),
+		requestNonce,
 		csrfBody: deps.bodyString(body.csrf_token),
-		csrfCookie: deps.getCookie(CSRF_COOKIE_NAME),
+		csrfCookie: requestNonce ? deps.getCookie(csrfCookieNameForNonce(requestNonce)) : "",
 		totpCode: deps.bodyString(body.totp_code),
 		webauthnResponseRaw: deps.bodyString(body.webauthn_response),
 	};
 }
 
-export async function consumeStoredAuthRequest(deps, requestNonce) {
-	const raw = await deps.kvGet(AUTH_REQ_PREFIX + requestNonce);
-	await deps.kvDelete(AUTH_REQ_PREFIX + requestNonce);
-	deps.deleteCookie(CSRF_COOKIE_NAME);
-	if (!raw) {
+export async function parseEnrollActionInput(deps) {
+	const body = await deps.parseBody();
+	const enrollNonce = deps.bodyString(body.enroll_nonce);
+	return {
+		enrollNonce,
+		csrfBody: deps.bodyString(body.csrf_token),
+		csrfCookie: enrollNonce ? deps.getCookie(csrfCookieNameForNonce(enrollNonce)) : "",
+		registrationResponseRaw: deps.bodyString(body.registration_response),
+		totpCode: deps.bodyString(body.totp_code),
+	};
+}
+
+function parsedRecordOrNull(deps, raw, parseRecord) {
+	try {
+		return parseRecord(deps.jsonParse(raw));
+	} catch {
 		return null;
 	}
-	return deps.jsonParse(raw);
+}
+
+export async function consumeStoredAuthRequest(deps, requestNonce, csrfBody, csrfCookie) {
+	const raw = await deps.kvGet(AUTH_REQ_PREFIX + requestNonce);
+	deps.deleteCookie(csrfCookieNameForNonce(requestNonce));
+	if (!raw) {
+		return { kind: "missing" };
+	}
+	await deps.kvDelete(AUTH_REQ_PREFIX + requestNonce);
+	const record = parsedRecordOrNull(deps, raw, parseStoredAuthRequestRecord);
+	if (!record) {
+		return { kind: "invalid" };
+	}
+	if (!csrfBody || !csrfCookie || !(await deps.safeStringEqual(csrfBody, csrfCookie))) {
+		return { kind: "invalid" };
+	}
+	if (!(await deps.safeStringEqual(csrfBody, record.csrfToken))) {
+		return { kind: "invalid" };
+	}
+	return { kind: "ok", record };
 }
 
 export async function failAuthorization(deps) {
@@ -167,36 +218,59 @@ export async function completeApprovedAuthorization(deps, oauthReqInfo) {
 	return deps.redirectResponse(await deps.completeAuthorization(oauthReqInfo));
 }
 
-export async function validateQueryCsrfAndConsume(deps) {
-	const nonce = deps.queryParam("nonce");
-	const csrfParam = deps.queryParam("csrf");
-	const csrfCookie = deps.getCookie(CSRF_COOKIE_NAME);
+export async function consumePasskeyEnrollmentChallenge(deps, enrollNonce, csrfBody, csrfCookie) {
 	if (
-		!nonce ||
-		!csrfParam ||
+		!enrollNonce ||
+		!csrfBody ||
 		!csrfCookie ||
-		!(await deps.safeStringEqual(csrfParam, csrfCookie))
+		!(await deps.safeStringEqual(csrfBody, csrfCookie))
 	) {
-		return { error: deps.textResponse("Invalid request", 400) };
+		return { kind: "invalid_request" };
 	}
-	const challenge = await deps.consumeChallenge(nonce);
-	deps.deleteCookie(CSRF_COOKIE_NAME);
+	deps.deleteCookie(csrfCookieNameForNonce(enrollNonce));
+	let rawChallenge;
+	try {
+		rawChallenge = await deps.consumeChallenge(enrollNonce);
+	} catch {
+		return { kind: "invalid_state" };
+	}
+	if (!rawChallenge) {
+		return { kind: "missing" };
+	}
+	const challenge = parseStoredChallengeRecord(rawChallenge);
 	if (!challenge) {
-		return { error: deps.textResponse("Session expired. Please start over.", 400) };
+		return { kind: "invalid_state" };
+	}
+	if (!(await deps.safeStringEqual(csrfBody, challenge.csrfToken))) {
+		return { kind: "invalid_state" };
 	}
 	return { challenge };
 }
 
-export async function prepareTotpEnrollmentData(deps, challengeOauthReq) {
+export async function prepareTotpEnrollmentData(deps, flowState) {
+	if (!canStartTotpEnrollment(flowState)) {
+		throw new Error("Invalid TOTP enrollment source flow.");
+	}
 	const pendingSecret = deps.generateSecret();
 	const enrollNonce = deps.randomToken();
 	const csrfToken = deps.randomToken();
 	await deps.kvPut(
 		TOTP_PENDING_PREFIX + enrollNonce,
-		deps.jsonStringify({ secret: pendingSecret, oauthReq: challengeOauthReq }),
+		deps.jsonStringify(
+			buildPendingTotpRecord(
+				pendingSecret,
+				createTotpEnrollmentFlowState({
+					oauthReq: flowState.oauthReq,
+					sourceStage: flowState.stage,
+					sourceAction: AUTH_ACTION_ENROLL_TOTP,
+				}),
+				csrfToken,
+				flowState,
+			),
+		),
 		TOTP_PENDING_TTL_SECONDS,
 	);
-	deps.setCookie(CSRF_COOKIE_NAME, csrfToken);
+	deps.setCookie(csrfCookieNameForNonce(enrollNonce), csrfToken);
 	return { pendingSecret, enrollNonce, csrfToken };
 }
 
@@ -218,7 +292,12 @@ export async function verifyAndCompletePasskeyEnroll(
 	registrationResponseRaw,
 	challenge,
 ) {
-	const parsed = deps.jsonParse(registrationResponseRaw);
+	let parsed;
+	try {
+		parsed = deps.jsonParse(registrationResponseRaw);
+	} catch {
+		parsed = null;
+	}
 	if (!parsed) {
 		await deps.registerAuthFailure();
 		return deps.textResponse("Invalid registration data", 400);
@@ -236,20 +315,31 @@ export async function verifyAndCompletePasskeyEnroll(
 	}
 	await deps.storeCredential(credential);
 	await deps.clearAuthFailures();
-	return deps.redirectResponse(await deps.completeAuthorization(challenge.oauthReq));
+	return deps.redirectResponse(await deps.completeAuthorization(challenge.flowState.oauthReq));
 }
 
-export async function consumeAndVerifyTotp(deps, enrollNonce, totpCode) {
+export async function consumeAndVerifyTotp(deps, enrollNonce, csrfBody, csrfCookie, totpCode) {
+	if (
+		!enrollNonce ||
+		!csrfBody ||
+		!csrfCookie ||
+		!(await deps.safeStringEqual(csrfBody, csrfCookie))
+	) {
+		return { kind: "invalid_request" };
+	}
 	const pendingKey = TOTP_PENDING_PREFIX + enrollNonce;
 	const pendingRaw = await deps.kvGet(pendingKey);
-	await deps.kvDelete(pendingKey);
-	deps.deleteCookie(CSRF_COOKIE_NAME);
+	deps.deleteCookie(csrfCookieNameForNonce(enrollNonce));
 	if (!pendingRaw) {
-		return deps.textResponse("Enrollment expired. Please start over.", 400);
+		return { kind: "missing" };
 	}
-	const pending = deps.jsonParse(pendingRaw);
+	await deps.kvDelete(pendingKey);
+	const pending = parsedRecordOrNull(deps, pendingRaw, parsePendingTotpRecord);
 	if (!pending) {
-		return deps.textResponse("Invalid enrollment state", 400);
+		return { kind: "invalid_state" };
 	}
-	return verifyTotpAndComplete(deps, pending, totpCode);
+	if (!(await deps.safeStringEqual(csrfBody, pending.csrfToken))) {
+		return { kind: "invalid_state" };
+	}
+	return { kind: "ok", response: await verifyTotpAndComplete(deps, pending, totpCode) };
 }

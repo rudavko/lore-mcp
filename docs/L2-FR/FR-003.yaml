@@ -1,17 +1,18 @@
 id: FR-003
-title: Create graph triple
+title: Link objects
 phase: 1
 statement: >
-  When an agent calls relate with subject, predicate, and object, the system
-  persists a triple and returns it (or ConflictInfo if subject+predicate
-  already exists with a different object) so that relationships between
-  concepts are captured.
+  When an agent calls link_object with subject, predicate, and object, the
+  system creates or updates the stored link and returns the resulting link
+  object so that clients can write relationship triples through the current
+  public mutation contract.
 traces:
   - Charter 3.1: Deliver the system described in L1-vision.md
-  - CC-006: Undo capability (triples are logged in transaction history)
+  - CC-002: Cross-agent knowledge sharing
+  - CC-007: Provenance tracking
 verification:
   manual:
-    - Call relate, verify triple exists via query_graph
+    - Call link_object, then retrieve the related objects and verify the stored link is visible
   machine:
-    - E2E: relate subject+predicate+object, query_graph, assert triple returned
-    - E2E: relate same subject+predicate with different object, assert ConflictInfo returned
+    - E2E: link_object creates a new link and returns the created link object
+    - E2E: link_object called again for the same logical triple updates the stored link and returns the updated link object

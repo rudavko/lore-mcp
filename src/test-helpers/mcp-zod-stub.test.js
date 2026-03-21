@@ -6,6 +6,7 @@ function chain() {
 		min: () => chain(),
 		max: () => chain(),
 		int: () => chain(),
+		shape: {},
 	};
 }
 
@@ -15,4 +16,5 @@ export const zStub = {
 	boolean: () => chain(),
 	array: () => chain(),
 	enum: () => chain(),
+	object: (shape) => ({ ...chain(), shape }),
 };

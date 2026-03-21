@@ -22,27 +22,20 @@ With one deployed LORE endpoint, every connected agent sees the same knowledge b
 
 ## Capabilities
 
+### Migration Note
+
+The public v0 MCP surface is exactly four tools: `link_object`, `object_create`, `retrieve`, and `engine_check`.
+
+Legacy tool names such as `store`, `update`, `delete`, `query`, `query_graph`, `upsert_entity`, and `resolve_conflict` are not part of the public v0 surface anymore.
+
 ### Tools
 
 | Tool | Description |
 |---|---|
-| `store` | Create a knowledge entry with optional provenance |
-| `update` | Update an existing entry |
-| `query` | Hybrid search: FTS5 lexical + Vectorize semantic + graph expansion (combines `topic` + `content` when both are provided) |
-| `delete` | Soft-delete an entry or triple |
-| `relate` | Create a graph triple with conflict detection |
-| `query_graph` | Query triples by subject / predicate / object with cursor pagination |
-| `update_triple` | Update an existing triple |
-| `upsert_triple` | Create-or-update a triple by subject+predicate |
-| `resolve_conflict` | Resolve a detected triple conflict (replace / retain_both / reject) |
-| `upsert_entity` | Create or resolve a canonical entity by name |
-| `merge_entities` | Merge two canonical entities |
-| `undo` | Revert recent transactions |
-| `history` | View transaction history with cursor pagination |
-| `ingest` | Bulk-ingest text (sync for small inputs, async for large) |
-| `ingestion_status` | Check async ingestion progress |
-| `time` | Current time in any IANA timezone |
-| `build_info` | Current `package.json` version and deployed build hash |
+| `link_object` | Create or update an explicit relationship between stored objects |
+| `object_create` | Create a `note` or `entity` with provenance, validity, tags, and optional related links |
+| `retrieve` | Unified retrieval across notes, entities, and links with optional link expansion |
+| `engine_check` | Help, instance status, history, and ingestion-progress inspection |
 
 ### Resources (paginated, cursor-based)
 
@@ -53,8 +46,8 @@ With one deployed LORE endpoint, every connected agent sees the same knowledge b
 ### Prompts
 
 - `ingest-memory` — guide for storing knowledge with provenance
-- `retrieve-context` — guide for querying with filters and scoring
-- `correct-stale-facts` — guide for finding and updating outdated facts
+- `retrieve-context` — guide for unified retrieval, pagination, and link expansion
+- `correct-stale-facts` — guide for superseding stale facts and linking objects to `deleted`
 
 ## Architecture
 
@@ -82,9 +75,11 @@ MCP Client ──► Cloudflare Worker ──► Durable Object (MyMCP)
 
 When Vectorize is not bound, semantic weight is redistributed to lexical and graph automatically.
 
-**Conflict detection.** When `relate` would create a triple with the same subject+predicate but a different object, LORE pauses and returns a `ConflictInfo` for the client to resolve via `resolve_conflict`.
+**Unified retrieval.** `retrieve` merges note, entity, and link results into one stream, so the client does not need to predict the right storage type up front.
 
-**Undo.** Every mutation records a before/after snapshot in the transaction log. `undo` replays the inverse, including full reversal of entity merges.
+**Append-only correction model.** Corrections happen by creating a new object and linking it with `supersedes`, or by linking an object to `deleted`, rather than mutating history away.
+
+**Audit trail.** Every mutation records a before/after snapshot in the transaction log. `engine_check` exposes history and ingestion progress from the same public surface.
 
 ## Quick Start
 
@@ -182,15 +177,7 @@ See [docs/quality/evals.md](docs/quality/evals.md) for current status before wir
 
 ## Updates
 
-Deploy Button forks do not keep the update workflows automatically. Install them after deploy through the `enable_auto_updates` MCP tool.
-
-High-level flow:
-
-- Deploy your fork to Cloudflare.
-- Call `enable_auto_updates`.
-- Open the one-time browser link returned by the tool.
-- Paste a GitHub PAT with permission to write workflow files for your deploy repo.
-- The worker writes `.github/workflows/upstream-sync.yml` into your repo.
+Deploy Button forks do not keep the update workflows automatically. The workflow-install admin flow still exists, but it is not currently exposed on the v0 four-tool MCP surface.
 
 **Prerequisites** (one-time setup in your fork's **Settings → Secrets and variables → Actions** after the workflow is installed):
 
@@ -255,7 +242,7 @@ evals/
 - **No multi-tenant isolation.** All data lives in one D1 database.
 - **Tag pagination is approximate.** When filtering by tags only (no topic or content), pagination can skip some matches at very low tag selectivity. For exhaustive export, use `knowledge://entries` and filter client-side.
 - **Vectorize requires separate setup.** Semantic search only works when AI and Vectorize bindings are configured in wrangler.jsonc.
-- **D1 row size limit.** Async ingestion caps content at ~900KB per task. For larger inputs, pre-chunk and call `store` individually.
+- **D1 row size limit.** Async ingestion caps content at ~900KB per task. For larger inputs, pre-chunk and create notes individually with `object_create`.
 
 ## License
 

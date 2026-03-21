@@ -12,7 +12,7 @@ function isExplicitMulti(value) {
 }
 /** Handle "time" tool. */
 export function handleTime(args, deps) {
-	const tz = args.timezone || "UTC";
+	const tz = args.timezone === undefined ? "UTC" : args.timezone;
 		const validateTimezone = deps.validateTimezone || (() => true);
 		if (!validateTimezone(tz)) {
 			const err = buildValidationError("Invalid timezone");

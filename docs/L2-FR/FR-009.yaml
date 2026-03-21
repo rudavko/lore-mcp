@@ -1,16 +1,18 @@
 id: FR-009
-title: Canonicalize and merge entities
+title: Authenticate via OAuth 2.1 + 2FA
 phase: 1
 statement: >
-  When an agent calls upsert_entity, the system creates or resolves a
-  canonical entity. When an agent calls merge_entities, the system absorbs
-  one entity into another, updating all triple references, so that duplicate
-  entities are consolidated.
+  When a client connects, the system requires OAuth 2.1 authorization with
+  passphrase plus a second factor (passkey or TOTP) so that only the owner
+  can access the knowledge store.
 traces:
   - Charter 3.1: Deliver the system described in L1-vision.md
-  - CC-002: Cross-agent knowledge sharing
+  - CC-001: Data ownership
+  - CC-009: MCP endpoint security
+  - EC-006: OAuth 2.1
 verification:
   manual:
-    - Create two entities, merge, verify triples reference the kept entity
+    - Attempt access without auth, verify rejected; authenticate with passphrase + 2FA, verify access granted
   machine:
-    - E2E: create entities, relate triples to both, merge, assert all triples reference kept entity
+    - E2E: unauthenticated request returns 401 or 403
+    - E2E: authenticated request with valid credentials succeeds

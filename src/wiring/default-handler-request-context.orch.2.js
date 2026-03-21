@@ -9,7 +9,7 @@ export function createDefaultHandlerRequestContext(deps, request, env, helpers) 
 	const envRec = env && typeof env === "object" ? env : {};
 	const kv = envRec.OAUTH_KV;
 	const cspFormActionSources =
-		"'self' https://claude.ai http://localhost:* http://127.0.0.1:* http://[::1]:*";
+		"'self' https://chatgpt.com https://claude.ai http://localhost:* http://127.0.0.1:* http://[::1]:*";
 
 	const withResponseHeaders = (response) => {
 		const headers = new platform.headersCtor(response.headers);

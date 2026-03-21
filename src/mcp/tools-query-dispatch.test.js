@@ -1,12 +1,17 @@
-/** @implements FR-002 — Verify query dispatch chooses hybrid vs plain retrieval paths correctly. */
+/** @implements FR-002 — Verify retrieve registration dispatches across notes, entities, and links. */
 import { describe, expect, test } from "bun:test";
 import { registerTools } from "./tools.pure.js";
 import { zStub } from "../test-helpers/mcp-zod-stub.test.js";
-describe("mcp/tools.pure query dispatch", () => {
-	test("uses hybrid query path for content filter queries", async () => {
+import { createGlobalTestStd } from "../test-helpers/runtime.shared.test.js";
+
+const std = createGlobalTestStd(globalThis);
+
+describe("mcp/tools.pure retrieve dispatch", () => {
+	test("retrieve calls the injected note, entity, and link query dependencies", async () => {
 		const handlers = new Map();
 		let hybridCalls = 0;
-		let plainCalls = 0;
+		let entityCalls = 0;
+		let tripleCalls = 0;
 		registerTools(
 			{
 				tool: (name, _desc, _schema, handler) => {
@@ -15,52 +20,28 @@ describe("mcp/tools.pure query dispatch", () => {
 			},
 			{
 				z: zStub,
+				std,
 				formatResult: (_text, data) => data,
-				formatError: (e) => e,
-				efctQueryHybrid: async () => {
+				formatError: (error) => error,
+				hybridSearch: async () => {
 					hybridCalls += 1;
-					return {};
+					return { items: [], next_cursor: null, retrieval_ms: 1 };
 				},
-				efctQueryPlain: async () => {
-					plainCalls += 1;
-					return {};
+				queryEntities: async () => {
+					entityCalls += 1;
+					return { items: [], next_cursor: null };
+				},
+				queryTriples: async () => {
+					tripleCalls += 1;
+					return { items: [], next_cursor: null };
 				},
 			},
 		);
-		const handler = handlers.get("query");
+		const handler = handlers.get("retrieve");
 		expect(handler).toBeDefined();
-		await handler({ content: "needle" });
+		await handler({ query: "needle" });
 		expect(hybridCalls).toBe(1);
-		expect(plainCalls).toBe(0);
-	});
-	test("uses plain query path for tags-only filtering", async () => {
-		const handlers = new Map();
-		let hybridCalls = 0;
-		let plainCalls = 0;
-		registerTools(
-			{
-				tool: (name, _desc, _schema, handler) => {
-					handlers.set(name, handler);
-				},
-			},
-			{
-				z: zStub,
-				formatResult: (_text, data) => data,
-				formatError: (e) => e,
-				efctQueryHybrid: async () => {
-					hybridCalls += 1;
-					return {};
-				},
-				efctQueryPlain: async () => {
-					plainCalls += 1;
-					return {};
-				},
-			},
-		);
-		const handler = handlers.get("query");
-		expect(handler).toBeDefined();
-		await handler({ tags: ["qa"] });
-		expect(hybridCalls).toBe(0);
-		expect(plainCalls).toBe(1);
+		expect(entityCalls).toBe(2);
+		expect(tripleCalls).toBe(3);
 	});
 });

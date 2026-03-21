@@ -25,16 +25,16 @@ Decay function: exponential decay with a configurable half-life (default 90 days
 
 ### 2. Add `last_accessed_at` column to entries table
 
-Track when an entry was last returned in a query result. This enables staleness detection: entries not accessed for N days can be surfaced in a summary tool (FR-019) or filtered out. Updated via a post-query side effect (batched, not per-row).
+Track when an entry was last returned in a retrieval result. This enables staleness detection: entries not accessed for N days can be surfaced through `engine_check(status)` (FR-019) or filtered out. Updated via a post-retrieval side effect (batched, not per-row).
 
-### 3. Expose recency parameters in the query tool
+### 3. Expose recency parameters in the retrieve tool
 
-Add optional parameters to the `query` MCP tool:
+Add optional parameters to the `retrieve` MCP tool:
 - `recency_weight` (0-1, default 0)
 - `recency_half_life_days` (positive integer, default 90)
 - `min_updated_after` (ISO date, optional hard filter)
 
-Agents opt in to recency ranking. Existing queries are unaffected.
+Agents opt in to recency ranking. Existing retrieve calls are unaffected.
 
 ## Alternatives Considered
 
@@ -66,4 +66,4 @@ Tradeoff:
 
 - Schema change requires D1 migration in `src/db/schema.efct.ts`.
 - `computeTotalScore` in `src/db/search.pure.ts` must accept temporal input.
-- Query tool parameter schema in `src/mcp/tools.pure.ts` must be extended.
+- Retrieve tool parameter schema in `src/mcp/tools.pure.ts` must be extended.

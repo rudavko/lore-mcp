@@ -11,4 +11,4 @@ priority: Phase 1 critical
 traces:
   - CC-009: MCP endpoint security
   - CC-001: Data ownership
-  - FR-011: Authenticate via OAuth 2.1 + 2FA
+  - FR-009: Authenticate via OAuth 2.1 + 2FA

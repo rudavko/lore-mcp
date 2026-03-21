@@ -18,9 +18,11 @@ export async function handleResolveReplace(args, deps) {
 	const incoming = conflict.incoming;
 	const updated = await deps.updateTriple(existing.id, {
 		object: incoming.object,
-		source: incoming.source || undefined,
-		actor: incoming.actor || undefined,
-		confidence: incoming.confidence || undefined,
+		source: incoming.source ?? undefined,
+		actor: incoming.actor ?? undefined,
+		confidence: incoming.confidence ?? undefined,
+		valid_from: incoming.valid_from ?? undefined,
+		valid_to: incoming.valid_to ?? undefined,
 	});
 	deps.notifyResourceChange("triple");
 	deps.logEvent("conflict_resolved", {
@@ -48,9 +50,11 @@ export async function handleResolveRetain(args, deps) {
 		subject: incoming.subject,
 		predicate: incoming.predicate,
 		object: incoming.object,
-		source: incoming.source || undefined,
-		actor: incoming.actor || undefined,
-		confidence: incoming.confidence || undefined,
+		source: incoming.source ?? undefined,
+		actor: incoming.actor ?? undefined,
+		confidence: incoming.confidence ?? undefined,
+		valid_from: incoming.valid_from ?? undefined,
+		valid_to: incoming.valid_to ?? undefined,
 	});
 	deps.notifyResourceChange("triple");
 	return deps.formatResult(

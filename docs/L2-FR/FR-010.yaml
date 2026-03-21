@@ -1,17 +1,18 @@
 id: FR-010
-title: Bulk ingest content
+title: Admin update workflow installation
 phase: 1
 statement: >
-  When an agent calls ingest with text content, the system extracts and
-  stores knowledge entries synchronously for small inputs or asynchronously
-  for large inputs, with deduplication, so that agents can load bulk
-  knowledge in one call.
+  When the owner opens the one-time admin browser flow at
+  /admin/install-workflow and submits a GitHub token with workflow write
+  access, the system installs or updates the repository sync workflow in the
+  target fork so that update automation is available without exposing this as
+  an MCP tool.
 traces:
   - Charter 3.1: Deliver the system described in L1-vision.md
-  - EC-002: D1 row size limits
+  - CC-004: Non-technical deployment
 verification:
   manual:
-    - Ingest small text, verify entries created; ingest large text, check ingestion_status
+    - Open the admin install page with a valid one-time link, submit a valid GitHub token, and verify the workflow file is installed in the fork
   machine:
-    - E2E: ingest small content, query, assert entries created
-    - E2E: ingest large content, poll ingestion_status, assert completed
+    - E2E: admin install-workflow GET rejects missing or invalid setup token
+    - E2E: admin install-workflow POST installs the workflow and consumes the one-time setup token

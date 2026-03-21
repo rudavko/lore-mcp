@@ -112,6 +112,12 @@ describe("domain/github-workflow.pure", () => {
 			expect(yaml.indexOf("actions/checkout")).toBeGreaterThan(-1);
 		});
 
+		test("defaults force overwrite to true for dispatch input and runtime fallback", () => {
+			const yaml = renderWorkflowYaml("owner/repo");
+			expect(yaml.indexOf('default: "true"')).toBeGreaterThan(-1);
+			expect(yaml.indexOf("FORCE_OVERWRITE: ${{ github.event.inputs.force_overwrite || vars.FORCE_OVERWRITE || 'true' }}")).toBeGreaterThan(-1);
+		});
+
 		test("falls back to the canonical upstream repo when repository variable is unset", () => {
 			const yaml = renderWorkflowYaml("owner/repo");
 			expect(yaml.indexOf("UPSTREAM_REPO: ${{ vars.UPSTREAM_REPO || 'rudavko/lore-mcp' }}")).toBeGreaterThan(-1);

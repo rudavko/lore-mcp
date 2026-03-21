@@ -113,8 +113,8 @@ export function buildAuthorizePath(clientId, options) {
 	url.searchParams.set("redirect_uri", REDIRECT_URI);
 	url.searchParams.set("scope", "read write");
 	url.searchParams.set("state", options?.state || "e2e-state");
-	if (options?.fallback) {
-		url.searchParams.set("fallback", "1");
+	if (options?.authMode === "passphrase") {
+		url.searchParams.set("auth_mode", "passphrase");
 	}
 	return `${url.pathname}${url.search}`;
 }
@@ -140,6 +140,28 @@ export async function exchangeCodeForToken(env, ctx, clientId, code) {
 		body: body.toString(),
 	});
 	return await response.json();
+}
+
+export async function refreshAccessToken(env, ctx, clientId, refreshToken) {
+	const body = new URLSearchParams({
+		grant_type: "refresh_token",
+		client_id: clientId,
+		refresh_token: refreshToken,
+	});
+	const response = await workerFetch(env, ctx, "/token", {
+		method: "POST",
+		headers: { "content-type": "application/x-www-form-urlencoded" },
+		body: body.toString(),
+	});
+	return await response.json();
+}
+
+export async function expireIssuedAccessTokens(env) {
+	for (const [key, entry] of env.OAUTH_KV.values.entries()) {
+		if (key.startsWith("token:")) {
+			entry.expiresAtMs = Date.now() - 1;
+		}
+	}
 }
 
 export async function generateTotpCode(secret, nowMs = Date.now()) {

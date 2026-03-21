@@ -41,7 +41,7 @@ export function renderWorkflowYaml(targetRepo) {
 	return (
 		'name: Upstream Sync\n\non:\n  schedule:\n    - cron: "' +
 		minute +
-		' 4 * * *"\n  workflow_dispatch:\n    inputs:\n      force_overwrite:\n        description: Overwrite target branch when history diverges from upstream/main.\n        required: false\n        default: "false"\n\npermissions:\n  contents: write\n\njobs:\n  sync:\n    runs-on: ubuntu-latest\n    env:\n      TARGET_BRANCH: ${{ github.event.repository.default_branch }}\n      FORCE_OVERWRITE: ${{ github.event.inputs.force_overwrite || vars.FORCE_OVERWRITE || \'false\' }}\n      UPSTREAM_REPO: ${{ vars.UPSTREAM_REPO || \'' +
+		' 4 * * *"\n  workflow_dispatch:\n    inputs:\n      force_overwrite:\n        description: Overwrite target branch when history diverges from upstream/main.\n        required: false\n        default: "true"\n\npermissions:\n  contents: write\n\njobs:\n  sync:\n    runs-on: ubuntu-latest\n    env:\n      TARGET_BRANCH: ${{ github.event.repository.default_branch }}\n      FORCE_OVERWRITE: ${{ github.event.inputs.force_overwrite || vars.FORCE_OVERWRITE || \'true\' }}\n      UPSTREAM_REPO: ${{ vars.UPSTREAM_REPO || \'' +
 		DEFAULT_UPSTREAM_REPO +
 		'\' }}\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          ref: ${{ github.event.repository.default_branch }}\n          fetch-depth: 0\n\n      - name: Configure upstream remote\n        shell: bash\n        run: |\n          set -euo pipefail\n          if [ -z "${UPSTREAM_REPO}" ]; then\n            UPSTREAM_REPO="' +
 		DEFAULT_UPSTREAM_REPO +

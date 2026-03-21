@@ -50,6 +50,17 @@ describe("templates/auth-page.pure", () => {
 		});
 		expect(text.indexOf("spinner")).toBeGreaterThan(-1);
 	});
+	test("labels the alternate path as a form switch instead of an auth fallback", () => {
+		const text = renderAuthPage({
+			...baseParams,
+			passkeyOnly: true,
+			passphraseModeUrl: "/authorize?auth_mode=passphrase",
+			authOptionsJSON: "{}",
+			cspNonce: "n1",
+		});
+		expect(text.indexOf("Switch to the passphrase + authenticator form")).toBeGreaterThan(-1);
+		expect(text.indexOf("Use passphrase mode instead")).toBe(-1);
+	});
 	test("contains TOTP field when totpEnrolled", () => {
 		const text = renderAuthPage({ ...baseParams, totpEnrolled: true });
 		expect(text.indexOf("totp_code")).toBeGreaterThan(-1);

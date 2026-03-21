@@ -2,7 +2,7 @@
 export function formatSummary(data) {
 	const total = data.entries + data.triples + data.entities;
 	if (total === 0) {
-		return "Lore knowledge store — empty. Use store, relate, ingest tools to add knowledge.";
+		return "Lore knowledge store — empty. Use object_create, link_object, and retrieve to build knowledge.";
 	}
 	const lines = [
 		`Lore knowledge store — ${data.entries} entries, ${data.triples} triples, ${data.entities} entities.`,

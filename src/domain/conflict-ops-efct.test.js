@@ -80,7 +80,39 @@ describe("domain/conflict.ops.efct", () => {
 				confidence: undefined,
 				source: undefined,
 				actor: undefined,
+				valid_from: undefined,
+				valid_to: undefined,
 			},
+		});
+	});
+
+	test("preserves incoming validity bounds for downstream conflict resolution", async () => {
+		const result = await detectConflict(
+			{
+				subject: "S",
+				predicate: "P",
+				incomingObject: "O",
+				incomingValidFrom: "2026-01-01T00:00:00.000Z",
+				incomingValidTo: "2026-12-31T00:00:00.000Z",
+				incomingConfidence: 0,
+			},
+			{
+				findActiveTriples: async () => [{ id: "t-1" }],
+				findConflictingTriple: () => ({ id: "conflicting" }),
+				generateId: () => "conflict-2",
+				buildConflictInfo: (_id, _conflicting, incoming) => incoming,
+			},
+		);
+
+		expect(result).toEqual({
+			subject: "S",
+			predicate: "P",
+			object: "O",
+			confidence: 0,
+			source: undefined,
+			actor: undefined,
+			valid_from: "2026-01-01T00:00:00.000Z",
+			valid_to: "2026-12-31T00:00:00.000Z",
 		});
 	});
 });
