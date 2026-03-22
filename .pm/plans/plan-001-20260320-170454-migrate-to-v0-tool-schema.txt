@@ -1,0 +1,68 @@
+# Migrate To Recommended v0 Tool Schema
+
+## Grounded
+
+- The current MCP surface is organized around many legacy tools and four separate registrars, grounded.
+  See `src/mcp/tools.pure.js`, `src/mcp/tools-register-entry.pure.js`, `src/mcp/tools-register-graph.pure.js`, `src/mcp/tools-register-entity.pure.js`, and `src/mcp/tools-register-system.pure.js`, grounded.
+- Triple storage already supports `subject`, `predicate`, `object`, `valid_from`, `valid_to`, `confidence`, and `source`, grounded.
+  See `src/db/triples.pure.js` and `src/db/schema.efct.js`, grounded.
+- Entry storage already supports note-like persistence with provenance, temporal fields, tags, and canonical entity linkage, grounded.
+  See `src/db/entries.pure.js` and `src/db/schema.efct.js`, grounded.
+- Canonical entities are currently too thin for the target schema because they only persist `id`, `name`, and `created_at`, grounded.
+  See `src/db/schema.efct.js` and `src/mcp/tools-entity.efct.js`, grounded.
+- Prompts, docs, and tests are coupled to the old tool names, grounded.
+  See `src/mcp/prompts.pure.js`, `src/mcp/tools-surface.test.js`, `README.md`, and `docs/reference/mcp-tools.md`, grounded.
+- The repo is pre-release and backward compatibility is not required, grounded.
+- `retrieve` should not require a `kind` discriminator in the request and should return all available result types, grounded.
+- Entity metadata should be first-class storage rather than companion-note metadata, grounded.
+
+## Decisions
+
+- Replace the MCP surface directly with exactly four tools: `link_object`, `object_create`, `retrieve`, and `engine_check`, grounded.
+- Do not preserve legacy MCP tool names, grounded.
+- Make entity metadata first-class on canonical entities, grounded.
+- Make `retrieve` query across all available knowledge instead of requiring caller-side type prediction, grounded.
+
+## Plan
+
+1. Replace the registration surface in `src/mcp/tools.pure.js` so it registers only `link_object`, `object_create`, `retrieve`, and `engine_check`, grounded.
+2. Replace the legacy schemas in `src/mcp/tools-schemas.pure.js` with schemas for only the four target tools, grounded.
+3. Implement `link_object` as the canonical triple write path, reusing the existing triple validation and conflict machinery instead of creating a parallel graph-write backend, grounded.
+4. Rework `object_create` into a dispatcher with two supported kinds, grounded.
+   - `kind="note"` writes an entry-like object from `payload.body`, grounded.
+   - `kind="entity"` writes a canonical entity row with first-class metadata, grounded.
+5. Add first-class metadata columns to `canonical_entities` for the target schema fields that belong on entities directly, grounded.
+   - Minimum direct fields: `entity_type`, `source`, `confidence`, `valid_from`, `valid_to`, `tags`, `produced_by`, `about`, `affects`, and `specificity`, grounded.
+6. Add migrations, row mappers, validators, and CRUD/query helpers for the expanded entity model in the `src/db` layer, grounded.
+7. Normalize `links` inside `object_create` through the same internal relation-write path as `link_object` so graph semantics stay single-sourced, grounded.
+8. Rebuild `retrieve` as a unified retrieval endpoint that merges notes, entities, and explicit links into one result stream, grounded.
+9. Add optional result expansion for `include_links` and `include_auto_links`, grounded.
+   - `include_links` should hydrate explicit graph relationships from triples, I assume.
+   - `include_auto_links` should expose implicit canonical-entity associations from the existing auto-link system, I assume.
+10. Rebuild `engine_check` with exactly these actions: `help`, `status`, `history`, and `ingest_status`, grounded.
+11. Reuse current history and ingestion-status backends where possible, grounded.
+   - Current equivalents already exist in `src/mcp/tools-system.efct.js`, grounded.
+12. Implement `engine_check.status` on top of the existing summary and health-query building blocks in `src/db/summary.efct.js` and `src/wiring/loremcp.efct.js`, grounded.
+13. Rewrite prompt templates in `src/mcp/prompts.pure.js` so they teach only the new four-tool workflow, grounded.
+14. Rewrite surface tests and contract tests so they assert only the new schema and mixed retrieval behavior, grounded.
+15. Update `README.md` and `docs/reference/mcp-tools.md` to describe only the new surface and its result shapes, grounded.
+16. Remove or rewrite legacy tests and documentation that refer to `store`, `update`, `query`, `query_graph`, `upsert_entity`, `merge_entities`, `history`, `ingest`, and related legacy tools, grounded.
+
+## Test Plan
+
+- Add a surface test that asserts exactly four registered tools, grounded.
+- Add schema tests for `link_object`, `object_create`, `retrieve`, and `engine_check`, grounded.
+- Add persistence tests for first-class entity metadata round-trip through D1, grounded.
+- Add `object_create(kind="entity")` tests covering metadata write, read, and linked object creation, grounded.
+- Add `object_create(kind="note")` tests covering `payload.body` mapping and provenance/temporal fields, grounded.
+- Add `retrieve` tests proving mixed results are returned without request-side `kind`, grounded.
+- Add `retrieve` tests for `include_links` and `include_auto_links`, grounded.
+- Add `engine_check` tests for `help`, `status`, `history`, and `ingest_status`, grounded.
+- Rewrite prompt-binding and docs-surface tests to reflect the new tool names, grounded.
+
+## Open Design Questions
+
+- `retrieve` should likely return heterogeneous items with a per-item discriminator such as `kind`, I assume.
+- `retrieve` should likely rank one merged stream rather than return separate buckets for notes, entities, and links, I assume.
+- Fields such as `about`, `affects`, and `produced_by` may be better represented internally as structured entity columns plus derived outbound links, I assume.
+- `engine_check.help` should likely return machine-readable contract details rather than prose only, I assume.

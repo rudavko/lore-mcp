@@ -4,13 +4,11 @@
  * Resolution order for the target repo:
  * 1) argv[2] as explicit owner/repo
  * 2) TARGET_REPO env var (owner/repo)
- * 3) git remote.origin.url parsed as GitHub owner/repo
  *
  * Required env:
  *   GITHUB_TOKEN=...
  *
  * Usage:
- *   node scripts/installWorkflow.js
  *   node scripts/installWorkflow.js owner/repo
  *   TARGET_REPO=owner/repo node scripts/installWorkflow.js
  */

@@ -69,6 +69,7 @@ describe("mcp/prompts.pure", () => {
 			expect(text.indexOf("include_auto_links")).toBeGreaterThan(-1);
 			expect(text.indexOf("action=`history`")).toBeGreaterThan(-1);
 			expect(text.indexOf("action=`status`")).toBeGreaterThan(-1);
+			expect(text.indexOf("action=`enable_auto_updates`")).toBeGreaterThan(-1);
 		});
 		test("does not teach legacy retrieval tools", () => {
 			const result = buildRetrieveContextPrompt();

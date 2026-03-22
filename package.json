@@ -18,12 +18,9 @@
   "author": "Andrii Rudavko",
   "homepage": "https://github.com/rudavko/lore-mcp#readme",
   "scripts": {
-    "deploy": "node scripts/predeployCheck.js && node scripts/deployWorker.js",
+    "deploy": "node scripts/deployWorker.js",
     "build-hash": "node scripts/buildHash.js",
-    "setup": "node scripts/setup.js",
-    "teardown": "node scripts/teardown.js",
     "install-workflow": "bun scripts/installWorkflow.js",
-    "predeploy-check": "node scripts/predeployCheck.js",
     "loc:src": "node scripts/listCodeLoc.js src",
     "dev": "wrangler dev",
     "format": "oxfmt --write .",

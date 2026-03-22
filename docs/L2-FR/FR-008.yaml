@@ -4,16 +4,15 @@ phase: 1
 statement: >
   When the system runs bulk ingestion as an internal or admin capability, it
   extracts and stores knowledge synchronously for small inputs or
-  asynchronously for large inputs, and engine_check(action="ingest_status")
-  reports task progress so that bulk loading remains part of the product
-  without being required as a v0 public MCP tool.
+  asynchronously for large inputs with task progress tracked internally so
+  that bulk loading remains part of the product without being required as a
+  v0 public MCP tool.
 traces:
   - Charter 3.1: Deliver the system described in L1-vision.md
   - CC-002: Cross-agent knowledge sharing
   - EC-002: D1 row size limits
 verification:
   manual:
-    - Run a small and a large ingestion job, then verify knowledge is stored and ingest status can be inspected
+    - Run a small and a large ingestion job, then verify knowledge is stored and task progress is recorded
   machine:
     - E2E: ingest small content, retrieve, assert created knowledge is returned
-    - E2E: ingest large content, poll engine_check(ingest_status), assert the task completes

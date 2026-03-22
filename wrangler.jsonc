@@ -25,15 +25,13 @@
 	},
 	"kv_namespaces": [
 		{
-			"binding": "OAUTH_KV",
-			"id": "your-kv-namespace-id"
+			"binding": "OAUTH_KV"
 		}
 	],
 	"d1_databases": [
 		{
 			"binding": "DB",
 			"database_name": "lore-mcp-db",
-			"database_id": "ec16b95e-5cac-4768-ae5c-2c8fd69a99ec",
 			"migrations_dir": "migrations"
 		}
 	],

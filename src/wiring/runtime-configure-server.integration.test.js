@@ -107,6 +107,33 @@ describe("wiring/runtime configureLoreServer integration", () => {
 		expect(text).toContain("Engine help");
 	});
 
+	test("configured engine_check can issue an auto-updates install link", async () => {
+		const configureLoreServer = makeConfigureLoreServer(createConfigureLoreServerDeps());
+		const { server, tools } = createRecordingServer();
+
+		await configureLoreServer(server, {
+			DB: {},
+			ACCESS_PASSPHRASE: "test-pass",
+			TARGET_REPO: "owner/example-repo",
+			BUILD_HASH: "build-hash-xyz",
+		});
+
+		const result = await tools.get("engine_check").handler(
+			{ action: "enable_auto_updates" },
+			{
+				requestInfo: {
+					headers: {
+						host: "lore.example.com",
+						"x-forwarded-proto": "https",
+					},
+				},
+			},
+		);
+		const text = extractText(result);
+		expect(text).toContain("Target repo: owner/example-repo");
+		expect(text).toContain("https://lore.example.com/admin/install-workflow?setup_token=");
+	});
+
 	test("configured object_create entity path uses the injected upsert entity runtime", async () => {
 		const configureLoreServer = makeConfigureLoreServer(
 			createConfigureLoreServerDeps({

@@ -76,9 +76,8 @@ export function buildToolSchemas(z) {
 			cursor: text("Pagination cursor from previous response", true),
 		},
 		engine_check: {
-			action: z.enum(["help", "status", "history", "ingest_status"]).describe("Check action"),
+			action: z.enum(["help", "status", "history", "enable_auto_updates"]).describe("Check action"),
 			target: text("Optional target identifier", true),
-			task_id: text("Optional ingestion task identifier", true),
 			limit: integer("Max items to return for paginated actions", 1, 200),
 			cursor: text("Pagination cursor from previous response", true),
 		},

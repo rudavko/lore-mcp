@@ -1,24 +1,9 @@
 /** @implements NFR-001 — Verify deploy-time target repo resolution helpers. */
 import { describe, expect, test } from "bun:test";
 
-import {
-	parseGitHubRepoFromOrigin,
-	resolveTargetRepo,
-} from "./targetRepo.js";
+import { resolveTargetRepo } from "./targetRepo.js";
 
 describe("scripts/targetRepo", () => {
-	test("parses HTTPS GitHub origins", () => {
-		expect(parseGitHubRepoFromOrigin("https://github.com/octocat/hello-world.git")).toBe(
-			"octocat/hello-world",
-		);
-	});
-
-	test("parses SSH GitHub origins", () => {
-		expect(parseGitHubRepoFromOrigin("git@github.com:octocat/hello-world.git")).toBe(
-			"octocat/hello-world",
-		);
-	});
-
 	test("prefers explicit args over env", () => {
 		expect(
 			resolveTargetRepo({
@@ -31,6 +16,12 @@ describe("scripts/targetRepo", () => {
 	test("uses env override when present", () => {
 		expect(resolveTargetRepo({ envTargetRepo: "env-owner/env-repo" })).toBe(
 			"env-owner/env-repo",
+		);
+	});
+
+	test("throws when no explicit target repo is configured", () => {
+		expect(() => resolveTargetRepo({})).toThrow(
+			"Missing TARGET_REPO. Provide the downstream deploy repo explicitly via argv or TARGET_REPO env. Never infer it from the source repo Git remote.",
 		);
 	});
 });

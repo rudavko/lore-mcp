@@ -54,8 +54,38 @@ describe("mcp/tools.pure surface", () => {
 		expect(result.actions[0].name).toBe("help");
 		expect(result.actions[2].name).toBe("history");
 		expect(result.actions[2].optional).toContain("limit");
-		expect(result.actions[3].required).toContain("task_id");
+		expect(result.actions[3].name).toBe("enable_auto_updates");
 		expect(result.examples.retrieve.query).toContain("Alice");
+		expect(result.examples.engine_check_enable_auto_updates.action).toBe("enable_auto_updates");
 		expect(result.deprecations.replaced_by.update).toContain("supersedes");
+	});
+
+	test("engine_check can dispatch enable_auto_updates without adding a fifth tool", async () => {
+		const handlers = {};
+		registerTools(
+			{
+				tool: (name, _description, _schema, handler) => {
+					handlers[name] = handler;
+				},
+			},
+			{
+				z: zStub,
+				std,
+				autoUpdatesLinkTtlSeconds: 900,
+				buildEnableAutoUpdatesPath: (setupToken) =>
+					"/admin/install-workflow?setup_token=" + setupToken,
+				buildEnableAutoUpdatesUrl: (baseUrl, setupToken) =>
+					baseUrl + "/admin/install-workflow?setup_token=" + setupToken,
+				formatResult: (_text, data) => data,
+				formatError: (error) => error,
+				issueAutoUpdatesSetupToken: async () => "setup-token-1",
+				logEvent: () => undefined,
+				resolveAutoUpdatesTargetRepo: async () => "owner/repo",
+				resolveEnableAutoUpdatesBaseUrl: () => "https://example.com",
+			},
+		);
+		const result = await handlers.engine_check({ action: "enable_auto_updates" });
+		expect(result.target_repo).toBe("owner/repo");
+		expect(result.url).toBe("https://example.com/admin/install-workflow?setup_token=setup-token-1");
 	});
 });

@@ -10,7 +10,7 @@ The checked-in workflow keeps this repo configured by default. The admin UI rema
 
 ## Setup
 
-1. Deploy the worker from your fork. The deploy step bakes the fork repo into the worker as `TARGET_REPO`.
+1. Deploy the worker with an explicit `TARGET_REPO=owner/repo` pointing at the downstream deploy repo created for the single-click Cloudflare deployment. Do not use the source repo as `TARGET_REPO`.
 2. Generate or obtain a valid one-time admin install link for `/admin/install-workflow`.
 3. Open the one-time browser link before it expires.
 4. Confirm the fixed target repo shown on the page.

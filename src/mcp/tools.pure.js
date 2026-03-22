@@ -7,6 +7,7 @@ import {
 	handleTime as handleTimeCore,
 	buildValidationError,
 } from "./tools-core.pure.js";
+import { handleEnableAutoUpdates } from "./tools-system.efct.js";
 import { buildToolSchemas } from "./tools-schemas.pure.js";
 import { ensureValidCursor } from "./tools-cursor.pure.js";
 import { normalizeMutationEntry, normalizeQueryEntry } from "./tools-entry-public.pure.js";
@@ -284,11 +285,11 @@ function buildEngineHelpPayload() {
 				example: { action: "history", limit: 20 },
 			},
 			{
-				name: "ingest_status",
-				description: "Return the state of an async ingestion task",
-				required: ["task_id"],
+				name: "enable_auto_updates",
+				description: "Generate a short-lived browser link for the admin install-workflow flow",
+				required: [],
 				optional: [],
-				example: { action: "ingest_status", task_id: "ingestion-task-id" },
+				example: { action: "enable_auto_updates" },
 			},
 		],
 		examples: {
@@ -313,6 +314,9 @@ function buildEngineHelpPayload() {
 			engine_check_status: {
 				action: "status",
 			},
+			engine_check_enable_auto_updates: {
+				action: "enable_auto_updates",
+			},
 		},
 		deprecations: {
 			note: "Legacy mutation and lookup tool names are not part of the v0 public surface.",
@@ -323,7 +327,7 @@ function buildEngineHelpPayload() {
 				query: "retrieve",
 				query_graph: "retrieve + include_links",
 				history: "engine_check(action='history')",
-				ingestion_status: "engine_check(action='ingest_status')",
+				enable_auto_updates: "engine_check(action='enable_auto_updates')",
 			},
 		},
 	};
@@ -644,6 +648,23 @@ async function handleEngineCheck(args, deps) {
 	if (args.action === "help") {
 		return deps.formatResult("Engine help", buildEngineHelpPayload());
 	}
+	if (args.action === "enable_auto_updates") {
+		return await handleEnableAutoUpdates({}, {
+			std: deps.std,
+			resolveAutoUpdatesTargetRepo: deps.resolveAutoUpdatesTargetRepo,
+			issueAutoUpdatesSetupToken: deps.issueAutoUpdatesSetupToken,
+			autoUpdatesLinkTtlSeconds: deps.autoUpdatesLinkTtlSeconds,
+			buildEnableAutoUpdatesPath: deps.buildEnableAutoUpdatesPath,
+			buildEnableAutoUpdatesUrl: deps.buildEnableAutoUpdatesUrl,
+			resolveEnableAutoUpdatesBaseUrl: deps.resolveEnableAutoUpdatesBaseUrl,
+			validation: {
+				buildValidationError,
+			},
+			requestHeaders: deps.requestHeaders,
+			logEvent: deps.logEvent,
+			formatResult: deps.formatResult,
+		});
+	}
 	if (args.action === "history") {
 		const result = await deps.getHistory({
 			limit: typeof args.limit === "number" ? args.limit : 20,
@@ -653,20 +674,6 @@ async function handleEngineCheck(args, deps) {
 			result.items.length > 0 ? result.items.length + " history items" : "No history found",
 			{ action: "history", items: result.items, next_cursor: result.next_cursor },
 			"knowledge://history/transactions",
-		);
-	}
-	if (args.action === "ingest_status") {
-		if (typeof args.task_id !== "string" || args.task_id.length === 0) {
-			throw buildValidationError("task_id is required for ingest_status");
-		}
-		const status = await deps.getIngestionStatus(args.task_id);
-		if (status === null) {
-			return deps.formatError(deps.throwNotFound("Ingestion task", args.task_id));
-		}
-		return deps.formatResult(
-			"Ingestion task " + args.task_id + ": " + status.status,
-			{ action: "ingest_status", ...status },
-			"knowledge://ingestion/" + args.task_id,
 		);
 	}
 	const summaryRows = await deps.querySummaryCounts();
@@ -728,16 +735,31 @@ export function registerTools(server, deps) {
 			formatResult: deps.formatResult,
 		}),
 	);
-	server.tool("engine_check", "Inspect help, status, history, or ingestion progress", schemas.engine_check, (args) =>
+	server.tool("engine_check", "Inspect help, status, history, or auto-update setup", schemas.engine_check, (args, extra) =>
 		handleEngineCheck(args, {
 			appVersion: typeof deps.appVersion === "string" ? deps.appVersion : "unknown",
+			autoUpdatesLinkTtlSeconds: deps.autoUpdatesLinkTtlSeconds,
+			buildEnableAutoUpdatesPath: deps.buildEnableAutoUpdatesPath,
+			buildEnableAutoUpdatesUrl: deps.buildEnableAutoUpdatesUrl,
 			buildHash: typeof deps.buildHash === "string" ? deps.buildHash : "unknown",
 			formatError: deps.formatError,
 			formatResult: deps.formatResult,
 			getHistory: deps.getHistory,
-			getIngestionStatus: deps.getIngestionStatus,
+			issueAutoUpdatesSetupToken: deps.issueAutoUpdatesSetupToken,
+			logEvent: deps.logEvent,
 			querySummaryCounts: deps.querySummaryCounts,
-			throwNotFound: deps.throwNotFound,
+			requestHeaders:
+				typeof extra === "object" &&
+				extra !== null &&
+				typeof extra.requestInfo === "object" &&
+				extra.requestInfo !== null &&
+				typeof extra.requestInfo.headers === "object" &&
+				extra.requestInfo.headers !== null
+					? extra.requestInfo.headers
+					: undefined,
+			resolveAutoUpdatesTargetRepo: deps.resolveAutoUpdatesTargetRepo,
+			resolveEnableAutoUpdatesBaseUrl: deps.resolveEnableAutoUpdatesBaseUrl,
+			std: deps.std,
 		}),
 	);
 }

@@ -35,7 +35,7 @@ Legacy tool names such as `store`, `update`, `delete`, `query`, `query_graph`, `
 | `link_object` | Create or update an explicit relationship between stored objects |
 | `object_create` | Create a `note` or `entity` with provenance, validity, tags, and optional related links |
 | `retrieve` | Unified retrieval across notes, entities, and links with optional link expansion |
-| `engine_check` | Help, instance status, history, and ingestion-progress inspection |
+| `engine_check` | Help, instance status, history, and one-time auto-update link generation |
 
 ### Resources (paginated, cursor-based)
 
@@ -79,7 +79,7 @@ When Vectorize is not bound, semantic weight is redistributed to lexical and gra
 
 **Append-only correction model.** Corrections happen by creating a new object and linking it with `supersedes`, or by linking an object to `deleted`, rather than mutating history away.
 
-**Audit trail.** Every mutation records a before/after snapshot in the transaction log. `engine_check` exposes history and ingestion progress from the same public surface.
+**Audit trail.** Every mutation records a before/after snapshot in the transaction log. `engine_check` exposes history and the one-time auto-updates install-link flow from the same public surface.
 
 ## Quick Start
 
@@ -90,6 +90,8 @@ When Vectorize is not bound, semantic weight is redistributed to lexical and gra
 3. Finish deploy, then open `https://<your-worker>.workers.dev/authorize`.
 4. On first login, scan the TOTP QR code with your authenticator app and verify.
 5. Connect your MCP client (see below).
+
+Wrangler provisions the KV namespace and D1 database from `wrangler.jsonc` during first deploy, so the template does not need account-specific resource IDs committed to the repo.
 
 ### Connect from Claude Desktop
 

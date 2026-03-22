@@ -2,18 +2,17 @@ id: FR-005
 title: Inspect engine state
 phase: 1
 statement: >
-  When an agent calls engine_check with action=help, status, history, or
-  ingest_status, the system returns supported actions, instance counts and
-  build metadata, transaction history, or ingestion task state so that engine
-  inspection remains available through one public tool.
+  When an agent calls engine_check with action=help, status, or history, the
+  system returns supported actions, instance counts and build metadata, or
+  transaction history so that engine inspection remains available through one
+  public tool.
 traces:
   - Charter 3.1: Deliver the system described in L1-vision.md
   - CC-004: Non-technical deployment
   - CC-007: Provenance tracking
 verification:
   manual:
-    - Call engine_check with help, status, history, and ingest_status and verify each action returns the expected inspection payload
+    - Call engine_check with help, status, and history and verify each action returns the expected inspection payload
   machine:
     - E2E: engine_check(status) returns counts and build metadata
     - E2E: engine_check(history) returns transaction history
-    - E2E: engine_check(ingest_status) returns async ingestion state when given task_id
