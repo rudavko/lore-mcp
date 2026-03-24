@@ -7,13 +7,25 @@
       ".stryker-system-tmp"
     ]
   },
-  "name": "mcp-knowledge-server",
+  "name": "lore-mcp",
   "version": "0.2.0",
   "private": true,
   "type": "module",
   "main": "./src/index.js",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./admin.orch.1.js": "./src/admin.orch.1.js",
+    "./auth.orch.1.js": "./src/auth.orch.1.js",
+    "./auth-shared.pure.js": "./src/auth-shared.pure.js",
+    "./config.pure.js": "./src/config.pure.js",
+    "./totp.pure.js": "./src/totp.pure.js",
+    "./webauthn.pure.js": "./src/webauthn.pure.js",
+    "./domain/*.js": "./src/domain/*.js",
+    "./lib/*.js": "./src/lib/*.js",
+    "./templates/*.js": "./src/templates/*.js",
+    "./test-helpers/*.js": "./src/test-helpers/*.js",
+    "./wiring/*.js": "./src/wiring/*.js",
+    "./index-runtime-*.js": "./src/index-runtime-*.js"
   },
   "repository": {
     "type": "git",
