@@ -16,6 +16,6 @@
 		"strict": true,
 		"skipLibCheck": true
 	},
-	"include": ["worker-configuration.d.ts", "test-preload.test.js", "src/**/*.js", "scripts/**/*.js"],
+	"include": ["src/**/*.js", "scripts/**/*.js"],
 	"exclude": ["src/**/*.test.js", "evalsORIGINAL/**", "srcORIGINAL/**"]
 }

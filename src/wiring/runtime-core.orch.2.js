@@ -22,5 +22,3 @@ export { buildEntryAndTripleOps } from "./runtime-entry-triple.orch.3.js";
 export { makeGraphAndSearchOps } from "./runtime-search.orch.3.js";
 export { buildEntityAndHistoryOps } from "./runtime-entity-history.orch.3.js";
 export { buildIngestionOps } from "./runtime-ingestion.orch.3.js";
-export { makeConfigureLoreServer } from "./runtime-configure-server.orch.3.js";
-export { makeRunLoreIngestion } from "./runtime-run-ingestion.orch.3.js";

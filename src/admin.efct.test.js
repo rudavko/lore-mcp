@@ -1,8 +1,48 @@
 /** @implements NFR-001 — Admin install-workflow success-path and cleanup regression tests. */
 import { describe, expect, test } from "bun:test";
 import { registerAdminRoutes } from "./admin.orch.1.js";
-import { createMemoryKv } from "./test-helpers/memory-kv.test.js";
 const Uint8ArrayCtor = globalThis.Uint8Array;
+
+function normalizeExpirationOptions(rawOptions) {
+	if (typeof rawOptions === "number" && rawOptions > 0) {
+		return { expirationTtl: rawOptions };
+	}
+	return rawOptions || null;
+}
+
+function createMemoryKv(options = {}) {
+	const values = new Map();
+	const putImpl = options.putImpl;
+	const getImpl = options.getImpl;
+	const deleteImpl = options.deleteImpl;
+	return {
+		get: async (key, rawOptions) => {
+			if (typeof getImpl === "function") {
+				return await getImpl(key, rawOptions, values);
+			}
+			return values.has(key) ? values.get(key).value : null;
+		},
+		put: async (key, value, rawOptions) => {
+			if (typeof putImpl === "function") {
+				return await putImpl(key, value, rawOptions, values);
+			}
+			const normalized = normalizeExpirationOptions(rawOptions);
+			const ttlSeconds =
+				typeof normalized?.expirationTtl === "number" && normalized.expirationTtl > 0
+					? normalized.expirationTtl
+					: null;
+			const expiresAtMs = ttlSeconds === null ? null : Date.now() + ttlSeconds * 1000;
+			values.set(key, { value, expiresAtMs });
+		},
+		delete: async (key) => {
+			if (typeof deleteImpl === "function") {
+				return await deleteImpl(key, values);
+			}
+			values.delete(key);
+		},
+		values,
+	};
+}
 
 function bytesToBinaryString(bytes) {
 	let binary = "";

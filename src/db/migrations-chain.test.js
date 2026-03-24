@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
 
-const MIGRATIONS_DIR = resolve(import.meta.dir, "../../migrations");
+const MIGRATIONS_DIR = resolve(import.meta.dir, "../../../lore-mcp-cloudflare/migrations");
 
 function readMigrationFiles() {
 	return readdirSync(MIGRATIONS_DIR)
