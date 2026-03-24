@@ -100,6 +100,8 @@ score	path	rationale
 1	src/domain/policy.ops.efct.js	effect boundary but not Cloudflare-specific
 0	src/domain/policy.pure.js	portable domain logic
 0	src/domain/policy.test.js	domain test for portable logic
+8	src/index-app-services.orch.2.js	platform-agnostic app assembly bridging core runtime services into host bootstrap
+6	src/index-app-services.test.js	host/bootstrap assembly test for the app composition surface
 9	src/index-core.orch.1.js	assembles worker/default-handler/agent services for Cloudflare runtime
 7	src/index-default-handler-services.orch.2.js	assembles browser/admin handler over current Worker runtime
 4	src/index-runtime-configure-db-deps.orch.4.js	runtime wiring/orchestration layer with platform assumptions
@@ -219,6 +221,8 @@ score	path	rationale
 7	src/wiring/default-handler-config.orch.3.js	Worker runtime assembly for auth/admin integrations
 4	src/wiring/default-handler-helpers.orch.2.js	runtime wiring/orchestration layer with platform assumptions
 4	src/wiring/default-handler-helpers.test.js	wiring-level test for current worker/runtime shape
+8	src/wiring/default-handler-host.orch.3.js	extracts request env and client ip from host-specific inputs
+6	src/wiring/default-handler-host.test.js	verifies host request/env extraction behavior
 6	src/wiring/default-handler-lookup.e2e.test.js	default-handler e2e test depends on OAUTH_KV state
 6	src/wiring/default-handler-passkey-uv.e2e.test.js	default-handler e2e test depends on OAUTH_KV state
 9	src/wiring/default-handler-request-context.orch.2.js	direct OAUTH_KV and CF-Connecting-IP coupling
@@ -228,6 +232,8 @@ score	path	rationale
 5	src/wiring/default-handler.test-helpers.js	test helper builds current default handler env/context
 4	src/wiring/github-workflow-adapter-efct.test.js	wiring-level test for current worker/runtime shape
 4	src/wiring/github-workflow-adapter.efct.js	runtime wiring/orchestration layer with platform assumptions
+7	src/wiring/loremcp-host.orch.4.js	wraps runtime instance env server and schedule hooks as host adapter
+5	src/wiring/loremcp-host.test.js	verifies host adapter over runtime instance shape
 6	src/wiring/loremcp-init.test.js	test is shaped around Cloudflare env/binding stubs
 7	src/wiring/loremcp.efct.js	LoreMcp lifecycle depends on env.DB and instance scheduling
 4	src/wiring/mcp-agent-efct.test.js	wiring-level test for current worker/runtime shape
@@ -236,6 +242,7 @@ score	path	rationale
 4	src/wiring/runtime-configure-conflicts.orch.4.js	runtime wiring/orchestration layer with platform assumptions
 5	src/wiring/runtime-configure-core.orch.3.js	reads env.MULTI_VALUE_PREDICATES configuration
 7	src/wiring/runtime-configure-embedding.orch.4.js	runtime code reads Cloudflare-style env/bindings
+7	src/wiring/runtime-configure-host.orch.4.js	extracts server configuration env inputs into a shell host adapter
 4	src/wiring/runtime-configure-ingestion.orch.4.js	runtime wiring/orchestration layer with platform assumptions
 7	src/wiring/runtime-configure-runtime-ops.orch.3.js	threads env.DB/AI/VECTORIZE bindings into runtime ops
 6	src/wiring/runtime-configure-server.integration.test.js	integration test covers current worker/runtime env contract
@@ -254,15 +261,21 @@ score	path	rationale
 4	src/wiring/runtime-graph-expand-state.orch.4.js	runtime wiring/orchestration layer with platform assumptions
 4	src/wiring/runtime-graph-expand.orch.3.js	runtime wiring/orchestration layer with platform assumptions
 4	src/wiring/runtime-graph-expand.test.js	wiring-level test for current worker/runtime shape
+8	src/wiring/runtime-ingestion-host.orch.4.js	extracts db ai vectorize and retry config from host env for ingestion
+6	src/wiring/runtime-ingestion-host.test.js	verifies ingestion host env translation
 6	src/wiring/runtime-ingestion-retry.test.js	test is shaped around Cloudflare env/binding stubs
 4	src/wiring/runtime-ingestion.orch.3.js	runtime wiring/orchestration layer with platform assumptions
 4	src/wiring/runtime-like-fallback.test.js	wiring-level test for current worker/runtime shape
 4	src/wiring/runtime-like-query.test.js	wiring-level test for current worker/runtime shape
+8	src/wiring/runtime-ops-host.orch.4.js	extracts db ai vector and semantic config from host env for runtime ops
+6	src/wiring/runtime-ops-host.test.js	verifies runtime ops host env translation
 4	src/wiring/runtime-parse-utils.orch.4.js	runtime wiring/orchestration layer with platform assumptions
 4	src/wiring/runtime-prompts-binding.test.js	wiring-level test for current worker/runtime shape
 4	src/wiring/runtime-resolve-entity.orch.4.js	runtime wiring/orchestration layer with platform assumptions
 7	src/wiring/runtime-run-ingestion.orch.3.js	reads env.DB/AI/VECTORIZE and embedding env vars
 4	src/wiring/runtime-search-fallback.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+8	src/wiring/runtime-search-host.orch.4.js	adapts host ai/vector bindings into semantic search and embedding ports
+6	src/wiring/runtime-search-host.test.js	verifies semantic search host adapter behavior
 9	src/wiring/runtime-search.orch.3.js	direct Workers AI and Vectorize runtime integration
 4	src/wiring/runtime-semantic-threshold.test.js	wiring-level test for current worker/runtime shape
 5	src/wiring/runtime-server-registration.orch.3.js	server registration still depends on env.DB-backed resources
@@ -271,6 +284,8 @@ score	path	rationale
 4	src/wiring/runtime-tool-error-boundary.test.js	wiring-level test for current worker/runtime shape
 8	src/wiring/runtime-tools-deps.orch.3.js	binds TARGET_REPO/ACCESS_PASSPHRASE/VECTORIZE/DB from worker env
 6	src/wiring/runtime-tools-embedding.orch.4.js	embedding helpers depend on env.DB-backed maintenance flow
+8	src/wiring/runtime-tools-host.orch.4.js	extracts build hash repo target access passphrase and vectorize host inputs
+6	src/wiring/runtime-tools-host.test.js	verifies tool-layer host env translation
 6	src/wiring/runtime-tools-maintenance.orch.4.js	maintenance helpers read env.DB-backed runtime state
 4	src/wiring/runtime-triple-ops.orch.4.js	runtime wiring/orchestration layer with platform assumptions
 4	src/wiring/runtime-value-helpers.orch.3.js	runtime wiring/orchestration layer with platform assumptions

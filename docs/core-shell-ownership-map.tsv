@@ -100,6 +100,8 @@ core	src/domain/policy-ops-cardinality.test.js	0	portable application logic or c
 core	src/domain/policy.ops.efct.js	1	portable application logic or core-facing test
 core	src/domain/policy.pure.js	0	portable application logic or core-facing test
 core	src/domain/policy.test.js	0	portable application logic or core-facing test
+shell	src/index-app-services.orch.2.js	8	app/bootstrap assembly that composes runtime services with transport-facing LoreMcp ctor
+shell	src/index-app-services.test.js	6	host/bootstrap test for app assembly surface
 shell	src/index-core.orch.1.js	9	host/bootstrap/adapter code or host-shaped test
 shell	src/index-default-handler-services.orch.2.js	7	host/bootstrap/adapter code or host-shaped test
 core	src/index-runtime-configure-db-deps.orch.4.js	4	portable application logic or core-facing test
@@ -108,7 +110,7 @@ core	src/index-runtime-configure-domain-deps.orch.4.js	4	portable application lo
 core	src/index-runtime-configure-mcp-deps.orch.4.js	4	portable application logic or core-facing test
 core	src/index-runtime-ingestion-deps.orch.3.js	4	portable application logic or core-facing test
 core	src/index-runtime-init-deps.orch.3.js	4	portable application logic or core-facing test
-split	src/index-runtime-services.orch.2.js	5	mixed boundary module/test; extract host adapter from core logic
+shell	src/index-runtime-services.orch.2.js	5	runtime/app assembly remains shell-owned bootstrap orchestration
 core	src/index-runtime-std.orch.3.js	4	portable application logic or core-facing test
 shell	src/index-worker-services.orch.2.js	10	host/bootstrap/adapter code or host-shaped test
 shell	src/index.js	9	host/bootstrap/adapter code or host-shaped test
@@ -219,27 +221,32 @@ shell	src/wiring/default-handler-auth-adapter.test.js	6	host/bootstrap/adapter c
 shell	src/wiring/default-handler-config.orch.3.js	7	host/bootstrap/adapter code or host-shaped test
 core	src/wiring/default-handler-helpers.orch.2.js	4	portable application logic or core-facing test
 core	src/wiring/default-handler-helpers.test.js	4	portable application logic or core-facing test
+shell	src/wiring/default-handler-host.orch.3.js	8	shell host adapter for request env and client ip extraction
+shell	src/wiring/default-handler-host.test.js	6	host adapter test for request env/client ip extraction
 shell	src/wiring/default-handler-lookup.e2e.test.js	6	host/bootstrap/adapter code or host-shaped test
 shell	src/wiring/default-handler-passkey-uv.e2e.test.js	6	host/bootstrap/adapter code or host-shaped test
 shell	src/wiring/default-handler-request-context.orch.2.js	9	host/bootstrap/adapter code or host-shaped test
 core	src/wiring/default-handler-routes.orch.2.js	4	portable application logic or core-facing test
-core	src/wiring/default-handler.orch.1.js	4	portable application logic or core-facing test
+shell	src/wiring/default-handler.orch.1.js	6	shell request/transport wrapper that creates host request context before delegating to core routes
 shell	src/wiring/default-handler.orch.test.js	8	host/bootstrap/adapter code or host-shaped test
 shell	src/wiring/default-handler.test-helpers.js	5	host/bootstrap/adapter code or host-shaped test
 core	src/wiring/github-workflow-adapter-efct.test.js	4	portable application logic or core-facing test
 shell	src/wiring/github-workflow-adapter.efct.js	4	host/bootstrap/adapter code or host-shaped test
+shell	src/wiring/loremcp-host.orch.4.js	7	shell host adapter over LoreMcp instance shape
+shell	src/wiring/loremcp-host.test.js	5	host adapter test for LoreMcp instance wiring
 shell	src/wiring/loremcp-init.test.js	6	host/bootstrap/adapter code or host-shaped test
-split	src/wiring/loremcp.efct.js	7	mixed boundary module/test; extract host adapter from core logic
+shell	src/wiring/loremcp.efct.js	7	runtime instance lifecycle assembly remains shell-owned orchestration
 core	src/wiring/mcp-agent-efct.test.js	4	portable application logic or core-facing test
 shell	src/wiring/mcp-agent.efct.js	8	host/bootstrap/adapter code or host-shaped test
 shell	src/wiring/mcp-api-handler.efct.js	9	host/bootstrap/adapter code or host-shaped test
 core	src/wiring/runtime-configure-conflicts.orch.4.js	4	portable application logic or core-facing test
-split	src/wiring/runtime-configure-core.orch.3.js	5	mixed boundary module/test; extract host adapter from core logic
+core	src/wiring/runtime-configure-core.orch.3.js	5	core policy/result/logging assembly after host extraction
 core	src/wiring/runtime-configure-embedding.orch.4.js	7	portable application logic or core-facing test
+shell	src/wiring/runtime-configure-host.orch.4.js	7	shell host adapter for server configuration env inputs
 core	src/wiring/runtime-configure-ingestion.orch.4.js	4	portable application logic or core-facing test
-split	src/wiring/runtime-configure-runtime-ops.orch.3.js	7	mixed boundary module/test; extract host adapter from core logic
+shell	src/wiring/runtime-configure-runtime-ops.orch.3.js	7	runtime operation assembly now bridges core builders with shell host adapters
 shell	src/wiring/runtime-configure-server.integration.test.js	6	host/bootstrap/adapter code or host-shaped test
-core	src/wiring/runtime-configure-server.orch.3.js	4	portable application logic or core-facing test
+shell	src/wiring/runtime-configure-server.orch.3.js	6	shell runtime/server assembly that bridges env-derived host adapters into core server registration
 core	src/wiring/runtime-core.orch.2.js	4	portable application logic or core-facing test
 core	src/wiring/runtime-cursor-utils.orch.4.js	4	portable application logic or core-facing test
 core	src/wiring/runtime-data-utils.orch.4.js	4	portable application logic or core-facing test
@@ -254,24 +261,32 @@ core	src/wiring/runtime-graph-expand-shared.orch.4.js	4	portable application log
 core	src/wiring/runtime-graph-expand-state.orch.4.js	4	portable application logic or core-facing test
 core	src/wiring/runtime-graph-expand.orch.3.js	4	portable application logic or core-facing test
 core	src/wiring/runtime-graph-expand.test.js	4	portable application logic or core-facing test
-split	src/wiring/runtime-ingestion-retry.test.js	6	mixed boundary module/test; extract host adapter from core logic
+shell	src/wiring/runtime-ingestion-host.orch.4.js	8	shell host adapter for ingestion env bindings and retry config
+shell	src/wiring/runtime-ingestion-host.test.js	6	host adapter test for ingestion env binding translation
+shell	src/wiring/runtime-ingestion-retry.test.js	6	host-shaped ingestion runtime test over env-backed orchestration
 core	src/wiring/runtime-ingestion.orch.3.js	4	portable application logic or core-facing test
 core	src/wiring/runtime-like-fallback.test.js	4	portable application logic or core-facing test
 core	src/wiring/runtime-like-query.test.js	4	portable application logic or core-facing test
+shell	src/wiring/runtime-ops-host.orch.4.js	8	shell host adapter for db ai vector and semantic runtime inputs
+shell	src/wiring/runtime-ops-host.test.js	6	host adapter test for runtime ops env translation
 core	src/wiring/runtime-parse-utils.orch.4.js	4	portable application logic or core-facing test
 core	src/wiring/runtime-prompts-binding.test.js	4	portable application logic or core-facing test
 core	src/wiring/runtime-resolve-entity.orch.4.js	4	portable application logic or core-facing test
-split	src/wiring/runtime-run-ingestion.orch.3.js	7	mixed boundary module/test; extract host adapter from core logic
+shell	src/wiring/runtime-run-ingestion.orch.3.js	7	scheduled ingestion runtime still wraps shell ingestion host inputs
 core	src/wiring/runtime-search-fallback.orch.4.js	4	portable application logic or core-facing test
-split	src/wiring/runtime-search.orch.3.js	9	mixed boundary module/test; extract host adapter from core logic
-split	src/wiring/runtime-semantic-threshold.test.js	4	mixed boundary module/test; extract host adapter from core logic
+shell	src/wiring/runtime-search-host.orch.4.js	8	shell host adapter for semantic search and embedding provider ports
+shell	src/wiring/runtime-search-host.test.js	6	host adapter test for semantic search and embedding ports
+core	src/wiring/runtime-search.orch.3.js	9	core lexical/graph search logic with injected semantic ports
+core	src/wiring/runtime-semantic-threshold.test.js	4	pure threshold parsing test for core helper behavior
 core	src/wiring/runtime-server-registration.orch.3.js	5	portable application logic or core-facing test
 core	src/wiring/runtime-surface.orch.3.js	4	portable application logic or core-facing test
-split	src/wiring/runtime-time-utils.orch.4.js	6	mixed boundary module/test; extract host adapter from core logic
+core	src/wiring/runtime-time-utils.orch.4.js	6	core time and timezone helpers after build-hash extraction
 core	src/wiring/runtime-tool-error-boundary.test.js	4	portable application logic or core-facing test
-split	src/wiring/runtime-tools-deps.orch.3.js	8	mixed boundary module/test; extract host adapter from core logic
-split	src/wiring/runtime-tools-embedding.orch.4.js	6	mixed boundary module/test; extract host adapter from core logic
-split	src/wiring/runtime-tools-maintenance.orch.4.js	6	mixed boundary module/test; extract host adapter from core logic
+core	src/wiring/runtime-tools-deps.orch.3.js	8	core tool dependency assembly over injected host deps
+core	src/wiring/runtime-tools-embedding.orch.4.js	6	core embedding helper logic over injected db and sync ports
+shell	src/wiring/runtime-tools-host.orch.4.js	8	shell host adapter for build hash repo target and vectorize env inputs
+shell	src/wiring/runtime-tools-host.test.js	6	host adapter test for tool-layer env translation
+core	src/wiring/runtime-tools-maintenance.orch.4.js	6	core maintenance helper logic over injected db and entry ops
 core	src/wiring/runtime-triple-ops.orch.4.js	4	portable application logic or core-facing test
 core	src/wiring/runtime-value-helpers.orch.3.js	4	portable application logic or core-facing test
 core	src/wiring/runtime.orch.1.js	4	portable application logic or core-facing test
