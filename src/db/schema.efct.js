@@ -160,12 +160,18 @@ async function ensureEntityColumns(db) {
 	addColumn("about", `ALTER TABLE canonical_entities ADD COLUMN about TEXT`);
 	addColumn("affects", `ALTER TABLE canonical_entities ADD COLUMN affects TEXT`);
 	addColumn("specificity", `ALTER TABLE canonical_entities ADD COLUMN specificity TEXT`);
-	addColumn(
-		"updated_at",
-		`ALTER TABLE canonical_entities ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))`,
-	);
+	addColumn("updated_at", `ALTER TABLE canonical_entities ADD COLUMN updated_at TEXT`);
 	if (statements.length > 0) {
 		await db.batch(statements);
+	}
+	if (names.updated_at !== true) {
+		await db
+			.prepare(
+				`UPDATE canonical_entities
+				 SET updated_at = COALESCE(updated_at, created_at, datetime('now'))
+				 WHERE updated_at IS NULL`,
+			)
+			.run();
 	}
 }
 async function initFts5(db) {

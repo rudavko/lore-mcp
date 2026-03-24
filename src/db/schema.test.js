@@ -65,4 +65,27 @@ describe("schema", () => {
 		const entry = sqlite.prepare("SELECT expires_at FROM entries WHERE id = 'e1'").get();
 		expect(entry.expires_at).toBeNull();
 	});
+	test("initSchema repairs legacy canonical_entities without failing on D1-style updated_at rules", async () => {
+		const sqlite = createSqliteMemoryDb();
+		sqlite.exec(`CREATE TABLE canonical_entities (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+		)`);
+		sqlite.exec(
+			`INSERT INTO canonical_entities (id, name, created_at) VALUES ('ce1', 'Legacy Entity', '2024-01-01T00:00:00.000Z')`,
+		);
+		const db = createD1({ sqliteDb: sqlite });
+		await initSchema(db);
+		const entity = sqlite
+			.prepare(
+				"SELECT entity_type, source, valid_to_state, tags, updated_at FROM canonical_entities WHERE id = 'ce1'",
+			)
+			.get();
+		expect(entity.entity_type).toBeNull();
+		expect(entity.source).toBeNull();
+		expect(entity.valid_to_state).toBe("unspecified");
+		expect(entity.tags).toBe("[]");
+		expect(entity.updated_at).toBe("2024-01-01T00:00:00.000Z");
+	});
 });
