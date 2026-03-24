@@ -223,7 +223,7 @@ Actions:
 ### Phase 5: Extract Cloudflare Shell
 
 Actions:
-1. Rename `lore-mcp-shell` to `lore-mcp-cloudflare`.
+1. Rename the Cloudflare package to `lore-mcp-cloudflare`.
 2. Move into it:
    - Worker entrypoints
    - Wrangler config
