@@ -3,7 +3,7 @@ import { normalizeStatus, validationError } from "./runtime-value-helpers.orch.3
 
 function createMaintenanceToolHelpers(ctx) {
 	const loadEntryTyping = async (id) => {
-		const row = await ctx.env.DB
+		const row = await ctx.db
 			.prepare(`SELECT knowledge_type, memory_type, status
 				 FROM entries
 				 WHERE id = ?
@@ -47,7 +47,7 @@ function createMaintenanceToolHelpers(ctx) {
 		}
 	};
 	const runMemoryGc = async () => {
-		const { results } = await ctx.env.DB
+		const { results } = await ctx.db
 			.prepare(`SELECT id, knowledge_type, status
 				 FROM entries
 				 WHERE deleted_at IS NULL
@@ -62,7 +62,7 @@ function createMaintenanceToolHelpers(ctx) {
 			if (row.knowledge_type === "hypothesis" && row.status === "refuted") {
 				continue;
 			}
-			const reference = await ctx.env.DB
+			const reference = await ctx.db
 				.prepare(`SELECT 1
 					 FROM triples t
 					 JOIN entries e ON e.id = t.subject
@@ -86,7 +86,7 @@ function createMaintenanceToolHelpers(ctx) {
 	};
 	const listRefutedHypotheses = async (limit) => {
 		const safeLimit = ctx.std.Number.isInteger(limit) && limit > 0 ? limit : 20;
-		const { results } = await ctx.env.DB
+		const { results } = await ctx.db
 			.prepare(`SELECT id, topic, content
 				 FROM entries
 				 WHERE deleted_at IS NULL
@@ -99,7 +99,7 @@ function createMaintenanceToolHelpers(ctx) {
 		return results;
 	};
 	const hasLessonForHypothesis = async (hypothesisId) => {
-		const row = await ctx.env.DB
+		const row = await ctx.db
 			.prepare(`SELECT 1
 				 FROM triples t
 				 JOIN entries e ON e.id = t.subject

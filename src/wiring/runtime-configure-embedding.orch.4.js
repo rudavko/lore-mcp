@@ -1,8 +1,7 @@
 /** @implements FR-001 — Embedding lifecycle runtime assembly for create-and-ingest flows. */
-import { nowIso, parsePositiveInteger } from "./runtime-value-helpers.orch.3.js";
+import { nowIso } from "./runtime-value-helpers.orch.3.js";
 
-function createEntryWithEmbeddingRuntime({ db, env, std, createEntry, syncEmbedding }) {
-	const embeddingMaxRetries = parsePositiveInteger(env.EMBEDDING_MAX_RETRIES, 5, std);
+function createEntryWithEmbeddingRuntime({ db, embeddingMaxRetries, std, createEntry, syncEmbedding }) {
 	const updateEmbeddingState = async (id, status, retryCount, errorMessage) => {
 		await db
 			.prepare(`UPDATE entries

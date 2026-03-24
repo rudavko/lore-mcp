@@ -28,20 +28,9 @@ function computeExpiresAt(startIso, ttlMs, std) {
 	return new std.Date(base + ttlMs).toISOString();
 }
 
-function resolveBuildHash(env) {
-	const candidates = [env.BUILD_HASH, env.WORKERS_CI_COMMIT_SHA, env.CF_PAGES_COMMIT_SHA];
-	for (let i = 0; i < candidates.length; i++) {
-		if (typeof candidates[i] === "string" && candidates[i].length > 0) {
-			return candidates[i];
-		}
-	}
-	return "unknown";
-}
-
 export {
 	computeExpiresAt,
 	formatNowForTimezone,
 	nowIso,
-	resolveBuildHash,
 	validateTimezoneValue,
 };

@@ -6,11 +6,10 @@ import {
 import {
 	installPrompts,
 	installSubscriptions,
-	makeDbQuery,
 	wrapToolHandler,
 } from "./runtime-surface.orch.3.js";
 
-function registerServerSurface({ serverRecord, core, toolsDeps, deps, env }) {
+function registerServerSurface({ serverRecord, core, toolsDeps, deps, dbQuery }) {
 	const serverWithErrorBoundary = {
 		tool: (name, desc, schema, handler) => {
 			const wrappedHandler = wrapToolHandler((args, extra) => handler(args, extra), toolsDeps.formatError);
@@ -23,7 +22,7 @@ function registerServerSurface({ serverRecord, core, toolsDeps, deps, env }) {
 		rowToEntry: core.mapEntryRow,
 		rowToTriple: deps.rowToTriple,
 		decodeCursor: (raw) => decodeCursor(raw, deps.std),
-		dbQuery: makeDbQuery(env.DB),
+		dbQuery,
 		btoa: deps.std.btoa,
 		jsonStringify: (value) => jsonStringifyOrNull(value, deps.std),
 	});

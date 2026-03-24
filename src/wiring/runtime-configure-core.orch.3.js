@@ -40,7 +40,7 @@ function createWiringCore(deps) {
 		validateRequiredFields: deps.validateRequiredFields,
 		validateMinConfidence: deps.validateMinConfidence,
 	});
-	const multiPredicateConfig = parseMultiPredicateConfig(deps.env.MULTI_VALUE_PREDICATES, deps.std);
+	const multiPredicateConfig = parseMultiPredicateConfig(deps.multiValuePredicates, deps.std);
 	if (deps.std.Object.keys(multiPredicateConfig).length > 0 && typeof policy.setPolicy === "function") {
 		policy.setPolicy({ predicateCardinality: multiPredicateConfig });
 	}

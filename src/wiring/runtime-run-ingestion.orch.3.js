@@ -4,9 +4,9 @@ import {
 	jsonStringifyOrNull,
 	noThrowValidation,
 	nowIso,
-	parsePositiveInteger,
 	validationError,
 } from "./runtime-value-helpers.orch.3.js";
+import { createRunIngestionHostDeps } from "./runtime-ingestion-host.orch.4.js";
 import { buildIngestionOps } from "./runtime-ingestion.orch.3.js";
 import { createUlidGenerator, makeNotifyResourceChange } from "./runtime-surface.orch.3.js";
 
@@ -18,11 +18,12 @@ function makeRunLoreIngestion(deps) {
 		deps.std.Math.floor,
 	);
 	return async (env, server) => {
-		const db = env.DB;
+		const host = createRunIngestionHostDeps(env, deps);
+		const db = host.db;
 		const notifyResourceChange = makeNotifyResourceChange(server, deps.resolveEntityUri, deps.transactionsUri);
-		const embeddingMaxRetries = parsePositiveInteger(env.EMBEDDING_MAX_RETRIES, 5, deps.std);
-		const embeddingRetryBatchSize = parsePositiveInteger(env.EMBEDDING_RETRY_BATCH_SIZE, 20, deps.std);
-		const embeddingRetryStaleMs = parsePositiveInteger(env.EMBEDDING_RETRY_STALE_MS, 120000, deps.std);
+		const embeddingMaxRetries = host.embeddingMaxRetries;
+		const embeddingRetryBatchSize = host.embeddingRetryBatchSize;
+		const embeddingRetryStaleMs = host.embeddingRetryStaleMs;
 		const setEmbeddingPending = async (id) => {
 			await db.prepare(`UPDATE entries
 				 SET embedding_status = 'pending',
@@ -68,9 +69,7 @@ function makeRunLoreIngestion(deps) {
 				.run();
 		};
 		const syncEmbedding = async (id, text) => {
-			const aiRun = env.AI ? (model, input) => env.AI.run(model, input) : null;
-			const vectorizeUpsert = env.VECTORIZE_INDEX ? (vectors) => env.VECTORIZE_INDEX.upsert(vectors) : null;
-			await deps.syncEmbeddingOrch(id, text, { aiRun, vectorizeUpsert });
+			await host.syncEmbedding(id, text);
 		};
 		const failExhaustedPendingEmbeddings = async () => {
 			await db.prepare(`UPDATE entries

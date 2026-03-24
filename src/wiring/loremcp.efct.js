@@ -1,5 +1,7 @@
 /** @implements FR-001, ADR-0001 — Lore MCP lifecycle orchestration for init and ingestion scheduling. */
 /** Sentinel for TDD hook. */
+import { createLoreMcpInstanceHost } from "./loremcp-host.orch.4.js";
+
 export const _MODULE = "loremcp.efct";
 const SUMMARY_FALLBACK = "Lore knowledge store — summary unavailable.";
 function toNumber(value, std) {
@@ -85,25 +87,28 @@ function mapSummaryData(raw, std) {
 }
 export const makeInitLoreMcp = (deps) => {
 	async function initLoreMcp(instance) {
-		await deps.initSchema(instance.env.DB);
+		const host = createLoreMcpInstanceHost(instance);
+		await deps.initSchema(host.db);
 		let summary = SUMMARY_FALLBACK;
 		try {
 			summary = deps.formatSummary(
-				mapSummaryData(await deps.querySummaryCounts(instance.env.DB), deps.std),
+				mapSummaryData(await deps.querySummaryCounts(host.db), deps.std),
 			);
 		} catch {
 			summary = SUMMARY_FALLBACK;
 		}
-		instance.server = new deps.McpServerCtor({
+		host.setServer(
+			new deps.McpServerCtor({
 			name: deps.serverName,
 			version: deps.serverVersion,
 			instructions: summary,
-		});
+			}),
+		);
 		if (deps.configureServer !== undefined) {
-			await deps.configureServer(instance.server, instance.env);
+			await deps.configureServer(host.getServer(), host.env);
 		}
 		try {
-			await instance.processIngestion();
+			await host.processIngestion();
 		} catch {
 			// Ingestion runs in background; startup should still succeed.
 		}
@@ -112,9 +117,10 @@ export const makeInitLoreMcp = (deps) => {
 };
 export const makeProcessLoreIngestion = (deps) => {
 	async function processLoreIngestion(instance) {
-		const remaining = await deps.runIngestion(instance.env, instance.server);
+		const host = createLoreMcpInstanceHost(instance);
+		const remaining = await deps.runIngestion(host.env, host.getServer());
 		if (deps.shouldReschedule(remaining)) {
-			await instance.schedule(
+			await host.schedule(
 				new deps.dateCtor(deps.nowMs() + deps.rescheduleDelayMs),
 				"processIngestion",
 			);

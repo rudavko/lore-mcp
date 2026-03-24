@@ -9,24 +9,31 @@ import {
 import { createConflictOps } from "./runtime-configure-conflicts.orch.4.js";
 import { createEntryWithEmbeddingRuntime } from "./runtime-configure-embedding.orch.4.js";
 import { createIngestionRuntime } from "./runtime-configure-ingestion.orch.4.js";
+import { createRuntimeOpsHostDeps } from "./runtime-ops-host.orch.4.js";
+import {
+	createSemanticSearchPort,
+	createSyncEmbeddingPort,
+	hasSemanticSearchCapability,
+} from "./runtime-search-host.orch.4.js";
 
 function createRuntimeOps(core, deps, env) {
 	const std = deps.std;
+	const host = createRuntimeOpsHostDeps(env, deps);
 	const resolveCanonicalEntityIdForCreate = makeResolveCanonicalEntityIdForCreate({
-		db: env.DB,
+		db: host.db,
 		generateId: core.generateId,
 		resolveAliasRow: deps.resolveAliasRow,
 		selectEntityByName: deps.selectEntityByName,
 	});
 	const resolveCanonicalEntityId = makeResolveCanonicalEntityId({
-		db: env.DB,
+		db: host.db,
 		generateId: core.generateId,
 		resolveAliasRow: deps.resolveAliasRow,
 		selectEntityByName: deps.selectEntityByName,
 		std,
 	});
 	const entryAndTriple = buildEntryAndTripleOps({
-		db: env.DB,
+		db: host.db,
 		std,
 		generateId: core.generateId,
 		mapEntryRow: core.mapEntryRow,
@@ -72,7 +79,7 @@ function createRuntimeOps(core, deps, env) {
 		rowToTriple: deps.rowToTriple,
 	});
 	const entityAndHistory = buildEntityAndHistoryOps({
-		db: env.DB,
+		db: host.db,
 		std,
 		generateId: core.generateId,
 		upsertEntityOrch: deps.upsertEntityOrch,
@@ -104,8 +111,7 @@ function createRuntimeOps(core, deps, env) {
 		buildUndoStatements: deps.buildUndoStatements,
 	});
 	const search = makeGraphAndSearchOps({
-		db: env.DB,
-		env,
+		db: host.db,
 		std,
 		mapEntryRow: core.mapEntryRow,
 		sanitizeFts5Query: deps.sanitizeFts5Query,
@@ -116,25 +122,39 @@ function createRuntimeOps(core, deps, env) {
 		graphNeighborRows: deps.graphNeighborRows,
 		selectEntriesByIds: deps.selectEntriesByIds,
 		hybridSearchOrch: deps.hybridSearchOrch,
-		syncEmbeddingOrch: deps.syncEmbeddingOrch,
+		semanticSearchPort: createSemanticSearchPort({
+			aiRun: host.aiRun,
+			vectorQuery: host.vectorQuery,
+			semanticMinScore: host.semanticMinScore,
+			std,
+		}),
+		hasSemanticSearchCapability: hasSemanticSearchCapability({
+			aiRun: host.aiRun,
+			vectorQuery: host.vectorQuery,
+		}),
+		syncEmbeddingPort: createSyncEmbeddingPort({
+			aiRun: host.aiRun,
+			vectorizeUpsert: host.vectorizeUpsert,
+			syncEmbeddingOrch: deps.syncEmbeddingOrch,
+		}),
 	});
 	const { conflictRemove, conflictSave, detectConflict, loadConflict } = createConflictOps({
 		deps,
 		std,
-		db: env.DB,
+		db: host.db,
 		generateId: core.generateId,
 		findActiveTriples: entryAndTriple.findActiveTriples,
 	});
 	const createEntryWithEmbedding = createEntryWithEmbeddingRuntime({
-		db: env.DB,
-		env,
+		db: host.db,
+		embeddingMaxRetries: host.embeddingMaxRetries,
 		std,
 		createEntry: entryAndTriple.createEntry,
 		syncEmbedding: search.syncEmbedding,
 	});
 	const ingestion = createIngestionRuntime({
 		deps,
-		db: env.DB,
+		db: host.db,
 		std,
 		generateId: core.generateId,
 		createEntry: createEntryWithEmbedding,

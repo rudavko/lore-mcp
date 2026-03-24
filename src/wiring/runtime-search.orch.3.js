@@ -2,7 +2,6 @@
 import {
 	decodeCursor,
 	encodeCursor,
-	parseSemanticMinScore,
 	runLikeTokenFallback,
 } from "./runtime-value-helpers.orch.3.js";
 import { expandGraphSignals, selectActiveEntriesByIdsChunked } from "./runtime-graph-expand.orch.3.js";
@@ -51,31 +50,7 @@ function makeGraphAndSearchOps(ctx) {
 		}
 	};
 	const semanticSearch = async (query, limit) => {
-		if (!ctx.env.AI || !ctx.env.VECTORIZE_INDEX) {
-			return [];
-		}
-		const minSemanticScore = parseSemanticMinScore(ctx.env.SEMANTIC_MIN_SCORE, ctx.std);
-		try {
-			const embeddingResult = await ctx.env.AI.run("@cf/baai/bge-base-en-v1.5", { text: [query] });
-			const vector =
-				embeddingResult.data && embeddingResult.data.length > 0 ? embeddingResult.data[0] : null;
-			if (vector === null) {
-				return [];
-			}
-			const matches = await ctx.env.VECTORIZE_INDEX.query(vector, { topK: limit });
-			if (!matches.matches) {
-				return [];
-			}
-			const out = [];
-			for (let i = 0; i < matches.matches.length; i++) {
-				if (matches.matches[i].score >= minSemanticScore) {
-					out.push({ id: matches.matches[i].id, score: matches.matches[i].score });
-				}
-			}
-			return out;
-		} catch {
-			return [];
-		}
+		return await ctx.semanticSearchPort(query, limit);
 	};
 	const graphExpand = async (ids) => {
 		return await expandGraphSignals({
@@ -152,7 +127,7 @@ function makeGraphAndSearchOps(ctx) {
 		});
 		return out;
 	};
-	const hasVectorize = !!(ctx.env.AI && ctx.env.VECTORIZE_INDEX);
+	const hasVectorize = ctx.hasSemanticSearchCapability === true;
 	const hybridSearch = async (params) => {
 		return await ctx.hybridSearchOrch(params, {
 			lexicalSearch,
@@ -177,9 +152,7 @@ function makeGraphAndSearchOps(ctx) {
 		});
 	};
 	const syncEmbedding = async (id, text) => {
-		const aiRun = ctx.env.AI ? (model, input) => ctx.env.AI.run(model, input) : null;
-		const vectorizeUpsert = ctx.env.VECTORIZE_INDEX ? (vectors) => ctx.env.VECTORIZE_INDEX.upsert(vectors) : null;
-		await ctx.syncEmbeddingOrch(id, text, { aiRun, vectorizeUpsert });
+		await ctx.syncEmbeddingPort(id, text);
 	};
 	return { hybridSearch, syncEmbedding };
 }

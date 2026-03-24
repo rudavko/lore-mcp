@@ -15,9 +15,8 @@ function createDefaultHandlerAdminRouteDeps(ctx) {
 	const authState = ctx.config.authState;
 	const admin = ctx.config.admin;
 	const ui = ctx.config.ui;
-	const accessPassphrase =
-		typeof ctx.envRec.ACCESS_PASSPHRASE === "string" ? ctx.envRec.ACCESS_PASSPHRASE : "";
-	const kv = ctx.envRec.OAUTH_KV;
+	const accessPassphrase = ctx.http.getAccessPassphrase();
+	const kv = ctx.http.getAuthKv();
 
 	return {
 		kvGet: (key) => authState.kvGet(kv, key),

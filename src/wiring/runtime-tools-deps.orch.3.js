@@ -2,17 +2,14 @@
 import {
 	formatNowForTimezone,
 	nowIso,
-	parsePositiveInteger,
-	resolveBuildHash,
 	throwNotFoundValue,
 	validateTimezoneValue,
 } from "./runtime-value-helpers.orch.3.js";
-import { safeStringEqual } from "../lib/constant-time-equal.pure.js";
 import { encodeUriComponentValue } from "./runtime-surface.orch.3.js";
 import { createEmbeddingToolHelpers } from "./runtime-tools-embedding.orch.4.js";
 import { createMaintenanceToolHelpers } from "./runtime-tools-maintenance.orch.4.js";
 
-function buildToolsDeps(core, runtimeOps, deps, env) {
+function buildToolsDeps(core, runtimeOps, deps, host) {
 	const randomToken = () => {
 		const bytes = new deps.uint8ArrayCtor(16);
 		deps.cryptoLike.getRandomValues(bytes);
@@ -20,16 +17,16 @@ function buildToolsDeps(core, runtimeOps, deps, env) {
 	};
 	const embedding = createEmbeddingToolHelpers({
 		createEntry: runtimeOps.entryAndTriple.createEntry,
-		env,
+		db: host.db,
+		embeddingMaxRetries: host.embeddingMaxRetries,
 		logEvent: core.logEvent,
-		parsePositiveInteger,
 		std: deps.std,
 		syncEmbedding: runtimeOps.search.syncEmbedding,
 		updateEntry: runtimeOps.entryAndTriple.updateEntry,
 	});
 	const maintenance = createMaintenanceToolHelpers({
+		db: host.db,
 		deleteEntry: runtimeOps.entryAndTriple.deleteEntry,
-		env,
 		isCompatiblePromotionEdge: deps.isCompatiblePromotionEdge,
 		isKnowledgeType: deps.isKnowledgeType,
 		isMemoryType: deps.isMemoryType,
@@ -50,7 +47,7 @@ function buildToolsDeps(core, runtimeOps, deps, env) {
 			deps.buildEnableAutoUpdatesUrl(baseUrl, setupToken, (value) =>
 				encodeUriComponentValue(value, deps.std),
 			),
-		buildHash: resolveBuildHash(env),
+		buildHash: host.buildHash,
 		checkPolicy: core.checkPolicy,
 		createAndEmbed: embedding.createAndEmbed,
 		createEntry: runtimeOps.entryAndTriple.createEntry,
@@ -103,13 +100,10 @@ function buildToolsDeps(core, runtimeOps, deps, env) {
 		queryEntries: runtimeOps.entryAndTriple.queryEntries,
 		queryEntities: runtimeOps.entityAndHistory.queryEntities,
 		queryTriples: runtimeOps.entryAndTriple.queryTriples,
-		querySummaryCounts: () => deps.querySummaryCounts(env.DB),
+		querySummaryCounts: () => deps.querySummaryCounts(host.db),
 		randomToken,
 		removeConflict: runtimeOps.conflictRemove,
-		resolveAutoUpdatesTargetRepo: async () => {
-			const envTargetRepo = typeof env.TARGET_REPO === "string" ? env.TARGET_REPO : "";
-			return deps.normalizeRepoFullName(envTargetRepo) || "";
-		},
+		resolveAutoUpdatesTargetRepo: host.resolveAutoUpdatesTargetRepo,
 		resolveEnableAutoUpdatesBaseUrl: (requestHeaders) => deps.resolveEnableAutoUpdatesBaseUrl(requestHeaders),
 		runMemoryGc: maintenance.runMemoryGc,
 		saveConflict: runtimeOps.conflictSave,
@@ -127,24 +121,8 @@ function buildToolsDeps(core, runtimeOps, deps, env) {
 		upsertTriple: runtimeOps.entryAndTriple.upsertTriple,
 		validatePromotionRelation: maintenance.validatePromotionRelation,
 		validateTimezone: (timezone) => validateTimezoneValue(timezone, deps.std),
-		vectorizeDeleteByIds: env.VECTORIZE_INDEX ? (ids) => env.VECTORIZE_INDEX.deleteByIds(ids) : undefined,
-		issueAutoUpdatesSetupToken: (targetRepo, expiresAtMs) =>
-			deps.issueAutoUpdatesSetupToken(targetRepo, expiresAtMs, {
-				accessPassphrase: typeof env.ACCESS_PASSPHRASE === "string" ? env.ACCESS_PASSPHRASE : "",
-				cryptoLike: deps.cryptoLike,
-				textEncoderCtor: deps.textEncoderCtor,
-				textDecoderCtor: deps.textDecoderCtor,
-				uint8ArrayCtor: deps.uint8ArrayCtor,
-				arrayFrom: deps.std.Array.from,
-				stringFromCharCode: deps.std.String.fromCharCode,
-					numberIsFinite: deps.std.Number.isFinite,
-					btoa: deps.std.btoa,
-					atob: deps.std.atob,
-					jsonStringify: deps.jsonStringify,
-					jsonParse: deps.jsonParse,
-					nowMs: deps.std.Date.now,
-					safeStringEqual,
-				}),
+		vectorizeDeleteByIds: host.vectorizeDeleteByIds,
+		issueAutoUpdatesSetupToken: host.issueAutoUpdatesSetupToken,
 		};
 	}
 

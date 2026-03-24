@@ -1,0 +1,125 @@
+Title: Roadmap To Successful `lore-mcp` / `lore-mcp-cloudflare` Split And Deployment
+
+Status
+Grounded:
+- The current repo already has migration artifacts in `docs/cloudflare-coupling-inventory.tsv`, `docs/core-shell-ownership-map.tsv`, and `docs/migration-core-cloud-agnostic-plan.md`.
+- The current worktree already contains real host-adapter and app-assembly cuts in `src/wiring/*host*`, `src/index-app-services.orch.2.js`, and related tests.
+- After the latest wiring sweep, direct host reads in `src/wiring` outside dedicated `*host*` files and tests are effectively concentrated in `src/wiring/mcp-api-handler.efct.js`.
+- The split is not finished yet.
+
+Goal
+Grounded:
+- Produce a clean separation where `lore-mcp` is the cloud-agnostic core package and `lore-mcp-cloudflare` is the Cloudflare deployment shell.
+- First successful deployments should use a GitHub dependency flow, not npm.
+- `lore-mcp-cloudflare` must be manually deployed to Cloudflare and fully verified live before considering npm or any other registry.
+
+End State
+Grounded:
+- `lore-mcp` owns portable runtime logic, domain logic, DB-shaped persistence logic, MCP tools/resources/prompts, templates, and core auth/admin orchestration.
+- `lore-mcp-cloudflare` owns Worker transport, OAuth provider wrapper, Wrangler config, bindings, migrations, public assets, Cloudflare adapter implementations, and deployment scripts.
+- `lore-mcp-cloudflare` consumes `lore-mcp` as an external dependency through GitHub first.
+- A full manual live verification passes on the deployed Cloudflare worker before any registry publication decision.
+
+Roadmap
+1. Stabilize the current refactor branch in `lore-mcp`.
+Grounded:
+- Commit the current host-adapter, app-assembly, and boundary-cleanup work.
+- Keep the current test evidence with the commit.
+Success gate:
+- Existing focused suites pass.
+- No accidental public surface regressions are introduced.
+
+2. Freeze package ownership.
+Grounded:
+- Use `docs/core-shell-ownership-map.tsv` as the source of truth.
+- Everything marked `shell` moves to the future Cloudflare package.
+- Everything marked `core` stays in `lore-mcp`.
+- Anything still mixed must be split before the physical move.
+Success gate:
+- Every file is either clearly owned by core or shell.
+
+3. Rename `lore-mcp-shell` to `lore-mcp-cloudflare`.
+Grounded:
+- The name `cloudflare` is the correct explicit shell name for the current host.
+- This preserves the option for future shells like GCP or Azure.
+Success gate:
+- The shell package name, docs, and filesystem path all reflect `lore-mcp-cloudflare`.
+
+4. Physically move shell-owned files into `lore-mcp-cloudflare`.
+Grounded:
+- Start with Worker entrypoints, Wrangler config, migrations, public assets, deploy scripts, Worker-specific adapters, and shell-shaped tests.
+- Keep the move aligned with `docs/core-shell-ownership-map.tsv`.
+Success gate:
+- `lore-mcp` no longer contains Cloudflare deployment artifacts.
+- `lore-mcp-cloudflare` contains the entire deployable Cloudflare surface.
+
+5. Narrow the `lore-mcp` public API.
+Grounded:
+- Export only the interfaces and assembly points the shell needs.
+- Keep the package private for now.
+Assumption:
+- The likely public API should center on a small app/core factory surface and explicit port exports, I assume.
+Success gate:
+- `lore-mcp-cloudflare` can consume `lore-mcp` without sibling-path imports, I assume.
+
+6. Replace local sibling coupling with a GitHub dependency.
+Grounded:
+- GitHub-first dependency flow is acceptable for the first deployments.
+- npm is not required yet.
+Assumption:
+- The safest first form is a pinned GitHub ref such as a commit SHA or tag, I assume.
+Success gate:
+- `lore-mcp-cloudflare` installs and builds against `lore-mcp` from GitHub only, I assume.
+
+7. Make the first manual Cloudflare deployment from `lore-mcp-cloudflare`.
+Grounded:
+- Deployment should happen only after the shell consumes the external `lore-mcp` dependency successfully.
+- Deployment should remain manual for the first successful proof.
+Success gate:
+- `lore-mcp-cloudflare` deploys cleanly to Cloudflare from its own repo/package.
+
+8. Run complete live verification on the deployed worker.
+Grounded:
+- The live verification standard already exists from earlier successful manual QA flows.
+- Verification must cover auth, MCP tool surface, browser/admin flows, and install-workflow behavior.
+Success gate:
+- The deployed worker passes the full manual and automated live verification suite.
+
+9. Freeze the first known-good GitHub-based release pairing.
+Grounded:
+- The exact `lore-mcp` ref consumed by the verified `lore-mcp-cloudflare` deploy should be recorded.
+Assumption:
+- The cleanest form is probably a tag or pinned commit plus matching shell commit documentation, I assume.
+Success gate:
+- The verified pairing can be redeployed repeatably from scratch, I assume.
+
+10. Only then evaluate npm or another registry.
+Grounded:
+- Registry publication is not needed for the initial successful split and deploy.
+Assumption:
+- npm becomes worthwhile only after the GitHub-based dependency flow is stable and boring, I assume.
+Success gate:
+- Registry publication changes distribution convenience, not architecture or runtime behavior, I assume.
+
+Execution Order
+Grounded:
+1. Commit the current `lore-mcp` boundary work.
+2. Rename `lore-mcp-shell` to `lore-mcp-cloudflare`.
+3. Move shell-owned files physically.
+4. Define the narrow `lore-mcp` public API.
+5. Replace sibling imports with a pinned GitHub dependency.
+6. Deploy `lore-mcp-cloudflare` manually to Cloudflare.
+7. Run full live verification.
+8. Record the exact known-good pairing.
+9. Only after that, decide whether to publish to npm.
+
+Blocking Risks
+Grounded:
+- The current `lore-mcp` worktree is still uncommitted.
+- There is a pre-existing unrelated modification in `package.json`.
+- The physical move has not started yet.
+- `lore-mcp-cloudflare` is not yet wired to consume `lore-mcp` through GitHub.
+
+Immediate Next Step
+Grounded:
+- The next concrete step is to commit the current `lore-mcp` refactor branch and then start the physical move into `lore-mcp-cloudflare` according to `docs/core-shell-ownership-map.tsv`.

@@ -1,13 +1,14 @@
 /** @implements FR-001 — Request-context helper factory for the default HTTP handler. */
-export function createDefaultHandlerRequestContext(deps, request, env, helpers) {
+export function createDefaultHandlerRequestContext(deps, request, host, helpers) {
 	const platform = deps.platform;
 	const authState = deps.authState;
 	const url = new platform.urlCtor(request.url);
 	const cookies = helpers.parseCookies(request.headers.get("cookie"));
 	const setCookieHeaders = [];
 	let cspNonce = "";
-	const envRec = env && typeof env === "object" ? env : {};
-	const kv = envRec.OAUTH_KV;
+	const kv = host.authKv;
+	const oauthProvider = host.oauthProvider;
+	const accessPassphrase = host.accessPassphrase;
 	const cspFormActionSources =
 		"'self' https://chatgpt.com https://claude.ai http://localhost:* http://127.0.0.1:* http://[::1]:*";
 
@@ -85,7 +86,10 @@ export function createDefaultHandlerRequestContext(deps, request, env, helpers) 
 	const queryParam = (name) => url.searchParams.get(name) || "";
 	const getRequestUrl = () => request.url;
 	const parseUrl = (value) => new platform.urlCtor(value);
-	const getClientIp = () => request.headers.get("CF-Connecting-IP") || "unknown";
+	const getClientIp = () => host.clientIp;
+	const getAuthKv = () => kv;
+	const getOauthProvider = () => oauthProvider;
+	const getAccessPassphrase = () => accessPassphrase;
 	const isIpLocked = async () => {
 		const locked = await authState.kvGet(kv, authState.lockKey(getClientIp()));
 		return locked !== null;
@@ -111,7 +115,6 @@ export function createDefaultHandlerRequestContext(deps, request, env, helpers) 
 
 	return {
 		url,
-		envRec,
 		htmlResponse,
 		textResponse,
 		redirectResponse,
@@ -123,6 +126,9 @@ export function createDefaultHandlerRequestContext(deps, request, env, helpers) 
 		getRequestUrl,
 		parseUrl,
 		getClientIp,
+		getAuthKv,
+		getOauthProvider,
+		getAccessPassphrase,
 		isIpLocked,
 		registerAuthFailure,
 		clearAuthFailures,

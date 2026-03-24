@@ -65,12 +65,6 @@ function createAuthAdapterHarness(overrides = {}) {
 				...(overrides.ui || {}),
 			},
 		},
-		envRec: {
-			OAUTH_KV: {},
-			OAUTH_PROVIDER: {},
-			ACCESS_PASSPHRASE: "test-pass",
-			...(overrides.envRec || {}),
-		},
 		http: {
 			getCookie: () => "",
 			setCookie: () => undefined,
@@ -84,6 +78,9 @@ function createAuthAdapterHarness(overrides = {}) {
 			redirectResponse: (location) => ({ location, status: 302 }),
 			setCspNonce: () => undefined,
 			getClientIp: () => "127.0.0.1",
+			getAuthKv: () => ({}),
+			getOauthProvider: () => ({}),
+			getAccessPassphrase: () => "test-pass",
 			isIpLocked: async () => false,
 			registerAuthFailure: async () => undefined,
 			clearAuthFailures: async () => undefined,

@@ -1,0 +1,281 @@
+score	path	rationale
+6	src/admin.efct.test.js	test is shaped around Cloudflare env/binding stubs
+0	src/admin.orch.1.js	portable logic
+0	src/auth-flow-state.pure.js	portable logic
+4	src/auth-route-approve.orch.3.js	runtime wiring/orchestration layer with platform assumptions
+6	src/auth-route-approve.test.js	test is shaped around Cloudflare env/binding stubs
+4	src/auth-route-authorize.orch.3.js	runtime wiring/orchestration layer with platform assumptions
+4	src/auth-route-authorize.test.js	wiring-level test for current worker/runtime shape
+4	src/auth-route-common.orch.3.js	runtime wiring/orchestration layer with platform assumptions
+4	src/auth-route-deps.orch.2.js	runtime wiring/orchestration layer with platform assumptions
+4	src/auth-route-enroll.orch.3.js	runtime wiring/orchestration layer with platform assumptions
+4	src/auth-route-enroll.test.js	wiring-level test for current worker/runtime shape
+4	src/auth-route-handlers.orch.2.js	runtime wiring/orchestration layer with platform assumptions
+0	src/auth-route-handlers.test-helpers.js	portable logic
+0	src/auth-shared.pure.js	portable logic
+6	src/auth-wiring-authorize.e2e.test.js	e2e test depends on OAUTH_KV-backed authorize flow
+6	src/auth-wiring-env.test-helpers.js	test helper drives worker.fetch with Cloudflare-style env
+6	src/auth-wiring-flow.test-helpers.js	test helper uses OAUTH_KV and MCP binding stubs
+7	src/auth-wiring-mcp.e2e.test.js	e2e test depends on OAUTH_KV and MCP_OBJECT stubs
+6	src/auth-wiring-oauth.e2e.test.js	e2e test depends on OAUTH_KV-backed OAuth state
+5	src/auth-wiring-steps.test-helpers.js	test helper follows current auth/worker flow shape
+4	src/auth.orch.1.js	runtime wiring/orchestration layer with platform assumptions
+4	src/auth.orch.test.js	wiring-level test for current worker/runtime shape
+6	src/auth.test.js	test is shaped around Cloudflare env/binding stubs
+0	src/config.pure.js	portable logic
+2	src/db/conflicts-efct.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+2	src/db/conflicts-ops-efct.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+3	src/db/conflicts.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+3	src/db/conflicts.ops.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+0	src/db/conflicts.pure.js	pure DB logic
+2	src/db/conflicts.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+2	src/db/entities-efct.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+2	src/db/entities-query.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+3	src/db/entities-read.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+3	src/db/entities-write.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+3	src/db/entities.ops.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+0	src/db/entities.pure.js	pure DB logic
+6	src/db/entities.test.js	test is shaped around Cloudflare env/binding stubs
+3	src/db/entries-autolink.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+0	src/db/entries-autolink.type.js	pure DB logic
+2	src/db/entries-efct.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+2	src/db/entries-linking.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+2	src/db/entries-ops-pagination.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+3	src/db/entries.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+3	src/db/entries.ops.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+0	src/db/entries.pure.js	pure DB logic
+6	src/db/entries.test.js	test is shaped around Cloudflare env/binding stubs
+2	src/db/history-efct.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+2	src/db/history-ops-efct.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+0	src/db/history-query.pure.js	pure DB logic
+0	src/db/history-undo-entry-triple.pure.js	pure DB logic
+0	src/db/history-undo-merge.pure.js	pure DB logic
+0	src/db/history-undo-shared.pure.js	pure DB logic
+0	src/db/history-undo.pure.js	pure DB logic
+3	src/db/history.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+3	src/db/history.ops.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+0	src/db/history.pure.js	pure DB logic
+6	src/db/history.test.js	test is shaped around Cloudflare env/binding stubs
+2	src/db/migrations-chain.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+3	src/db/schema.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+2	src/db/schema.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+2	src/db/search-acceptance.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+2	src/db/search-efct.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+2	src/db/search-ops-memory-weight.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+3	src/db/search.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+3	src/db/search.ops.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+0	src/db/search.pure.js	pure DB logic
+2	src/db/search.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+6	src/db/summary-efct.test.js	test is shaped around Cloudflare env/binding stubs
+3	src/db/summary.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+0	src/db/summary.pure.js	pure DB logic
+6	src/db/summary.test.js	test is shaped around Cloudflare env/binding stubs
+2	src/db/triples-efct.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+2	src/db/triples-upsert-multi.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+2	src/db/triples-validity-normalization.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+3	src/db/triples.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+3	src/db/triples.ops.efct.js	portable DB adapter using D1-like interface, low direct Cloudflare coupling
+0	src/db/triples.pure.js	pure DB logic
+6	src/db/triples.test.js	test is shaped around Cloudflare env/binding stubs
+2	src/db/undo-atomic-store.test.js	DB tests mostly exercise portable SQLite-shaped behavior
+0	src/domain/auto-updates-link.pure.js	portable domain logic
+0	src/domain/auto-updates-link.test.js	domain test for portable logic
+0	src/domain/auto-updates-token-codec.efct.js	portable domain logic
+0	src/domain/auto-updates-token-codec.efct.test.js	domain test for portable logic
+0	src/domain/auto-updates-token.efct.js	portable domain logic
+0	src/domain/auto-updates-token.test.js	domain test for portable logic
+0	src/domain/conflict-ops-efct.test.js	domain test for portable logic
+1	src/domain/conflict.ops.efct.js	effect boundary but not Cloudflare-specific
+0	src/domain/conflict.pure.js	portable domain logic
+0	src/domain/conflict.test.js	domain test for portable logic
+0	src/domain/github-workflow-ops-efct.test.js	domain test for portable logic
+1	src/domain/github-workflow.ops.efct.js	effect boundary but not Cloudflare-specific
+0	src/domain/github-workflow.pure.js	portable domain logic
+0	src/domain/github-workflow.test.js	domain test for portable logic
+0	src/domain/ingestion-ops-efct.test.js	domain test for portable logic
+1	src/domain/ingestion.ops.efct.js	effect boundary but not Cloudflare-specific
+0	src/domain/ingestion.pure.js	portable domain logic
+0	src/domain/ingestion.test.js	domain test for portable logic
+0	src/domain/policy-ops-cardinality.test.js	domain test for portable logic
+1	src/domain/policy.ops.efct.js	effect boundary but not Cloudflare-specific
+0	src/domain/policy.pure.js	portable domain logic
+0	src/domain/policy.test.js	domain test for portable logic
+9	src/index-core.orch.1.js	assembles worker/default-handler/agent services for Cloudflare runtime
+7	src/index-default-handler-services.orch.2.js	assembles browser/admin handler over current Worker runtime
+4	src/index-runtime-configure-db-deps.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+4	src/index-runtime-configure-deps.orch.3.js	runtime wiring/orchestration layer with platform assumptions
+4	src/index-runtime-configure-domain-deps.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+4	src/index-runtime-configure-mcp-deps.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+4	src/index-runtime-ingestion-deps.orch.3.js	runtime wiring/orchestration layer with platform assumptions
+4	src/index-runtime-init-deps.orch.3.js	runtime wiring/orchestration layer with platform assumptions
+5	src/index-runtime-services.orch.2.js	runtime service assembly, portable but currently tied to package/runtime shape
+4	src/index-runtime-std.orch.3.js	runtime wiring/orchestration layer with platform assumptions
+10	src/index-worker-services.orch.2.js	direct Cloudflare OAuthProvider and agents/mcp worker integration
+9	src/index.js	top-level Cloudflare worker export surface
+9	src/index.orch.0.js	top-level worker composition export
+0	src/lib/auth-helpers.pure.js	portable helper/type/template
+6	src/lib/auth-helpers.test.js	test is shaped around Cloudflare env/binding stubs
+0	src/lib/constant-time-equal.pure.js	portable helper/type/template
+0	src/lib/errors.pure.js	portable helper/type/template
+0	src/lib/errors.test.js	test for portable helper/template logic
+0	src/lib/format-efct.test.js	test for portable helper/template logic
+1	src/lib/format.efct.js	generic effect helper
+0	src/lib/format.pure.js	portable helper/type/template
+0	src/lib/format.test.js	test for portable helper/template logic
+0	src/lib/knowledge-types.pure.js	portable helper/type/template
+0	src/lib/knowledge-types.type.js	portable helper/type/template
+0	src/lib/observe-efct.test.js	test for portable helper/template logic
+1	src/lib/observe.efct.js	generic effect helper
+0	src/lib/std.pure.js	portable helper/type/template
+0	src/lib/std.type.js	portable helper/type/template
+0	src/lib/types.type.js	portable helper/type/template
+0	src/lib/ulid.pure.js	portable helper/type/template
+0	src/lib/ulid.test.js	test for portable helper/template logic
+0	src/lib/validity.pure.js	portable helper/type/template
+0	src/lib/validity.test.js	test for portable helper/template logic
+0	src/mcp/mcp.type.js	portable MCP schema/pure logic
+0	src/mcp/prompts.pure.js	portable MCP schema/pure logic
+1	src/mcp/prompts.test.js	tool test with low direct Cloudflare coupling
+2	src/mcp/resources.efct.js	MCP effect handler over injected deps
+1	src/mcp/resources.test.js	tool test with low direct Cloudflare coupling
+0	src/mcp/subscriptions.pure.js	portable MCP schema/pure logic
+1	src/mcp/subscriptions.test.js	tool test with low direct Cloudflare coupling
+1	src/mcp/tools-build-info.test.js	tool test with low direct Cloudflare coupling
+0	src/mcp/tools-core.pure.js	portable MCP schema/pure logic
+1	src/mcp/tools-cursor-validation.test.js	tool test with low direct Cloudflare coupling
+0	src/mcp/tools-cursor.pure.js	portable MCP schema/pure logic
+1	src/mcp/tools-embedding-status.test.js	tool test with low direct Cloudflare coupling
+1	src/mcp/tools-enable-auto-updates.test.js	tool test with low direct Cloudflare coupling
+2	src/mcp/tools-entity.efct.js	MCP effect handler over injected deps
+2	src/mcp/tools-entry-admin.efct.js	MCP effect handler over injected deps
+0	src/mcp/tools-entry-public.pure.js	portable MCP schema/pure logic
+2	src/mcp/tools-entry-query-hybrid.efct.js	MCP effect handler over injected deps
+2	src/mcp/tools-entry-query-plain.efct.js	MCP effect handler over injected deps
+2	src/mcp/tools-entry-store.efct.js	MCP effect handler over injected deps
+2	src/mcp/tools-entry-update.efct.js	MCP effect handler over injected deps
+0	src/mcp/tools-entry-write.pure.js	portable MCP schema/pure logic
+1	src/mcp/tools-extract-lessons.test.js	tool test with low direct Cloudflare coupling
+0	src/mcp/tools-graph-public.pure.js	portable MCP schema/pure logic
+2	src/mcp/tools-graph-query.efct.js	MCP effect handler over injected deps
+2	src/mcp/tools-graph-relate.efct.js	MCP effect handler over injected deps
+2	src/mcp/tools-graph-resolve.efct.js	MCP effect handler over injected deps
+1	src/mcp/tools-graph-resolve.test.js	tool test with low direct Cloudflare coupling
+2	src/mcp/tools-graph-update.efct.js	MCP effect handler over injected deps
+0	src/mcp/tools-handler.test-helpers.js	portable MCP schema/pure logic
+1	src/mcp/tools-noop-update.test.js	tool test with low direct Cloudflare coupling
+1	src/mcp/tools-policy.test.js	tool test with low direct Cloudflare coupling
+0	src/mcp/tools-public-record.pure.js	portable MCP schema/pure logic
+1	src/mcp/tools-query-dispatch.test.js	tool test with low direct Cloudflare coupling
+1	src/mcp/tools-query-entities-efct.test.js	tool test with low direct Cloudflare coupling
+1	src/mcp/tools-query-entities-pure.test.js	tool test with low direct Cloudflare coupling
+1	src/mcp/tools-query-response-shape-hybrid.test.js	tool test with low direct Cloudflare coupling
+1	src/mcp/tools-query-response-shape-plain.test.js	tool test with low direct Cloudflare coupling
+0	src/mcp/tools-query-response-shape.test-helpers.js	portable MCP schema/pure logic
+1	src/mcp/tools-retrieve-resilience.test.js	tool test with low direct Cloudflare coupling
+0	src/mcp/tools-schemas.pure.js	portable MCP schema/pure logic
+1	src/mcp/tools-set-type.test.js	tool test with low direct Cloudflare coupling
+1	src/mcp/tools-surface.test.js	tool test with low direct Cloudflare coupling
+2	src/mcp/tools-system.efct.js	MCP effect handler over injected deps
+1	src/mcp/tools-time.test.js	tool test with low direct Cloudflare coupling
+1	src/mcp/tools-upsert-conflict.e2e.test.js	tool test with low direct Cloudflare coupling
+1	src/mcp/tools-upsert-entity-events.test.js	tool test with low direct Cloudflare coupling
+0	src/mcp/tools-validation.pure.js	portable MCP schema/pure logic
+1	src/mcp/tools-validity-validation.test.js	tool test with low direct Cloudflare coupling
+0	src/mcp/tools.pure.js	portable MCP schema/pure logic
+6	src/regression-surface.e2e.test.js	e2e regression test uses OAUTH_KV binding semantics
+0	src/templates/auth-page.pure.js	portable helper/type/template
+0	src/templates/auth-page.test.js	test for portable helper/template logic
+0	src/templates/enroll-passkey.pure.js	portable helper/type/template
+0	src/templates/enroll-passkey.test.js	test for portable helper/template logic
+0	src/templates/enroll-totp.pure.js	portable helper/type/template
+0	src/templates/enroll-totp.test.js	test for portable helper/template logic
+0	src/templates/install-workflow.pure.js	portable helper/type/template
+0	src/templates/install-workflow.test.js	test for portable helper/template logic
+0	src/templates/template-helpers.pure.js	portable helper/type/template
+4	src/test-helpers/db-d1.test.js	explicit D1 test double over sqlite
+2	src/test-helpers/html-scrape.test.js	generic test helper
+2	src/test-helpers/http-cookies.test.js	generic test helper
+4	src/test-helpers/http-kv-context.test.js	KV-oriented HTTP test helper
+2	src/test-helpers/mcp-zod-stub.test.js	generic test helper
+4	src/test-helpers/memory-kv.test.js	KV binding test double
+2	src/test-helpers/runtime.shared.test.js	generic test helper
+0	src/totp.pure.js	portable logic
+0	src/types/auth-wiring-e2e.type.js	portable helper/type/template
+0	src/types/auth.type.js	portable helper/type/template
+0	src/types/db.type.js	portable helper/type/template
+0	src/types/default-handler-test.type.js	portable helper/type/template
+0	src/types/domain.type.js	portable helper/type/template
+0	src/types/format.type.js	portable helper/type/template
+0	src/types/qrcode-svg.d.ts	portable helper/type/template
+0	src/types/result.type.js	portable helper/type/template
+0	src/types/runtime-deps.type.js	portable helper/type/template
+0	src/types/templates.type.js	portable helper/type/template
+4	src/webauthn.efct.js	KV-shaped effect boundary, portable but currently Cloudflare KV-oriented
+0	src/webauthn.pure.js	portable logic
+6	src/wiring/admin-install-workflow.e2e.test.js	admin e2e test depends on OAUTH_KV-backed setup flow
+8	src/wiring/default-handler-admin-adapter.orch.3.js	reads OAUTH_KV/ACCESS_PASSPHRASE from worker env
+8	src/wiring/default-handler-auth-adapter.orch.3.js	reads OAUTH_PROVIDER/OAUTH_KV/ACCESS_PASSPHRASE from worker env
+6	src/wiring/default-handler-auth-adapter.test.js	test is shaped around Cloudflare env/binding stubs
+7	src/wiring/default-handler-config.orch.3.js	Worker runtime assembly for auth/admin integrations
+4	src/wiring/default-handler-helpers.orch.2.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/default-handler-helpers.test.js	wiring-level test for current worker/runtime shape
+6	src/wiring/default-handler-lookup.e2e.test.js	default-handler e2e test depends on OAUTH_KV state
+6	src/wiring/default-handler-passkey-uv.e2e.test.js	default-handler e2e test depends on OAUTH_KV state
+9	src/wiring/default-handler-request-context.orch.2.js	direct OAUTH_KV and CF-Connecting-IP coupling
+4	src/wiring/default-handler-routes.orch.2.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/default-handler.orch.1.js	runtime wiring/orchestration layer with platform assumptions
+8	src/wiring/default-handler.orch.test.js	depends on Cloudflare request headers
+5	src/wiring/default-handler.test-helpers.js	test helper builds current default handler env/context
+4	src/wiring/github-workflow-adapter-efct.test.js	wiring-level test for current worker/runtime shape
+4	src/wiring/github-workflow-adapter.efct.js	runtime wiring/orchestration layer with platform assumptions
+6	src/wiring/loremcp-init.test.js	test is shaped around Cloudflare env/binding stubs
+7	src/wiring/loremcp.efct.js	LoreMcp lifecycle depends on env.DB and instance scheduling
+4	src/wiring/mcp-agent-efct.test.js	wiring-level test for current worker/runtime shape
+8	src/wiring/mcp-agent.efct.js	constructs MCP agent class for Worker transport
+9	src/wiring/mcp-api-handler.efct.js	explicit Durable Object / MCP_OBJECT compatibility adapter
+4	src/wiring/runtime-configure-conflicts.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+5	src/wiring/runtime-configure-core.orch.3.js	reads env.MULTI_VALUE_PREDICATES configuration
+7	src/wiring/runtime-configure-embedding.orch.4.js	runtime code reads Cloudflare-style env/bindings
+4	src/wiring/runtime-configure-ingestion.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+7	src/wiring/runtime-configure-runtime-ops.orch.3.js	threads env.DB/AI/VECTORIZE bindings into runtime ops
+6	src/wiring/runtime-configure-server.integration.test.js	integration test covers current worker/runtime env contract
+4	src/wiring/runtime-configure-server.orch.3.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-core.orch.2.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-cursor-utils.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-data-utils.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-entity-history.orch.3.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-entry-ops.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-entry-rules.orch.5.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-entry-triple.orch.3.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-entry-wiring.test.js	wiring-level test for current worker/runtime shape
+4	src/wiring/runtime-error-utils.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-graph-expand-query.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-graph-expand-shared.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-graph-expand-state.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-graph-expand.orch.3.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-graph-expand.test.js	wiring-level test for current worker/runtime shape
+6	src/wiring/runtime-ingestion-retry.test.js	test is shaped around Cloudflare env/binding stubs
+4	src/wiring/runtime-ingestion.orch.3.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-like-fallback.test.js	wiring-level test for current worker/runtime shape
+4	src/wiring/runtime-like-query.test.js	wiring-level test for current worker/runtime shape
+4	src/wiring/runtime-parse-utils.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-prompts-binding.test.js	wiring-level test for current worker/runtime shape
+4	src/wiring/runtime-resolve-entity.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+7	src/wiring/runtime-run-ingestion.orch.3.js	reads env.DB/AI/VECTORIZE and embedding env vars
+4	src/wiring/runtime-search-fallback.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+9	src/wiring/runtime-search.orch.3.js	direct Workers AI and Vectorize runtime integration
+4	src/wiring/runtime-semantic-threshold.test.js	wiring-level test for current worker/runtime shape
+5	src/wiring/runtime-server-registration.orch.3.js	server registration still depends on env.DB-backed resources
+4	src/wiring/runtime-surface.orch.3.js	runtime wiring/orchestration layer with platform assumptions
+6	src/wiring/runtime-time-utils.orch.4.js	reads Workers build env vars for build hash
+4	src/wiring/runtime-tool-error-boundary.test.js	wiring-level test for current worker/runtime shape
+8	src/wiring/runtime-tools-deps.orch.3.js	binds TARGET_REPO/ACCESS_PASSPHRASE/VECTORIZE/DB from worker env
+6	src/wiring/runtime-tools-embedding.orch.4.js	embedding helpers depend on env.DB-backed maintenance flow
+6	src/wiring/runtime-tools-maintenance.orch.4.js	maintenance helpers read env.DB-backed runtime state
+4	src/wiring/runtime-triple-ops.orch.4.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime-value-helpers.orch.3.js	runtime wiring/orchestration layer with platform assumptions
+4	src/wiring/runtime.orch.1.js	runtime wiring/orchestration layer with platform assumptions
+0	src/wiring/schedule.pure.js	portable logic
+4	src/wiring/schedule.test.js	wiring-level test for current worker/runtime shape
+9	test-preload.test.js	test shim for cloudflare:* modules and DurableObject runtime
+10	worker-configuration.d.ts	generated Wrangler Cloudflare runtime types

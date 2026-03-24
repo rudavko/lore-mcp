@@ -2,9 +2,9 @@
 import { nowIso } from "./runtime-value-helpers.orch.3.js";
 
 function createEmbeddingToolHelpers(ctx) {
-	const embeddingMaxRetries = ctx.parsePositiveInteger(ctx.env.EMBEDDING_MAX_RETRIES, 5, ctx.std);
+	const embeddingMaxRetries = ctx.embeddingMaxRetries;
 	const setEmbeddingPending = async (id) => {
-		await ctx.env.DB
+		await ctx.db
 			.prepare(`UPDATE entries
 				 SET embedding_status = 'pending',
 				     embedding_retry_count = 0,
@@ -15,7 +15,7 @@ function createEmbeddingToolHelpers(ctx) {
 			.run();
 	};
 	const markEmbeddingReady = async (id) => {
-		await ctx.env.DB
+		await ctx.db
 			.prepare(`UPDATE entries
 				 SET embedding_status = 'ready',
 				     embedding_retry_count = 0,
@@ -27,7 +27,7 @@ function createEmbeddingToolHelpers(ctx) {
 		return "ready";
 	};
 	const markEmbeddingAttemptFailure = async (id, error) => {
-		const row = await ctx.env.DB
+		const row = await ctx.db
 			.prepare(`SELECT embedding_retry_count FROM entries WHERE id = ? AND deleted_at IS NULL LIMIT 1`)
 			.bind(id)
 			.first();
@@ -41,7 +41,7 @@ function createEmbeddingToolHelpers(ctx) {
 			typeof error === "object" && error !== null && typeof error.message === "string"
 				? error.message
 				: ctx.std.String(error);
-		await ctx.env.DB
+		await ctx.db
 			.prepare(`UPDATE entries
 				 SET embedding_status = ?,
 				     embedding_retry_count = ?,

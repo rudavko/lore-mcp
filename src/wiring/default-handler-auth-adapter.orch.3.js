@@ -5,10 +5,9 @@ function createDefaultHandlerAuthRouteDeps(ctx) {
 	const webauthn = ctx.config.webauthn;
 	const otp = ctx.config.otp;
 	const ui = ctx.config.ui;
-	const oauthApi = ctx.envRec.OAUTH_PROVIDER || {};
-	const accessPassphrase =
-		typeof ctx.envRec.ACCESS_PASSPHRASE === "string" ? ctx.envRec.ACCESS_PASSPHRASE : "";
-	const kv = ctx.envRec.OAUTH_KV;
+	const oauthApi = ctx.http.getOauthProvider();
+	const accessPassphrase = ctx.http.getAccessPassphrase();
+	const kv = ctx.http.getAuthKv();
 
 	const authDependencyError = (message, cause) => {
 		const error = new Error(message);
