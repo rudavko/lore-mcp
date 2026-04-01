@@ -1,6 +1,4 @@
 /** @implements FR-017, FR-010, NFR-002 — Ingestion effect operations for sync/async import-style loading with retry-safe status tracking. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "ingestion.efct";
 /** Synchronous ingestion for small inputs. Deduplicates by content. */
 export async function ingestSync(content, source, deps) {
 	const taskId = deps.generateId();

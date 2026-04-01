@@ -1,15 +1,21 @@
 /** @implements NFR-001 — Verify one-time auto-updates link helpers. */
 import { describe, expect, test } from "bun:test";
 import {
-	_MODULE,
-	AUTO_UPDATES_LINK_PREFIX,
-	AUTO_UPDATES_LINK_TTL_SECONDS,
 	buildEnableAutoUpdatesPath,
 	buildEnableAutoUpdatesUrl,
 	getAutoUpdatesLinkInternals,
 	resolveEnableAutoUpdatesBaseUrl,
 } from "./auto-updates-link.pure.js";
+import { AUTO_UPDATES_LINK_PREFIX, AUTO_UPDATES_LINK_TTL_SECONDS } from "./auto-updates-link.pure.js";
 const encodeSetupToken = globalThis.encodeURIComponent;
+
+test("AUTO_UPDATES_LINK_PREFIX is a non-empty KV key prefix", () => {
+	expect(AUTO_UPDATES_LINK_PREFIX).toBe("ks:auto_updates_link:");
+});
+
+test("AUTO_UPDATES_LINK_TTL_SECONDS is 15 minutes", () => {
+	expect(AUTO_UPDATES_LINK_TTL_SECONDS).toBe(900);
+});
 const {
 	hasSafeHostShape,
 	isLocalHost,
@@ -23,12 +29,6 @@ const {
 } = getAutoUpdatesLinkInternals();
 
 describe("domain/auto-updates-link.pure", () => {
-	test("constants are non-empty and positive", () => {
-		expect(_MODULE).toBe("auto-updates-link.pure");
-		expect(AUTO_UPDATES_LINK_PREFIX.length).toBeGreaterThan(0);
-		expect(AUTO_UPDATES_LINK_TTL_SECONDS).toBe(900);
-	});
-
 	test("buildEnableAutoUpdatesPath encodes the setup token", () => {
 		expect(buildEnableAutoUpdatesPath("token 123", encodeSetupToken)).toBe(
 			"/admin/install-workflow?setup_token=token%20123",

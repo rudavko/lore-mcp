@@ -1,6 +1,4 @@
 /** @implements FR-003 — Effects-backed hybrid entry query MCP tool handler. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "tools-entry-query-hybrid.efct";
 function filterHybridQueryItems(items, args, asOfMs, deps) {
 	const strictFilteredItems = [];
 	if (args.strict_substring === true) {

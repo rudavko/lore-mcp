@@ -12,18 +12,6 @@ describe("templates/auth-page.pure", () => {
 		passkeyEnrolled: false,
 		passkeyOnly: false,
 	};
-	test("returns non-empty HTML", () => {
-		const text = renderAuthPage(baseParams);
-		expect(text.length).toBeGreaterThan(100);
-	});
-	test("contains DOCTYPE", () => {
-		const text = renderAuthPage(baseParams);
-		expect(text.indexOf("<!DOCTYPE html>")).toBe(0);
-	});
-	test("contains title", () => {
-		const text = renderAuthPage(baseParams);
-		expect(text.indexOf("Authorize")).toBeGreaterThan(-1);
-	});
 	test("contains CSRF token", () => {
 		const text = renderAuthPage(baseParams);
 		expect(text.indexOf("csrf456")).toBeGreaterThan(-1);

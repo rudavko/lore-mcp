@@ -1,6 +1,4 @@
 /** @implements FR-008, NFR-001 — Thin export surface for history query and undo helpers. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "history.pure";
 
 import {
 	rowToTransaction as rowToTransactionImpl,

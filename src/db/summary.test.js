@@ -1,6 +1,44 @@
 /** @implements NFR-001 — Verify summary building from raw DB data. */
 import { describe, test, expect } from "bun:test";
-import { formatSummary } from "./summary.pure.js";
+import { formatSummary, mapSummaryData } from "./summary.pure.js";
+function parseJson(text) {
+	try {
+		return { ok: true, value: JSON.parse(text) };
+	} catch (error) {
+		return { ok: false, error };
+	}
+}
+describe("mapSummaryData", () => {
+	test("maps raw summary query rows into summary data", () => {
+		expect(
+			mapSummaryData([
+				{
+					results: [
+						{ t: "entries", c: "2" },
+						{ t: "triples", c: "3" },
+						{ t: "entities", c: 4 },
+					],
+				},
+				{ results: [{ topic: "Topic A" }, { topic: 42 }] },
+				{
+					results: [
+						{ subject: "S", predicate: "P", object: "O" },
+						{ subject: "skip", predicate: "skip", object: null },
+					],
+				},
+				{ results: [{ tags: "[\"alpha\",\"beta\",1]" }, { tags: "not-json" }] },
+			], parseJson),
+		).toEqual({
+			entries: 2,
+			triples: 3,
+			entities: 4,
+			topics: ["Topic A"],
+			tripleSamples: [{ subject: "S", predicate: "P", object: "O" }],
+			tagLists: [["alpha", "beta"]],
+		});
+	});
+});
+
 describe("formatSummary", () => {
 	test("empty store returns guidance message", () => {
 		const data = {

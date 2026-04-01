@@ -1,7 +1,7 @@
 /** @implements NFR-001 — Verify schema initialization creates all required tables. */
 import { describe, test, expect } from "bun:test";
 import { initSchema } from "./schema.efct.js";
-import { createD1, createSqliteMemoryDb } from "../test-helpers/db-d1.test.js";
+import { createD1, createSqliteMemoryDb } from "../test-helpers/db-d1.helper.js";
 describe("schema", () => {
 	test("initSchema creates all tables", async () => {
 		const sqlite = createSqliteMemoryDb();
@@ -65,7 +65,7 @@ describe("schema", () => {
 		const entry = sqlite.prepare("SELECT expires_at FROM entries WHERE id = 'e1'").get();
 		expect(entry.expires_at).toBeNull();
 	});
-	test("initSchema repairs legacy canonical_entities without failing on D1-style updated_at rules", async () => {
+	test("initSchema repairs older canonical_entities rows without failing on D1-style updated_at rules", async () => {
 		const sqlite = createSqliteMemoryDb();
 		sqlite.exec(`CREATE TABLE canonical_entities (
 			id TEXT PRIMARY KEY,
@@ -87,5 +87,94 @@ describe("schema", () => {
 		expect(entity.valid_to_state).toBe("unspecified");
 		expect(entity.tags).toBe("[]");
 		expect(entity.updated_at).toBe("2024-01-01T00:00:00.000Z");
+	});
+	test("initSchema propagates trigger creation failures after FTS table creation succeeds", async () => {
+		const triggerError = new Error("trigger create failed");
+		let ftsTableCreated = false;
+		const db = {
+			prepare: (sql) => {
+				if (sql === "PRAGMA table_info(entries)") {
+					return {
+						all: async () => ({
+							results: [
+								{ name: "id" },
+								{ name: "topic" },
+								{ name: "content" },
+								{ name: "tags" },
+								{ name: "source" },
+								{ name: "actor" },
+								{ name: "confidence" },
+								{ name: "embedding_status" },
+								{ name: "embedding_retry_count" },
+								{ name: "embedding_last_error" },
+								{ name: "embedding_last_attempt_at" },
+								{ name: "valid_from" },
+								{ name: "valid_to" },
+								{ name: "valid_to_state" },
+								{ name: "expires_at" },
+								{ name: "status" },
+								{ name: "knowledge_type" },
+								{ name: "memory_type" },
+								{ name: "canonical_entity_id" },
+								{ name: "created_at" },
+								{ name: "updated_at" },
+								{ name: "deleted_at" },
+							],
+						}),
+					};
+				}
+				if (sql === "PRAGMA table_info(canonical_entities)") {
+					return {
+						all: async () => ({
+							results: [
+								{ name: "id" },
+								{ name: "name" },
+								{ name: "entity_type" },
+								{ name: "source" },
+								{ name: "confidence" },
+								{ name: "valid_from" },
+								{ name: "valid_to" },
+								{ name: "valid_to_state" },
+								{ name: "tags" },
+								{ name: "produced_by" },
+								{ name: "about" },
+								{ name: "affects" },
+								{ name: "specificity" },
+								{ name: "created_at" },
+								{ name: "updated_at" },
+							],
+						}),
+					};
+				}
+				return {
+					run: async () => {
+						if (sql.includes("CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts")) {
+							ftsTableCreated = true;
+						}
+						return { success: true, meta: {} };
+					},
+					all: async () => ({ results: [] }),
+				};
+			},
+			batch: async (statements) => {
+				const firstSql = statements[0]?.__sql ?? "";
+				if (firstSql.includes("CREATE TRIGGER IF NOT EXISTS entries_fts_insert")) {
+					throw triggerError;
+				}
+				for (const statement of statements) {
+					await statement.run();
+				}
+				return [];
+			},
+		};
+		const originalPrepare = db.prepare;
+		db.prepare = (sql) => {
+			const statement = originalPrepare(sql);
+			statement.__sql = sql;
+			return statement;
+		};
+
+		await expect(initSchema(db)).rejects.toBe(triggerError);
+		expect(ftsTableCreated).toBe(true);
 	});
 });

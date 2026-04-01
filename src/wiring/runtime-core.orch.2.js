@@ -1,5 +1,4 @@
 /** @implements FR-001, FR-002, FR-003 — Thin export surface for runtime orchestration subsystems. */
-export const _MODULE = "runtime.efct";
 
 export {
 	buildLikeQuery,

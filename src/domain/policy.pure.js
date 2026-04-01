@@ -1,6 +1,4 @@
 /** @implements NFR-001 — Pure mutation policy validation: required fields, confidence thresholds. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "policy.pure";
 export function defaultRequiredFields() {
 	return {
 		store: ["topic", "content"],

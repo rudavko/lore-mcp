@@ -1,7 +1,7 @@
 /** @implements FR-005, FR-006 — Verify link_object registration uses the v0 single-call link write path. */
 import { describe, expect, test } from "bun:test";
-import { registerTools } from "./tools.pure.js";
-import { zStub } from "../test-helpers/mcp-zod-stub.test.js";
+import { registerTools } from "./tools.orch.1.js";
+import { zStub } from "../test-helpers/mcp-zod-stub.helper.js";
 import { std } from "./tools-handler.test-helpers.js";
 
 describe("mcp/tools.pure link_object path", () => {

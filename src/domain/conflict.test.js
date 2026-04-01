@@ -1,6 +1,6 @@
 /** @implements FR-006 — Verify conflict detection pure logic and conflict payload shaping. */
 import { describe, test, expect } from "bun:test";
-import { _MODULE, findConflictingTriple, buildConflictInfo } from "./conflict.pure.js";
+import { findConflictingTriple, buildConflictInfo } from "./conflict.pure.js";
 describe("domain/conflict.pure", () => {
 	const makeTriple = (object) => ({
 		id: "t_01",
@@ -15,10 +15,6 @@ describe("domain/conflict.pure", () => {
 		valid_to_state: "unspecified",
 		status: "active",
 		created_at: "2025-01-01T00:00:00Z",
-	});
-
-	test("exports the expected module sentinel", () => {
-		expect(_MODULE).toBe("conflict.pure");
 	});
 
 	describe("findConflictingTriple", () => {

@@ -7,7 +7,7 @@ import {
 	softDeleteEntryRow,
 	queryEntryRows,
 } from "./entries.efct.js";
-import { createInitializedD1 } from "../test-helpers/db-d1.test.js";
+import { createInitializedD1 } from "../test-helpers/db-d1.helper.js";
 describe("insertEntryRow", () => {
 	test("inserts entry and transaction rows", async () => {
 		const { sqlite, db } = await createInitializedD1();

@@ -1,6 +1,4 @@
 /** @implements FR-006 — Effects-backed entry set-type/delete MCP tool handlers. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "tools-entry-admin.efct";
 function validationError(message) {
 	throw { code: "validation", message, retryable: false };
 }

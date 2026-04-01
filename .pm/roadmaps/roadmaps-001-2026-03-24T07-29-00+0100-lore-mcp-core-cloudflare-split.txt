@@ -2,10 +2,14 @@ Title: Roadmap To Successful `lore-mcp` / `lore-mcp-cloudflare` Split And Deploy
 
 Status
 Grounded:
-- The current repo already has migration artifacts in `docs/cloudflare-coupling-inventory.tsv`, `docs/core-shell-ownership-map.tsv`, and `docs/migration-core-cloud-agnostic-plan.md`.
-- The current worktree already contains real host-adapter and app-assembly cuts in `src/wiring/*host*`, `src/index-app-services.orch.2.js`, and related tests.
-- After the latest wiring sweep, direct host reads in `src/wiring` outside dedicated `*host*` files and tests are effectively concentrated in `src/wiring/mcp-api-handler.efct.js`.
-- The split is not finished yet.
+- Steps 1 through 8 are complete as of 2026-03-24.
+- The first known-good GitHub-based pairing is:
+  - `lore-mcp` core commit `4595309078e63f48348f7180bf49c516a31d997b`
+  - `lore-mcp-cloudflare` shell commit `7e31f9f6c190578cf39261e875da2f6a47900b80`
+- The verified live Cloudflare deploy from that pairing is:
+  - Worker URL: `https://lore-mcp.rudavko.workers.dev`
+  - Worker version: `4792423d-fe90-46c9-8ac8-a28f6fcc377f`
+- npm publication remains deferred because the GitHub dependency flow is working.
 
 Goal
 Grounded:
@@ -28,6 +32,9 @@ Grounded:
 Success gate:
 - Existing focused suites pass.
 - No accidental public surface regressions are introduced.
+Completed:
+- 2026-03-24
+- `lore-mcp` commit `79141e3` `Extract core host adapters and app assembly`
 
 2. Freeze package ownership.
 Grounded:
@@ -37,6 +44,9 @@ Grounded:
 - Anything still mixed must be split before the physical move.
 Success gate:
 - Every file is either clearly owned by core or shell.
+Completed:
+- 2026-03-24
+- `lore-mcp` commit `6b9a7d1` `Freeze package ownership: resolve all split rows, add new host-adapter files`
 
 3. Rename `lore-mcp-shell` to `lore-mcp-cloudflare`.
 Grounded:
@@ -44,6 +54,10 @@ Grounded:
 - This preserves the option for future shells like GCP or Azure.
 Success gate:
 - The shell package name, docs, and filesystem path all reflect `lore-mcp-cloudflare`.
+Completed:
+- 2026-03-24
+- `lore-mcp` commit `ed5808f` `Rename lore-mcp-shell to lore-mcp-cloudflare`
+- `lore-mcp-cloudflare` commit `ff01392` `Rename lore-mcp-shell to lore-mcp-cloudflare`
 
 4. Physically move shell-owned files into `lore-mcp-cloudflare`.
 Grounded:
@@ -52,24 +66,32 @@ Grounded:
 Success gate:
 - `lore-mcp` no longer contains Cloudflare deployment artifacts.
 - `lore-mcp-cloudflare` contains the entire deployable Cloudflare surface.
+Completed:
+- 2026-03-24
+- `lore-mcp` commit `70d312c` `Move Cloudflare shell surface out of lore-mcp core`
+- `lore-mcp-cloudflare` commit `a00b175` `Import Cloudflare deploy surface from lore-mcp core`
 
 5. Narrow the `lore-mcp` public API.
 Grounded:
 - Export only the interfaces and assembly points the shell needs.
 - Keep the package private for now.
-Assumption:
-- The likely public API should center on a small app/core factory surface and explicit port exports, I assume.
 Success gate:
-- `lore-mcp-cloudflare` can consume `lore-mcp` without sibling-path imports, I assume.
+- `lore-mcp-cloudflare` can consume `lore-mcp` without sibling-path imports.
+Completed:
+- 2026-03-24
+- `lore-mcp` commit `929ab03` `Narrow lore-mcp package exports for shell consumption`
 
 6. Replace local sibling coupling with a GitHub dependency.
 Grounded:
 - GitHub-first dependency flow is acceptable for the first deployments.
 - npm is not required yet.
-Assumption:
-- The safest first form is a pinned GitHub ref such as a commit SHA or tag, I assume.
 Success gate:
-- `lore-mcp-cloudflare` installs and builds against `lore-mcp` from GitHub only, I assume.
+- `lore-mcp-cloudflare` installs and builds against `lore-mcp` from GitHub only.
+Completed:
+- 2026-03-24
+- `lore-mcp-cloudflare` commit `cb45c1c` `Consume lore-mcp via pinned GitHub package dependency`
+- Verified-pair repin: `lore-mcp-cloudflare` commit `7e31f9f6c190578cf39261e875da2f6a47900b80`
+- Verified core dependency SHA: `4595309078e63f48348f7180bf49c516a31d997b`
 
 7. Make the first manual Cloudflare deployment from `lore-mcp-cloudflare`.
 Grounded:
@@ -77,6 +99,11 @@ Grounded:
 - Deployment should remain manual for the first successful proof.
 Success gate:
 - `lore-mcp-cloudflare` deploys cleanly to Cloudflare from its own repo/package.
+Completed:
+- 2026-03-24
+- Verified deploy command: `TARGET_REPO=rudavko/lore-mcp-d1 bun run deploy`
+- Worker URL: `https://lore-mcp.rudavko.workers.dev`
+- Worker version: `4792423d-fe90-46c9-8ac8-a28f6fcc377f`
 
 8. Run complete live verification on the deployed worker.
 Grounded:
@@ -84,22 +111,34 @@ Grounded:
 - Verification must cover auth, MCP tool surface, browser/admin flows, and install-workflow behavior.
 Success gate:
 - The deployed worker passes the full manual and automated live verification suite.
+Completed:
+- 2026-03-24
+- Raw `POST /mcp initialize` returned non-empty JSON-RPC SSE data
+- Raw `POST /mcp tools/list` returned the four expected tools
+- `bun run live:oauth-check -- https://lore-mcp.rudavko.workers.dev` passed
+- `bun run live:auth-flow -- https://lore-mcp.rudavko.workers.dev` passed
+- `bun run live:mcp-e2e -- https://lore-mcp.rudavko.workers.dev` passed
 
 9. Freeze the first known-good GitHub-based release pairing.
 Grounded:
 - The exact `lore-mcp` ref consumed by the verified `lore-mcp-cloudflare` deploy should be recorded.
-Assumption:
-- The cleanest form is probably a tag or pinned commit plus matching shell commit documentation, I assume.
 Success gate:
-- The verified pairing can be redeployed repeatably from scratch, I assume.
+- The verified pairing can be redeployed repeatably from scratch.
+Completed:
+- 2026-03-24
+- `lore-mcp` tag `v0.1.0-split-gh` points at commit `4595309078e63f48348f7180bf49c516a31d997b`
+- `lore-mcp-cloudflare` tag `v0.1.0-split-gh` points at commit `7e31f9f6c190578cf39261e875da2f6a47900b80`
+- `lore-mcp` pushed to `https://github.com/rudavko/lore-mcp.git`
+- `lore-mcp-cloudflare` created and pushed to `https://github.com/rudavko/lore-mcp-cloudflare.git`
 
 10. Only then evaluate npm or another registry.
 Grounded:
 - Registry publication is not needed for the initial successful split and deploy.
-Assumption:
-- npm becomes worthwhile only after the GitHub-based dependency flow is stable and boring, I assume.
 Success gate:
-- Registry publication changes distribution convenience, not architecture or runtime behavior, I assume.
+- Registry publication changes distribution convenience, not architecture or runtime behavior.
+Decision:
+- 2026-03-24
+- Deferred. GitHub-pinned dependency flow is working, so no npm action is needed now.
 
 Execution Order
 Grounded:
@@ -115,11 +154,8 @@ Grounded:
 
 Blocking Risks
 Grounded:
-- The current `lore-mcp` worktree is still uncommitted.
-- There is a pre-existing unrelated modification in `package.json`.
-- The physical move has not started yet.
-- `lore-mcp-cloudflare` is not yet wired to consume `lore-mcp` through GitHub.
+- No active blocking risk remains on the split-and-verify roadmap. The remaining work is optional release-distribution follow-up such as npm publication.
 
 Immediate Next Step
 Grounded:
-- The next concrete step is to commit the current `lore-mcp` refactor branch and then start the physical move into `lore-mcp-cloudflare` according to `docs/core-shell-ownership-map.tsv`.
+- Reuse the GitHub-tagged pairing until there is enough boring deployment history to justify publishing `lore-mcp` to npm or another registry.

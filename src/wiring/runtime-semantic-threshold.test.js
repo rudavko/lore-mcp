@@ -1,7 +1,7 @@
 /** @implements NFR-001 — Verify semantic threshold parsing used to enforce retrieval relevance cutoffs. */
 import { describe, expect, test } from "bun:test";
 import { parseSemanticMinScore } from "./runtime.orch.1.js";
-import { createGlobalTestStd } from "../test-helpers/runtime.shared.test.js";
+import { createGlobalTestStd } from "../test-helpers/runtime.shared.helper.js";
 const std = createGlobalTestStd(globalThis);
 describe("wiring/runtime.efct semantic threshold", () => {
 	test("defaults to 0.25 when env value is missing", () => {

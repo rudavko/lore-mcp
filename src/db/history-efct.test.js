@@ -5,7 +5,7 @@ import {
 	selectRevertableTransactions,
 	executeBatch,
 } from "./history.efct.js";
-import { createInitializedD1 } from "../test-helpers/db-d1.test.js";
+import { createInitializedD1 } from "../test-helpers/db-d1.helper.js";
 describe("queryTransactionRows", () => {
 	test("returns rows matching WHERE clause", async () => {
 		const { sqlite, db } = await createInitializedD1();

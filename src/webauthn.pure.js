@@ -1,6 +1,4 @@
 /** @implements NFR-001 — Pure WebAuthn helpers: base64url, credential/challenge data builders. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "webauthn.pure";
 export const PASSKEY_CRED_KEY = "ks:passkey:cred";
 export const CHALLENGE_TTL_SECONDS = 5 * 60;
 const B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

@@ -1,6 +1,43 @@
 /** @implements FR-003, NFR-001 — Triple orchestration over validation, conflict checks, and persistence. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "triples.efct";
+async function referenceExists(ref, deps) {
+	if (typeof deps.referenceExists === "function") {
+		return await deps.referenceExists(ref);
+	}
+	if (!deps.db || typeof ref !== "string" || ref.length === 0) {
+		return false;
+	}
+	const lowerRef = ref.toLowerCase();
+	const entryRow = await deps.db
+		.prepare(`SELECT id FROM entries WHERE deleted_at IS NULL AND (id = ? OR topic = ?) LIMIT 1`)
+		.bind(ref, ref)
+		.first();
+	if (entryRow !== null) {
+		return true;
+	}
+	const entityRow = await deps.db
+		.prepare(
+			`SELECT ce.id
+			 FROM canonical_entities ce
+			 LEFT JOIN entity_aliases ea ON ea.canonical_entity_id = ce.id
+			 WHERE ce.id = ? OR ce.name = ? OR LOWER(ea.alias) = ?
+			 LIMIT 1`,
+		)
+		.bind(ref, ref, lowerRef)
+		.first();
+	return entityRow !== null;
+}
+
+async function ensureAtLeastOneReferenceExists(params, deps) {
+	if (!deps.db && typeof deps.referenceExists !== "function") {
+		return;
+	}
+	const subjectExists = await referenceExists(params.subject, deps);
+	const objectExists = await referenceExists(params.object, deps);
+	if (!subjectExists && !objectExists) {
+		deps.throwValidation("At least one linked object reference must exist");
+	}
+}
+
 export async function createTriple(params, deps) {
 	const normalizedValidity = deps.deriveValidToStateFromInput(params.valid_to ?? undefined);
 	const validation = deps.validateTripleFields({
@@ -13,6 +50,7 @@ export async function createTriple(params, deps) {
 	if (!validation.ok) {
 		deps.throwValidation(validation.error.message);
 	}
+	await ensureAtLeastOneReferenceExists(params, deps);
 	const id = deps.generateId();
 	const txId = deps.generateId();
 	const timestamp = deps.now();

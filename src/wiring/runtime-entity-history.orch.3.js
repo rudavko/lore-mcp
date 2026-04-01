@@ -10,12 +10,16 @@ import {
 } from "./runtime-value-helpers.orch.3.js";
 
 function buildEntityAndHistoryOps(ctx) {
+	const parseJson = (raw) => {
+		const parsed = ctx.std.json.parse(raw);
+		return parsed.ok ? parsed.value : null;
+	};
 	const lookupEntity = async (id) => {
 		const row = await ctx.selectEntityRow(ctx.db, id);
 		if (row === null) {
 			throw throwNotFoundValue("Entity", id);
 		}
-		return ctx.rowToEntity(row);
+		return ctx.rowToEntity(row, parseJson);
 	};
 	const collectMergeData = async (mergeId, mergeName) => {
 		const toIds = (rows) => {
@@ -65,7 +69,7 @@ function buildEntityAndHistoryOps(ctx) {
 			selectEntityByName: ctx.selectEntityByName,
 			insertEntityRow: ctx.insertEntityRow,
 			updateEntityRow: ctx.updateEntityRow,
-			rowToEntity: ctx.rowToEntity,
+			rowToEntity: (row) => ctx.rowToEntity(row, parseJson),
 			buildEntityObject: ctx.buildEntityObject,
 			generateId: ctx.generateId,
 			now: () => nowIso(ctx.std),
@@ -91,7 +95,8 @@ function buildEntityAndHistoryOps(ctx) {
 	const queryEntities = async (params) => {
 		return await ctx.queryEntitiesOrch(params, {
 			buildEntityQueryState: ctx.buildEntityQueryState,
-			buildEntityQueryItems: ctx.buildEntityQueryItems,
+			buildEntityQueryItems: (pageRows, aliasRows) =>
+				ctx.buildEntityQueryItems(pageRows, aliasRows, parseJson),
 			queryCanonicalEntityRows: ctx.queryCanonicalEntityRows,
 			queryAliasRowsByEntityIds: ctx.queryAliasRowsByEntityIds,
 			decodeCursor: (raw) => decodeCursor(raw, ctx.std),

@@ -1,7 +1,4 @@
 /** @implements NFR-001 — Admin route orchestration for install-workflow GET/POST via injected deps. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "admin.orch";
-const AUTO_UPDATES_LINK_PREFIX = "ks:auto_updates_link:";
 const AUTO_UPDATES_USED_PREFIX = "ks:auto_updates_used:";
 
 function usedSetupTokenKey(setupToken) {
@@ -65,7 +62,6 @@ function errorMessage(error) {
 export function registerAdminRoutes(router, deps) {
 	const kvGet = deps.kvGet;
 	const kvPut = deps.kvPut;
-	const kvDelete = deps.kvDelete;
 	const setCookie = deps.setCookie;
 	const getCookie = deps.getCookie;
 	const randomToken = deps.randomToken;
@@ -98,32 +94,17 @@ export function registerAdminRoutes(router, deps) {
 			csrfBody: bodyString(body.csrf_token),
 		};
 	}
-	async function loadLegacySetupLinkTargetRepo(setupToken) {
-		if (!setupToken) {
-			return null;
-		}
-		return await kvGet(AUTO_UPDATES_LINK_PREFIX + setupToken);
-	}
 	async function loadSetupLink(setupToken) {
 		if (!setupToken) {
 			return null;
 		}
 		const signed = await readAutoUpdatesSetupToken(setupToken);
-		if (signed !== null) {
-			return {
-				mode: "signed",
-				targetRepo: signed.targetRepo,
-				expiresAtMs: signed.expiresAtMs,
-			};
-		}
-		const legacyTargetRepo = await loadLegacySetupLinkTargetRepo(setupToken);
-		if (legacyTargetRepo === null || legacyTargetRepo.length === 0) {
+		if (signed === null) {
 			return null;
 		}
 		return {
-			mode: "legacy",
-			targetRepo: legacyTargetRepo,
-			expiresAtMs: null,
+			targetRepo: signed.targetRepo,
+			expiresAtMs: signed.expiresAtMs,
 		};
 	}
 	async function isSetupLinkConsumed(setupToken) {
@@ -220,10 +201,6 @@ export function registerAdminRoutes(router, deps) {
 			return "";
 		}
 		try {
-			if (setup.mode === "legacy") {
-				await kvDelete(AUTO_UPDATES_LINK_PREFIX + setupToken);
-				return "";
-			}
 			const ttlSeconds = computeSetupInvalidationTtlSeconds(setup.expiresAtMs, nowMs());
 			await kvPut(usedSetupTokenKey(setupToken), "1", normalizeUsedTokenTtlSeconds(ttlSeconds));
 			return "";
@@ -242,11 +219,11 @@ export function registerAdminRoutes(router, deps) {
 		};
 	}
 	async function executeInstallWorkflow(setupToken, githubPat) {
-		await clearAuthFailures();
 		const setupState = await loadActiveSetupOrUnauthorized(setupToken);
 		if (setupState.response !== null || setupState.setup === null) {
 			return setupState.response;
 		}
+		await clearAuthFailures();
 		const setup = setupState.setup;
 		const normalizedRepo = normalizeTargetRepo(setup.targetRepo);
 		if (!normalizedRepo) {

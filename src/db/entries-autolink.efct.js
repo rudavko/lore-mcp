@@ -8,6 +8,13 @@ function resolvedCanonicalId(value) {
 	}
 	return null;
 }
+
+function isAutoCreatedOnlyResolution(value) {
+	if (typeof value !== "object" || value === null) {
+		return false;
+	}
+	return value.auto_created === true || value.auto_link_entity_created === true;
+}
 function isAutoCreatedCanonical(value) {
 	if (typeof value !== "object" || value === null) {
 		return false;
@@ -82,6 +89,9 @@ export async function resolveCreateAutoLinkState(params, deps, canonicalEntityId
 	) {
 		const resolver = deps.resolveCanonicalEntityIdForCreate || deps.resolveCanonicalEntityId;
 		const resolved = await resolver(params.topic);
+		if (params.allow_auto_entity_create === false && isAutoCreatedOnlyResolution(resolved)) {
+			return { canonicalEntityId: null, autoLinkState };
+		}
 		nextCanonicalEntityId = resolvedCanonicalId(resolved);
 		autoLinkState.autoLinkedEntity = isAutoCreatedCanonical(resolved);
 		autoLinkState.autoLinkedEntityId = resolvedCanonicalEntityCreatedId(resolved);

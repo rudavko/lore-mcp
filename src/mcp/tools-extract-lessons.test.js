@@ -1,7 +1,7 @@
 /** @implements FR-003, NFR-001 — Verify extract_lessons handler creates or skips derived lesson artifacts as expected. */
 import { describe, expect, test } from "bun:test";
 import { handleExtractLessons } from "./tools-entity.efct.js";
-import { createGlobalTestStd } from "../test-helpers/runtime.shared.test.js";
+import { createGlobalTestStd } from "../test-helpers/runtime.shared.helper.js";
 const std = createGlobalTestStd(globalThis);
 describe("mcp/tools.efct extract_lessons", () => {
 	test("creates lesson entries and derived_from links for refuted hypotheses", async () => {

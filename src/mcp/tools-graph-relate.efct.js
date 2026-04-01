@@ -1,6 +1,4 @@
 /** @implements FR-007 — Effects-backed graph relate/conflict MCP tool handlers. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "tools-graph-relate.efct";
 /** Handle "relate" tool — conflict path. */
 export async function handleRelateConflict(args, deps) {
 	const validityError = deps.validation.validateValidityInterval(

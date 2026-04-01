@@ -1,8 +1,6 @@
 /** @implements NFR-001 — GitHub workflow effect operations with injected GitHub API boundaries. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "github-workflow.efct";
 const WORKFLOW_PATH = ".github/workflows/upstream-sync.yml";
-const COMMIT_MESSAGE = "chore: enable upstream sync";
+const COMMIT_MESSAGE = "chore: bump lore-mcp dependency";
 function normalizeBase64Content(value) {
 	let normalized = "";
 	for (let i = 0; i < value.length; i++) {
@@ -40,7 +38,7 @@ export async function installWorkflowToRepo(token, targetRepo, deps) {
 	/* Fetch repo metadata to get default branch. */
 	const repoResponse = await deps.githubFetch("/repos/" + owner + "/" + repo, token);
 	if (!repoResponse.ok) {
-		const payload = await deps.readJsonSafe(repoResponse);
+		const payload = await deps.getBody(repoResponse);
 		return { ok: false, error: formatGitHubError(repoResponse.status, payload) };
 	}
 	const repoData = repoResponse.body;
@@ -71,7 +69,7 @@ export async function installWorkflowToRepo(token, targetRepo, deps) {
 			};
 		}
 	} else if (contentResponse.status !== 404) {
-		const payload = await deps.readJsonSafe(contentResponse);
+		const payload = await deps.getBody(contentResponse);
 		return { ok: false, error: formatGitHubError(contentResponse.status, payload) };
 	}
 	/* Create or update the workflow file. */
@@ -89,7 +87,7 @@ export async function installWorkflowToRepo(token, targetRepo, deps) {
 		body: deps.jsonStringify(putPayload),
 	});
 	if (upsertResponse.status !== 200 && upsertResponse.status !== 201) {
-		const errorPayload = await deps.readJsonSafe(upsertResponse);
+		const errorPayload = await deps.getBody(upsertResponse);
 		return { ok: false, error: formatGitHubError(upsertResponse.status, errorPayload) };
 	}
 	const resultData = upsertResponse.body;

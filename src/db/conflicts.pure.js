@@ -1,6 +1,4 @@
 /** @implements FR-006, NFR-001 — Pure conflict record shaping and TTL helpers. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "conflicts.pure";
 export const DEFAULT_CONFLICT_TTL_MS = 60 * 60 * 1000;
 /**
  * Validate and narrow an unknown value to ConflictInfo.

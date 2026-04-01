@@ -1,5 +1,4 @@
 /** @implements FR-018, FR-011, NFR-006 — Pure shared auth constants. */
-export const _MODULE = "auth-shared.pure";
 export const AUTH_REQUEST_TTL_SECONDS = 600;
 export const CSRF_COOKIE_PREFIX = "ks_csrf";
 export const AUTH_REQ_PREFIX = "ks:authreq:";

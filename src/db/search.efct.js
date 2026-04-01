@@ -4,8 +4,6 @@
  * NOTE: whereClause params are built by internal pure helpers (buildQueryConditions etc.),
  * never from raw user input. User values are always passed via parameterized binds.
  */
-/** Sentinel for TDD hook. */
-export const _MODULE = "search.efct";
 /** FTS5 full-text search. Caller provides pre-sanitized MATCH query. */
 export async function fts5SearchRows(db, matchQuery, limit) {
 	const { results } = await db

@@ -1,8 +1,8 @@
 /** @implements FR-002 — Verify retrieve registration dispatches across notes, entities, and links. */
 import { describe, expect, test } from "bun:test";
-import { registerTools } from "./tools.pure.js";
-import { zStub } from "../test-helpers/mcp-zod-stub.test.js";
-import { createGlobalTestStd } from "../test-helpers/runtime.shared.test.js";
+import { registerTools } from "./tools.orch.1.js";
+import { zStub } from "../test-helpers/mcp-zod-stub.helper.js";
+import { createGlobalTestStd } from "../test-helpers/runtime.shared.helper.js";
 
 const std = createGlobalTestStd(globalThis);
 

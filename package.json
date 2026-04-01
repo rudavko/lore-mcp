@@ -14,16 +14,17 @@
   "main": "./src/index.js",
   "exports": {
     ".": "./src/index.js",
+    "./package.json": "./package.json",
     "./admin.orch.1.js": "./src/admin.orch.1.js",
     "./auth.orch.1.js": "./src/auth.orch.1.js",
     "./auth-shared.pure.js": "./src/auth-shared.pure.js",
     "./config.pure.js": "./src/config.pure.js",
+    "./db/summary.pure.js": "./src/db/summary.pure.js",
     "./totp.pure.js": "./src/totp.pure.js",
     "./webauthn.pure.js": "./src/webauthn.pure.js",
     "./domain/*.js": "./src/domain/*.js",
     "./lib/*.js": "./src/lib/*.js",
     "./templates/*.js": "./src/templates/*.js",
-    "./test-helpers/*.js": "./src/test-helpers/*.js",
     "./wiring/*.js": "./src/wiring/*.js",
     "./index-runtime-*.js": "./src/index-runtime-*.js"
   },
@@ -34,7 +35,6 @@
   "author": "Andrii Rudavko",
   "homepage": "https://github.com/rudavko/lore-mcp#readme",
   "scripts": {
-    "loc:src": "node scripts/listCodeLoc.js src",
     "format": "oxfmt --write .",
     "lint": "tyn-es .",
     "lint:fix": "oxlint --fix",
@@ -42,8 +42,7 @@
     "check": "oxlint . --ignore-pattern .stryker-tmp --ignore-pattern .stryker-system-tmp",
     "test": "bun test",
     "mutate": "bun scripts/runStryker.js",
-    "mutate:system": "bun ./node_modules/@stryker-mutator/core/bin/stryker.js run stryker.system.config.mjs",
-    "mutate:legacy": "bun scripts/runMutationSuite.js"
+    "mutate:system": "bun ./node_modules/@stryker-mutator/core/bin/stryker.js run stryker.system.config.mjs"
   },
   "dependencies": {
     "zod": "^4.3.6"

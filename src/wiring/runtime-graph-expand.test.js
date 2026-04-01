@@ -1,7 +1,7 @@
 /** @implements NFR-003, FR-002 — Verify graph expansion remains bounded and deduplicated. */
 import { describe, expect, test } from "bun:test";
 import { expandGraphSignals, selectActiveEntriesByIdsChunked } from "./runtime.orch.1.js";
-import { createGlobalTestStd } from "../test-helpers/runtime.shared.test.js";
+import { createGlobalTestStd } from "../test-helpers/runtime.shared.helper.js";
 const std = createGlobalTestStd(globalThis);
 describe("wiring/runtime.efct expandGraphSignals", () => {
 	test("returns non-zero graph scores for connected seed and neighbor entries", async () => {

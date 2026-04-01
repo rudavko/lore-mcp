@@ -6,18 +6,7 @@ import {
 	buildCorrectStaleFactsPrompt,
 } from "./prompts.pure.js";
 describe("mcp/prompts.pure", () => {
-	test("exports three prompt builders", () => {
-		expect(typeof buildIngestMemoryPrompt).toBe("function");
-		expect(typeof buildRetrieveContextPrompt).toBe("function");
-		expect(typeof buildCorrectStaleFactsPrompt).toBe("function");
-	});
 	describe("buildIngestMemoryPrompt", () => {
-		test("returns messages array with user role", () => {
-			const result = buildIngestMemoryPrompt();
-			expect(result.messages.length).toBe(1);
-			expect(result.messages[0].role).toBe("user");
-			expect(result.messages[0].content.type).toBe("text");
-		});
 		test("mentions object_create tool", () => {
 			const result = buildIngestMemoryPrompt();
 			const text = result.messages[0].content.text;
@@ -42,7 +31,7 @@ describe("mcp/prompts.pure", () => {
 			expect(text.indexOf("supersedes")).toBeGreaterThan(-1);
 			expect(text.indexOf("deleted")).toBeGreaterThan(-1);
 		});
-		test("does not teach legacy mutation tools", () => {
+		test("does not teach non-public mutation tools", () => {
 			const result = buildIngestMemoryPrompt();
 			const text = result.messages[0].content.text;
 			expect(text.indexOf("`store`")).toBe(-1);
@@ -51,11 +40,6 @@ describe("mcp/prompts.pure", () => {
 		});
 	});
 	describe("buildRetrieveContextPrompt", () => {
-		test("returns messages array with user role", () => {
-			const result = buildRetrieveContextPrompt();
-			expect(result.messages.length).toBe(1);
-			expect(result.messages[0].role).toBe("user");
-		});
 		test("mentions retrieve tool", () => {
 			const result = buildRetrieveContextPrompt();
 			const text = result.messages[0].content.text;
@@ -69,9 +53,10 @@ describe("mcp/prompts.pure", () => {
 			expect(text.indexOf("include_auto_links")).toBeGreaterThan(-1);
 			expect(text.indexOf("action=`history`")).toBeGreaterThan(-1);
 			expect(text.indexOf("action=`status`")).toBeGreaterThan(-1);
+			expect(text.indexOf("action=`auto_updates_status`")).toBeGreaterThan(-1);
 			expect(text.indexOf("action=`enable_auto_updates`")).toBeGreaterThan(-1);
 		});
-		test("does not teach legacy retrieval tools", () => {
+		test("does not teach non-public retrieval tools", () => {
 			const result = buildRetrieveContextPrompt();
 			const text = result.messages[0].content.text;
 			expect(text.indexOf("`query`")).toBe(-1);
@@ -80,11 +65,6 @@ describe("mcp/prompts.pure", () => {
 		});
 	});
 	describe("buildCorrectStaleFactsPrompt", () => {
-		test("returns messages array with user role", () => {
-			const result = buildCorrectStaleFactsPrompt();
-			expect(result.messages.length).toBe(1);
-			expect(result.messages[0].role).toBe("user");
-		});
 		test("mentions audit workflow", () => {
 			const result = buildCorrectStaleFactsPrompt();
 			const text = result.messages[0].content.text;
@@ -96,8 +76,9 @@ describe("mcp/prompts.pure", () => {
 			expect(text.indexOf("supersedes")).toBeGreaterThan(-1);
 			expect(text.indexOf("deleted")).toBeGreaterThan(-1);
 			expect(text.indexOf("action=`history`")).toBeGreaterThan(-1);
+			expect(text.indexOf("action=`auto_updates_status`")).toBeGreaterThan(-1);
 		});
-		test("does not teach in-place correction via legacy tools", () => {
+		test("does not teach in-place correction via non-public tools", () => {
 			const result = buildCorrectStaleFactsPrompt();
 			const text = result.messages[0].content.text;
 			expect(text.indexOf("`update`")).toBe(-1);

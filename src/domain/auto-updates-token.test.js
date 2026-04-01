@@ -1,7 +1,6 @@
 /** @implements NFR-001 — Verify signed auto-updates setup token issue/read behavior. */
 import { describe, expect, test } from "bun:test";
 import {
-	_MODULE,
 	decodeSetupPayload,
 	issueAutoUpdatesSetupToken,
 	readAutoUpdatesSetupToken,
@@ -46,10 +45,6 @@ async function signPayload(payload, deps) {
 }
 
 describe("domain/auto-updates-token.efct", () => {
-	test("exports the expected module sentinel", () => {
-		expect(_MODULE).toBe("auto-updates-token.efct");
-	});
-
 	test("issues a signed token that round-trips to the target repo", async () => {
 		const deps = makeDeps(() => 1_000);
 		const token = await issueAutoUpdatesSetupToken("owner/repo", 9_000, deps);

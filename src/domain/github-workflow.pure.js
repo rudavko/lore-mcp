@@ -1,10 +1,8 @@
 /** @implements NFR-001 — Pure GitHub workflow helpers: repo parsing, YAML rendering, cron hashing. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "github-workflow.pure";
 export const API_BASE = "https://api.github.com";
 export const WORKFLOW_PATH = ".github/workflows/upstream-sync.yml";
-export const COMMIT_MESSAGE = "chore: enable upstream sync";
-export const DEFAULT_UPSTREAM_REPO = "rudavko/lore-mcp";
+export const COMMIT_MESSAGE = "chore: bump lore-mcp dependency";
+export const UPSTREAM_CORE_REPO = "rudavko/lore-mcp";
 /** Parse an "owner/repo" string into components.
  *  Returns { owner, repo } on success or { error } on failure. */
 export function parseTargetRepo(targetRepo) {
@@ -41,10 +39,10 @@ export function renderWorkflowYaml(targetRepo) {
 	return (
 		'name: Upstream Sync\n\non:\n  schedule:\n    - cron: "' +
 		minute +
-		' 4 * * *"\n  workflow_dispatch:\n    inputs:\n      force_overwrite:\n        description: Overwrite target branch when history diverges from upstream/main.\n        required: false\n        default: "true"\n\npermissions:\n  contents: write\n\njobs:\n  sync:\n    runs-on: ubuntu-latest\n    env:\n      TARGET_BRANCH: ${{ github.event.repository.default_branch }}\n      FORCE_OVERWRITE: ${{ github.event.inputs.force_overwrite || vars.FORCE_OVERWRITE || \'true\' }}\n      UPSTREAM_REPO: ${{ vars.UPSTREAM_REPO || \'' +
-		DEFAULT_UPSTREAM_REPO +
-		'\' }}\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          ref: ${{ github.event.repository.default_branch }}\n          fetch-depth: 0\n\n      - name: Configure upstream remote\n        shell: bash\n        run: |\n          set -euo pipefail\n          if [ -z "${UPSTREAM_REPO}" ]; then\n            UPSTREAM_REPO="' +
-		DEFAULT_UPSTREAM_REPO +
-		'"\n          fi\n          git remote remove upstream 2>/dev/null || true\n          git remote add upstream "https://github.com/${UPSTREAM_REPO}.git"\n          git fetch upstream main\n\n      - name: Sync default branch from upstream/main\n        shell: bash\n        run: |\n          set -euo pipefail\n          git checkout "${TARGET_BRANCH}"\n\n          overwrite="false"\n          if git merge-base --is-ancestor HEAD upstream/main; then\n            git merge --ff-only upstream/main\n          elif [ "${FORCE_OVERWRITE}" = "true" ]; then\n            git reset --hard upstream/main\n            overwrite="true"\n          else\n            echo "History diverged. Set FORCE_OVERWRITE=true to allow hard reset."\n            exit 1\n          fi\n\n          if [ "${overwrite}" = "true" ]; then\n            git push origin "HEAD:${TARGET_BRANCH}" --force-with-lease\n          else\n            git push origin "HEAD:${TARGET_BRANCH}"\n          fi\n'
+		' 4 * * *"\n  workflow_dispatch:\n\npermissions:\n  contents: write\n\njobs:\n  sync:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          ref: ${{ github.event.repository.default_branch }}\n\n      - uses: oven-sh/setup-bun@v2\n\n      - name: Resolve latest upstream lore-mcp tag\n        id: upstream\n        shell: bash\n        run: |\n          set -euo pipefail\n          latest_tag="$(git ls-remote --tags --refs https://github.com/' +
+		UPSTREAM_CORE_REPO +
+		'.git \'v*\' | awk -F/ \'{print $3}\' | sort -V | tail -n1)"\n          if [ -z "${latest_tag}" ]; then\n            echo "Failed to resolve upstream lore-mcp tag"\n            exit 1\n          fi\n          echo "latest_tag=${latest_tag}" >> "$GITHUB_OUTPUT"\n\n      - name: Read current lore-mcp dependency tag\n        id: current\n        shell: bash\n        run: |\n          set -euo pipefail\n          current_tag="$(node --input-type=module <<\'NODE\'\nimport { readFileSync } from \'node:fs\';\nconst pkg = JSON.parse(readFileSync(\'package.json\', \'utf8\'));\nconst dep = pkg.dependencies?.[\'lore-mcp\'];\nconst match = typeof dep === \'string\' ? dep.match(/#(v[^\\s]+)$/) : null;\nprocess.stdout.write(match ? match[1] : \'\');\nNODE\n)"\n          echo "current_tag=${current_tag}" >> "$GITHUB_OUTPUT"\n\n      - name: Update lore-mcp dependency tag\n        if: steps.current.outputs.current_tag != steps.upstream.outputs.latest_tag\n        shell: bash\n        run: |\n          set -euo pipefail\n          node --input-type=module <<\'NODE\'\nimport { readFileSync, writeFileSync } from \'node:fs\';\nconst pkg = JSON.parse(readFileSync(\'package.json\', \'utf8\'));\nconst latestTag = process.env.LATEST_TAG;\nconst dep = pkg.dependencies?.[\'lore-mcp\'];\nif (typeof dep !== \'string\') {\n  throw new Error(\'package.json dependencies.lore-mcp is missing\');\n}\npkg.dependencies[\'lore-mcp\'] = dep.replace(/#.+$/, `#${latestTag}`);\nwriteFileSync(\'package.json\', JSON.stringify(pkg, null, 2) + \'\\n\');\nNODE\n          bun install\n        env:\n          LATEST_TAG: ${{ steps.upstream.outputs.latest_tag }}\n\n      - name: Commit and push dependency bump\n        if: steps.current.outputs.current_tag != steps.upstream.outputs.latest_tag\n        shell: bash\n        run: |\n          set -euo pipefail\n          git config user.name "github-actions[bot]"\n          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"\n          git add package.json bun.lock\n          git commit -m "' +
+		COMMIT_MESSAGE +
+		' to ${{ steps.upstream.outputs.latest_tag }}"\n          git push origin "HEAD:${{ github.event.repository.default_branch }}"\n'
 	);
 }

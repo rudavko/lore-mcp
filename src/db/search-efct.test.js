@@ -6,7 +6,7 @@ import {
 	graphNeighborRows,
 	selectEntriesByIds,
 } from "./search.efct.js";
-import { createInitializedD1 } from "../test-helpers/db-d1.test.js";
+import { createInitializedD1 } from "../test-helpers/db-d1.helper.js";
 describe("likeSearchRows", () => {
 	test("returns matching entries by LIKE", async () => {
 		const { sqlite, db } = await createInitializedD1();

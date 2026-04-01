@@ -1,6 +1,4 @@
 /** @implements NFR-001 — Pure helpers for one-time auto-updates setup links. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "auto-updates-link.pure";
 export const AUTO_UPDATES_LINK_PREFIX = "ks:auto_updates_link:";
 export const AUTO_UPDATES_LINK_TTL_SECONDS = 15 * 60;
 

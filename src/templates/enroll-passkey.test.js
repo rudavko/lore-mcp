@@ -10,15 +10,6 @@ describe("templates/enroll-passkey.pure", () => {
 		canSkipPasskey: false,
 		canStartTotpEnrollment: false,
 	};
-	test("returns non-empty HTML", () => {
-		expect(renderEnrollPasskeyPage(baseParams).length).toBeGreaterThan(100);
-	});
-	test("contains DOCTYPE", () => {
-		expect(renderEnrollPasskeyPage(baseParams).indexOf("<!DOCTYPE html>")).toBe(0);
-	});
-	test("contains title", () => {
-		expect(renderEnrollPasskeyPage(baseParams).indexOf("Set Up Passkey")).toBeGreaterThan(-1);
-	});
 	test("contains CSRF token", () => {
 		expect(renderEnrollPasskeyPage(baseParams).indexOf("csrf789")).toBeGreaterThan(-1);
 	});

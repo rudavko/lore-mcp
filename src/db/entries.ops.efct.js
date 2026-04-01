@@ -1,6 +1,4 @@
 /** @implements FR-001, FR-003 — Entry orchestration over validated input and D1 effects. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "entries.efct";
 export async function createEntry(params, deps) {
 	const normalizedValidity = deps.deriveValidToStateFromInput(params.valid_to ?? undefined);
 	deps.validateCreateEntryInput(params, deps, normalizedValidity);

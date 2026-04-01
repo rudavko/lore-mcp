@@ -9,7 +9,7 @@ import {
 	base32Decode,
 } from "../totp.pure.js";
 import { byteValuesToHexString } from "../lib/auth-helpers.pure.js";
-import { createDefaultHandlerHelpers, _MODULE } from "./default-handler-helpers.orch.2.js";
+import { createDefaultHandlerHelpers } from "./default-handler-helpers.orch.2.js";
 
 const TextEncoderCtor = globalThis.TextEncoder;
 const Uint8ArrayCtor = globalThis.Uint8Array;
@@ -67,10 +67,6 @@ async function generateTotp(secret, nowMs) {
 }
 
 describe("wiring/default-handler-helpers.orch", () => {
-	test("exports the expected sentinel", () => {
-		expect(_MODULE).toBe("default-handler-helpers.orch");
-	});
-
 	test("parseCookies decodes valid values and falls back for malformed escapes", () => {
 		const decodeCalls = [];
 		const helpers = createHelpers({

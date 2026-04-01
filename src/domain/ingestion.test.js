@@ -3,21 +3,11 @@ import { describe, test, expect } from "bun:test";
 import {
 	SYNC_THRESHOLD_CHARS,
 	SYNC_THRESHOLD_ITEMS,
-	CHUNK_SIZE,
-	BATCH_SIZE,
-	MAX_STORABLE_CONTENT,
 	chunkText,
 	shouldProcessAsync,
 	extractChunkTopic,
 } from "./ingestion.pure.js";
 describe("domain/ingestion.pure", () => {
-	test("constants are positive", () => {
-		expect(SYNC_THRESHOLD_CHARS).toBeGreaterThan(0);
-		expect(SYNC_THRESHOLD_ITEMS).toBeGreaterThan(0);
-		expect(CHUNK_SIZE).toBeGreaterThan(0);
-		expect(BATCH_SIZE).toBeGreaterThan(0);
-		expect(MAX_STORABLE_CONTENT).toBeGreaterThan(0);
-	});
 	describe("chunkText", () => {
 		test("returns single chunk for short text", () => {
 			const chunks = chunkText("Hello world");

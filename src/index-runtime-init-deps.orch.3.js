@@ -2,7 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { initSchema } from "./db/schema.efct.js";
 import { querySummaryCounts } from "./db/summary.efct.js";
-import { formatSummary } from "./db/summary.pure.js";
+import { formatSummary, mapSummaryData } from "./db/summary.pure.js";
 import { APP_NAME } from "./config.pure.js";
 import { RESCHEDULE_DELAY_MS, shouldReschedule } from "./wiring/schedule.pure.js";
 
@@ -12,6 +12,7 @@ export function createInitLoreMcpDeps(input) {
 		initSchema,
 		querySummaryCounts,
 		formatSummary,
+		mapSummaryData: (raw) => mapSummaryData(raw, input.std.json.parse),
 		McpServerCtor: McpServer,
 		serverName: APP_NAME,
 		serverVersion: input.appVersion,

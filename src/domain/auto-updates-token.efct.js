@@ -1,6 +1,4 @@
 /** @implements NFR-001 — Signed setup tokens for auto-updates links. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "auto-updates-token.efct";
 
 export function splitSetupToken(token) {
 	if (typeof token !== "string") {

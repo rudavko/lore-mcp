@@ -11,7 +11,7 @@ import {
 	selectEntityByName,
 	resolveAliasRow,
 } from "./entities-read.efct.js";
-import { createInitializedD1 } from "../test-helpers/db-d1.test.js";
+import { createInitializedD1 } from "../test-helpers/db-d1.helper.js";
 describe("insertEntityRow", () => {
 	test("inserts entity, alias, and transaction", async () => {
 		const { sqlite, db } = await createInitializedD1();

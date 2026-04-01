@@ -1,5 +1,5 @@
 /** @implements FR-002, FR-004 — Shared helpers for query response normalization tests. */
-import { createGlobalTestStd } from "../test-helpers/runtime.shared.test.js";
+import { createGlobalTestStd } from "../test-helpers/runtime.shared.helper.js";
 
 export const std = createGlobalTestStd(globalThis);
 

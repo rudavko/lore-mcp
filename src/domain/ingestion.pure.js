@@ -1,6 +1,4 @@
 /** @implements NFR-001 — Pure ingestion helpers: text chunking, async thresholds, topic extraction. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "ingestion.pure";
 export const SYNC_THRESHOLD_CHARS = 5000;
 export const SYNC_THRESHOLD_ITEMS = 20;
 export const CHUNK_SIZE = 500;

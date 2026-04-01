@@ -1,7 +1,7 @@
 /** @implements FR-007, FR-015 — Regression: undo(count=1) reverts store+auto-link as one logical action. */
 import { describe, expect, test } from "bun:test";
 import { buildUndoStatements, rowToTransaction } from "./history.pure.js";
-import { createInitializedD1 } from "../test-helpers/db-d1.test.js";
+import { createInitializedD1 } from "../test-helpers/db-d1.helper.js";
 describe("undo atomicity for store auto-link", () => {
 	test("single revertable transaction undoes entry + auto-linked entity/alias", async () => {
 		const { sqlite } = await createInitializedD1();

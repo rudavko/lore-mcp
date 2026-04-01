@@ -37,6 +37,36 @@ function buildPasskeyEnrollmentState(overrides = {}) {
 	};
 }
 
+function buildPendingTotpFlowState() {
+	return createTotpEnrollmentFlowState({
+		oauthReq: buildOauthReq(),
+		sourceStage: AUTH_STAGE_ENROLL_PASSKEY,
+		sourceAction: AUTH_ACTION_ENROLL_TOTP,
+	});
+}
+
+function buildPendingPasskeyState() {
+	return createPasskeyEnrollmentFlowState({
+		oauthReq: buildOauthReq(),
+		alternateFactorSatisfied: false,
+		allowTotpEnrollment: true,
+	});
+}
+
+async function seedPendingTotpRecord(harness) {
+	await harness.deps.kvPut(
+		"ks:totp:pending:nonce-1",
+		JSON.stringify(
+			buildPendingTotpRecord(
+				"ABCDEFGHIJKLMNOP",
+				buildPendingTotpFlowState(),
+				"csrf-1",
+				buildPendingPasskeyState(),
+			),
+		),
+	);
+}
+
 describe("auth-route-enroll.orch", () => {
 	test("handleEnrollPasskey validates CSRF, challenge shape, and registration stage", async () => {
 		const invalid = createAuthRouteHarness();
@@ -320,25 +350,7 @@ describe("auth-route-enroll.orch", () => {
 	test("handleEnrollTotp stores the enrolled secret and completes authorization", async () => {
 		const harness = createAuthRouteHarness();
 		harness.cookies.set(csrfCookieNameForNonce("nonce-1"), "csrf-1");
-		await harness.deps.kvPut(
-			"ks:totp:pending:nonce-1",
-			JSON.stringify(
-				buildPendingTotpRecord(
-					"ABCDEFGHIJKLMNOP",
-					createTotpEnrollmentFlowState({
-						oauthReq: buildOauthReq(),
-						sourceStage: AUTH_STAGE_ENROLL_PASSKEY,
-						sourceAction: AUTH_ACTION_ENROLL_TOTP,
-					}),
-					"csrf-1",
-					createPasskeyEnrollmentFlowState({
-						oauthReq: buildOauthReq(),
-						alternateFactorSatisfied: false,
-						allowTotpEnrollment: true,
-					}),
-				),
-			),
-		);
+		await seedPendingTotpRecord(harness);
 		harness.setBody({
 			enroll_nonce: "nonce-1",
 			csrf_token: "csrf-1",
@@ -370,25 +382,7 @@ describe("auth-route-enroll.orch", () => {
 		const harness = createAuthRouteHarness();
 		harness.cookies.set(csrfCookieNameForNonce("nonce-1"), "csrf-1");
 		await harness.deps.kvPut("ks:totp:secret", "existing-secret");
-		await harness.deps.kvPut(
-			"ks:totp:pending:nonce-1",
-			JSON.stringify(
-				buildPendingTotpRecord(
-					"ABCDEFGHIJKLMNOP",
-					createTotpEnrollmentFlowState({
-						oauthReq: buildOauthReq(),
-						sourceStage: AUTH_STAGE_ENROLL_PASSKEY,
-						sourceAction: AUTH_ACTION_ENROLL_TOTP,
-					}),
-					"csrf-1",
-					createPasskeyEnrollmentFlowState({
-						oauthReq: buildOauthReq(),
-						alternateFactorSatisfied: false,
-						allowTotpEnrollment: true,
-					}),
-				),
-			),
-		);
+		await seedPendingTotpRecord(harness);
 		harness.setBody({
 			enroll_nonce: "nonce-1",
 			csrf_token: "csrf-1",

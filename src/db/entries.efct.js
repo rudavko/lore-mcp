@@ -1,6 +1,4 @@
 /** @implements FR-001, FR-003 — Effects boundary for entry persistence and query operations. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "entries.efct";
 export async function insertEntryRow({
 	db,
 	txId,

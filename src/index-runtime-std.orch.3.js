@@ -11,7 +11,3 @@ export function createRuntimeStd(runtimeGlobal) {
 		btoa: runtimeGlobal.btoa.bind(runtimeGlobal),
 	};
 }
-
-export function resolveRuntimeAppVersion(packageVersion, fallbackVersion) {
-	return typeof packageVersion === "string" ? packageVersion : fallbackVersion;
-}

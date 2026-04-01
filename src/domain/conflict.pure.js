@@ -1,6 +1,4 @@
 /** @implements FR-006 — Pure conflict detection helpers: compare existing triples and build conflict payloads. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "conflict.pure";
 /** Find the first existing triple whose object differs from the incoming value.
  *  Returns null if no conflict found. */
 export function findConflictingTriple(existing, incomingObject) {

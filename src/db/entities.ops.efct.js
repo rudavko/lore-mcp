@@ -1,12 +1,28 @@
 /** @implements FR-003, NFR-001 — Entity orchestration for upsert, merge, and query flows. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "entities.efct";
 
 function normalizeEntityInput(input) {
 	if (typeof input === "string") {
 		return { name: input };
 	}
 	return input;
+}
+
+function mergeTags(existingTags, incomingTags) {
+	if (!Array.isArray(incomingTags)) {
+		return existingTags;
+	}
+	const merged = [];
+	for (let i = 0; i < existingTags.length; i++) {
+		if (!merged.includes(existingTags[i])) {
+			merged.push(existingTags[i]);
+		}
+	}
+	for (let i = 0; i < incomingTags.length; i++) {
+		if (!merged.includes(incomingTags[i])) {
+			merged.push(incomingTags[i]);
+		}
+	}
+	return merged;
 }
 
 function mergeEntityPatch(existing, params, timestamp) {
@@ -25,7 +41,7 @@ function mergeEntityPatch(existing, params, timestamp) {
 			params.valid_to_state !== undefined
 				? params.valid_to_state
 				: existing.valid_to_state,
-		tags: params.tags !== undefined ? params.tags : existing.tags,
+		tags: mergeTags(existing.tags, params.tags),
 		produced_by:
 			params.produced_by !== undefined ? params.produced_by : existing.produced_by,
 		about: params.about !== undefined ? params.about : existing.about,
@@ -65,77 +81,65 @@ function entityChanged(left, right) {
 	return false;
 }
 
+function buildUpdateEntityRowArgs(existing, merged, deps, timestamp, txId) {
+	return {
+		db: deps.db,
+		id: existing.id,
+		txId,
+		name: existing.name,
+		entityType: merged.entity_type,
+		source: merged.source,
+		confidence: merged.confidence,
+		validFrom: merged.valid_from,
+		validTo: merged.valid_to,
+		validToState: merged.valid_to_state,
+		tagsJson: deps.serialize(merged.tags),
+		producedBy: merged.produced_by,
+		about: merged.about,
+		affects: merged.affects,
+		specificity: merged.specificity,
+		beforeSnapshot: deps.serialize(existing),
+		afterSnapshot: deps.serialize(merged),
+		now: timestamp,
+	};
+}
+
+async function updateExistingEntity(existing, params, deps) {
+	const timestamp = deps.now();
+	const merged = mergeEntityPatch(existing, params, timestamp);
+	if (!entityChanged(existing, merged)) {
+		return { entity: existing, created: false, updated: false };
+	}
+	const txId = deps.generateId();
+	await deps.updateEntityRow(buildUpdateEntityRowArgs(existing, merged, deps, timestamp, txId));
+	return { entity: merged, created: false, updated: true };
+}
+
+async function findExistingEntityByAlias(params, deps) {
+	const name = typeof params.name === "string" ? params.name : "";
+	const aliasMatch = await deps.resolveAliasRow(deps.db, name.toLowerCase());
+	return aliasMatch === null ? null : deps.rowToEntity(aliasMatch);
+}
+
+async function findExistingEntityByName(params, deps) {
+	const name = typeof params.name === "string" ? params.name : "";
+	const nameMatch = await deps.selectEntityByName(deps.db, name);
+	return nameMatch === null ? null : deps.rowToEntity(nameMatch);
+}
+
 // CONTEXT: upsertEntity first tries alias resolution (case-insensitive), then exact
 // name match. Only creates a new entity when neither lookup finds a match.
 export async function upsertEntity(input, deps) {
 	const params = normalizeEntityInput(input);
 	const name = typeof params.name === "string" ? params.name : "";
-	/* Case-insensitive alias resolution. */
-	const normalized = name.toLowerCase();
-	const aliasMatch = await deps.resolveAliasRow(deps.db, normalized);
-	if (aliasMatch !== null) {
-		const existing = deps.rowToEntity(aliasMatch);
-		const timestamp = deps.now();
-		const merged = mergeEntityPatch(existing, params, timestamp);
-		if (!entityChanged(existing, merged)) {
-			return { entity: existing, created: false, updated: false };
-		}
-		const txId = deps.generateId();
-		await deps.updateEntityRow({
-			db: deps.db,
-			id: existing.id,
-			txId,
-			name: existing.name,
-			entityType: merged.entity_type,
-			source: merged.source,
-			confidence: merged.confidence,
-			validFrom: merged.valid_from,
-			validTo: merged.valid_to,
-			validToState: merged.valid_to_state,
-			tagsJson: deps.serialize(merged.tags),
-			producedBy: merged.produced_by,
-			about: merged.about,
-			affects: merged.affects,
-			specificity: merged.specificity,
-			beforeSnapshot: deps.serialize(existing),
-			afterSnapshot: deps.serialize(merged),
-			now: timestamp,
-		});
-		return { entity: merged, created: false, updated: true };
+	const aliasEntity = await findExistingEntityByAlias(params, deps);
+	if (aliasEntity !== null) {
+		return await updateExistingEntity(aliasEntity, params, deps);
 	}
-	/* Exact name match. */
-	const nameMatch = await deps.selectEntityByName(deps.db, name);
-	if (nameMatch !== null) {
-		const existing = deps.rowToEntity(nameMatch);
-		const timestamp = deps.now();
-		const merged = mergeEntityPatch(existing, params, timestamp);
-		if (!entityChanged(existing, merged)) {
-			return { entity: existing, created: false, updated: false };
-		}
-		const txId = deps.generateId();
-		await deps.updateEntityRow({
-			db: deps.db,
-			id: existing.id,
-			txId,
-			name: existing.name,
-			entityType: merged.entity_type,
-			source: merged.source,
-			confidence: merged.confidence,
-			validFrom: merged.valid_from,
-			validTo: merged.valid_to,
-			validToState: merged.valid_to_state,
-			tagsJson: deps.serialize(merged.tags),
-			producedBy: merged.produced_by,
-			about: merged.about,
-			affects: merged.affects,
-			specificity: merged.specificity,
-			beforeSnapshot: deps.serialize(existing),
-			afterSnapshot: deps.serialize(merged),
-			now: timestamp,
-		});
-		return { entity: merged, created: false, updated: true };
+	const namedEntity = await findExistingEntityByName(params, deps);
+	if (namedEntity !== null) {
+		return await updateExistingEntity(namedEntity, params, deps);
 	}
-	/* Create new entity + alias. */
 	const entityId = deps.generateId();
 	const aliasId = deps.generateId();
 	const txId = deps.generateId();

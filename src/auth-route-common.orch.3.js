@@ -244,7 +244,7 @@ export async function consumePasskeyEnrollmentChallenge(deps, enrollNonce, csrfB
 	if (!(await deps.safeStringEqual(csrfBody, challenge.csrfToken))) {
 		return { kind: "invalid_state" };
 	}
-	return { challenge };
+	return { kind: "ok", challenge };
 }
 
 export async function prepareTotpEnrollmentData(deps, flowState) {

@@ -1,7 +1,5 @@
 /** @implements NFR-001 — Pure install-workflow HTML template: GitHub Actions workflow installer. */
 import { escapeHtml, renderHtmlDocument } from "./template-helpers.pure.js";
-/** Sentinel for TDD hook. */
-export const _MODULE = "install-workflow.pure";
 const CSS = `*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { height: 100%; overflow: auto; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #0a0a1a; color: #fff; }

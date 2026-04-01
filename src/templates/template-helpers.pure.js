@@ -1,6 +1,4 @@
 /** @implements NFR-001 — Shared pure helpers for HTML template rendering. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "template-helpers.pure";
 
 export function escapeHtml(value) {
 	const text = typeof value === "string" ? value : `${value ?? ""}`;

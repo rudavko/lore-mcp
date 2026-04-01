@@ -182,19 +182,20 @@ async function initFts5(db) {
 				content=entries, content_rowid=rowid
 			)`)
 			.run();
-		await db.batch([
-			db.prepare(`CREATE TRIGGER IF NOT EXISTS entries_fts_insert AFTER INSERT ON entries BEGIN
-				INSERT INTO entries_fts(rowid, topic, content, tags) VALUES (NEW.rowid, NEW.topic, NEW.content, NEW.tags);
-			END`),
-			db.prepare(`CREATE TRIGGER IF NOT EXISTS entries_fts_delete AFTER DELETE ON entries BEGIN
-				INSERT INTO entries_fts(entries_fts, rowid, topic, content, tags) VALUES('delete', OLD.rowid, OLD.topic, OLD.content, OLD.tags);
-			END`),
-			db.prepare(`CREATE TRIGGER IF NOT EXISTS entries_fts_update AFTER UPDATE ON entries BEGIN
-				INSERT INTO entries_fts(entries_fts, rowid, topic, content, tags) VALUES('delete', OLD.rowid, OLD.topic, OLD.content, OLD.tags);
-				INSERT INTO entries_fts(rowid, topic, content, tags) VALUES (NEW.rowid, NEW.topic, NEW.content, NEW.tags);
-			END`),
-		]);
 	} catch {
 		// FTS5 not available in this environment — non-fatal
+		return;
 	}
+	await db.batch([
+		db.prepare(`CREATE TRIGGER IF NOT EXISTS entries_fts_insert AFTER INSERT ON entries BEGIN
+			INSERT INTO entries_fts(rowid, topic, content, tags) VALUES (NEW.rowid, NEW.topic, NEW.content, NEW.tags);
+		END`),
+		db.prepare(`CREATE TRIGGER IF NOT EXISTS entries_fts_delete AFTER DELETE ON entries BEGIN
+			INSERT INTO entries_fts(entries_fts, rowid, topic, content, tags) VALUES('delete', OLD.rowid, OLD.topic, OLD.content, OLD.tags);
+		END`),
+		db.prepare(`CREATE TRIGGER IF NOT EXISTS entries_fts_update AFTER UPDATE ON entries BEGIN
+			INSERT INTO entries_fts(entries_fts, rowid, topic, content, tags) VALUES('delete', OLD.rowid, OLD.topic, OLD.content, OLD.tags);
+			INSERT INTO entries_fts(rowid, topic, content, tags) VALUES (NEW.rowid, NEW.topic, NEW.content, NEW.tags);
+		END`),
+	]);
 }

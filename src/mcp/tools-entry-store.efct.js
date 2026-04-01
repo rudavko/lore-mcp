@@ -1,6 +1,4 @@
 /** @implements FR-002, FR-004 — Effects-backed entry store MCP tool handler. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "tools-entry-store.efct";
 /** Handle "store" tool. */
 export async function handleStore(args, deps) {
 	const ttlResult = deps.entryWrite.normalizeTtlSecondsArg(args, deps.std);

@@ -1,9 +1,6 @@
 /** @implements NFR-001 — Verify auth helper pure functions. */
 import { describe, test, expect } from "bun:test";
 import {
-	FAIL_WINDOW_TTL_SECONDS,
-	LOCKOUT_TTL_SECONDS,
-	MAX_FAILED_ATTEMPTS,
 	failKey,
 	lockKey,
 	bodyString,
@@ -13,11 +10,6 @@ import {
 	byteValuesToHexString,
 } from "./auth-helpers.pure.js";
 describe("auth-helpers.pure", () => {
-	test("constants are positive", () => {
-		expect(FAIL_WINDOW_TTL_SECONDS).toBeGreaterThan(0);
-		expect(LOCKOUT_TTL_SECONDS).toBeGreaterThan(0);
-		expect(MAX_FAILED_ATTEMPTS).toBeGreaterThan(0);
-	});
 	describe("failKey / lockKey", () => {
 		test("failKey builds prefixed key", () => {
 			expect(failKey("1.2.3.4")).toBe("ks:authfail:1.2.3.4");

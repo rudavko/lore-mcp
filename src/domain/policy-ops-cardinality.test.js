@@ -1,7 +1,7 @@
 /** @implements FR-005, FR-006 — Verify predicate cardinality policy behavior used by relate/upsert conflict handling. */
 import { describe, expect, test } from "bun:test";
 import { createPolicyChecker } from "./policy.ops.efct.js";
-import { createBaseStd } from "../test-helpers/runtime.shared.test.js";
+import { createBaseStd } from "../test-helpers/runtime.shared.helper.js";
 const DEFAULT_REQUIRED_FIELDS = {
 	store: ["topic", "content"],
 	relate: ["subject", "predicate", "object"],

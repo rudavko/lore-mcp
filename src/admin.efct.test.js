@@ -131,7 +131,7 @@ function createHarness(options = {}) {
 			safeStringEqual: async (left, right) => left === right,
 			bodyString: (value) => (typeof value === "string" ? value : ""),
 			isIpLocked: async () => false,
-			clearAuthFailures: async () => {},
+			clearAuthFailures: options.clearAuthFailures || (async () => {}),
 			installWorkflowToRepo:
 				options.installWorkflowToRepo ||
 				(async () => ({ ok: true, action: "unchanged" })),
@@ -260,5 +260,26 @@ describe("admin.efct", () => {
 		expect(postResponse.body).toContain(
 			"Unexpected admin install error: installWorkflowToRepo: boom",
 		);
+	});
+
+	test("does not clear auth failures when the setup token is invalid", async () => {
+		let clearCalls = 0;
+		const harness = createHarness({
+			clearAuthFailures: async () => {
+				clearCalls += 1;
+			},
+		});
+		harness.cookies.set("ks_admin_csrf", "csrf-token-1");
+
+		harness.setBody({
+			csrf_token: "csrf-token-1",
+			setup_token: "invalid.token",
+			github_pat: "github_pat_test",
+		});
+		const postResponse = await harness.routes.post.get("/install-workflow")();
+
+		expect(postResponse.status).toBe(401);
+		expect(postResponse.body).toContain("Invalid or expired setup link");
+		expect(clearCalls).toBe(0);
 	});
 });

@@ -1,6 +1,4 @@
 /** @implements FR-002, NFR-004 — Search orchestration for hybrid retrieval and embedding sync. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "search.efct";
 function collectSeedIds(lexResults, semResults) {
 	const seedIds = [];
 	for (let i = 0; i < lexResults.length; i++) {
@@ -116,7 +114,7 @@ export async function syncEmbedding(id, text, deps) {
 	if (deps.aiRun === null || deps.vectorizeUpsert === null) {
 		return;
 	}
-	const result = await deps.aiRun("@cf/baai/bge-base-en-v1.5", { text: [text] });
+	const result = await deps.aiRun(deps.embeddingModelId, { text: [text] });
 	if (result.data && result.data.length > 0) {
 		await deps.vectorizeUpsert([{ id, values: result.data[0] }]);
 	}

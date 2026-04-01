@@ -7,7 +7,7 @@ import {
 	softDeleteTripleRow,
 	queryTripleRows,
 } from "./triples.efct.js";
-import { createInitializedD1 } from "../test-helpers/db-d1.test.js";
+import { createInitializedD1 } from "../test-helpers/db-d1.helper.js";
 describe("insertTripleRow", () => {
 	test("inserts triple and transaction rows", async () => {
 		const { sqlite, db } = await createInitializedD1();

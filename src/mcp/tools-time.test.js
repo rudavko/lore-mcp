@@ -1,6 +1,6 @@
 /** @implements NFR-005 — Verify time tool usability behavior for timezone formatting and validation. */
 import { describe, expect, test } from "bun:test";
-import { handleTime } from "./tools.pure.js";
+import { handleTime } from "./tools-core.pure.js";
 describe("mcp/tools.pure time", () => {
 	test("applies timezone to returned timestamp", () => {
 		const deps = {

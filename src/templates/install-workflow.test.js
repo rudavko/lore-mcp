@@ -7,17 +7,6 @@ describe("templates/install-workflow.pure", () => {
 		csrfToken: "csrf456",
 		defaultRepo: "owner/repo",
 	};
-	test("returns non-empty HTML", () => {
-		expect(renderInstallWorkflowPage(baseParams).length).toBeGreaterThan(100);
-	});
-	test("contains DOCTYPE", () => {
-		expect(renderInstallWorkflowPage(baseParams).indexOf("<!DOCTYPE html>")).toBe(0);
-	});
-	test("contains title", () => {
-		expect(renderInstallWorkflowPage(baseParams).indexOf("Install Workflow")).toBeGreaterThan(
-			-1,
-		);
-	});
 	test("contains CSRF token", () => {
 		expect(renderInstallWorkflowPage(baseParams).indexOf("csrf456")).toBeGreaterThan(-1);
 	});

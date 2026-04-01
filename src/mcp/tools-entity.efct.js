@@ -1,6 +1,4 @@
 /** @implements FR-012, FR-013, FR-014 — Effects-backed entity and lesson-extraction MCP tool handlers. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "tools-entity.efct";
 /** Handle "upsert_entity" tool. */
 export async function handleUpsertEntity(args, deps) {
 	const result = await deps.upsertEntity(args.name);

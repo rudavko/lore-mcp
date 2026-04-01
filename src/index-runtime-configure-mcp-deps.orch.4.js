@@ -1,5 +1,5 @@
 /** @implements FR-001 — Configure-server MCP-surface dependency builder. */
-import { registerTools } from "./mcp/tools.pure.js";
+import { registerTools } from "./mcp/tools.orch.1.js";
 import { handleStore } from "./mcp/tools-entry-store.efct.js";
 import { handleUpdate } from "./mcp/tools-entry-update.efct.js";
 import { handleSetType, handleDelete } from "./mcp/tools-entry-admin.efct.js";
@@ -20,10 +20,8 @@ import {
 	handleExtractLessons,
 } from "./mcp/tools-entity.efct.js";
 import {
-	handleUndo,
 	handleHistory,
 	handleIngest,
-	handleIngestionStatus,
 	handleEnableAutoUpdates,
 } from "./mcp/tools-system.efct.js";
 import { registerResources } from "./mcp/resources.efct.js";
@@ -68,10 +66,8 @@ function createConfigureLoreServerMcpDeps() {
 		handleMergeEntities,
 		handleQueryEntities,
 		handleExtractLessons,
-		handleUndo,
 		handleHistory,
 		handleIngest,
-		handleIngestionStatus,
 		handleEnableAutoUpdates,
 	};
 }

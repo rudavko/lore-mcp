@@ -1,7 +1,5 @@
 /** @implements NFR-001 — Pure auth page HTML template: string concatenation with manual escaping. */
 import { escapeHtml, renderHtmlDocument } from "./template-helpers.pure.js";
-/** Sentinel for TDD hook. */
-export const _MODULE = "auth-page.pure";
 const CSS = `*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { height: 100%; overflow: hidden; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; align-items: center; justify-content: center; background: #0a0a1a; color: #fff; }

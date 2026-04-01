@@ -1,7 +1,5 @@
 /** @implements FR-001 — Default-handler orchestration helper factory for HTTP/auth route handling. */
 import { safeStringEqual as compareStrings } from "../lib/constant-time-equal.pure.js";
-/** Sentinel for TDD hook. */
-export const _MODULE = "default-handler-helpers.orch";
 
 export function createDefaultHandlerHelpers(deps) {
 	const platform = deps.platform;

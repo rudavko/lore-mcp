@@ -1,17 +1,18 @@
-import { deriveValidToStateFromInput, normalizeValidToState } from "../lib/validity.pure.js";
 /** @implements FR-003, NFR-001 — Pure entity mapping and merge snapshot helpers. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "entities.pure";
+import { deriveValidToStateFromInput, normalizeValidToState } from "../lib/validity.pure.js";
 export function escapeEntityLike(value) {
 	return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
 }
 
-function parseTags(raw) {
+function parseTags(raw, parseJson) {
 	if (typeof raw !== "string" || raw.length === 0) {
 		return [];
 	}
+	if (typeof parseJson !== "function") {
+		return [];
+	}
 	try {
-		const parsed = JSON.parse(raw);
+		const parsed = parseJson(raw);
 		if (!Array.isArray(parsed)) {
 			return [];
 		}
@@ -47,7 +48,7 @@ export function buildEntityQueryState(params, decodedCursor) {
 	return { whereClause: conditions.join(" AND "), binds };
 }
 
-export function buildEntityQueryItems(pageRows, aliasRows) {
+export function buildEntityQueryItems(pageRows, aliasRows, parseJson) {
 	const aliasMap = {};
 	for (let i = 0; i < aliasRows.length; i++) {
 		const entityId = aliasRows[i].canonical_entity_id;
@@ -63,7 +64,7 @@ export function buildEntityQueryItems(pageRows, aliasRows) {
 		const id = pageRows[i].id;
 		const aliases = aliasMap[id] || [];
 		items.push({
-			...rowToEntity(pageRows[i]),
+			...rowToEntity(pageRows[i], parseJson),
 			aliases,
 			alias_count: aliases.length,
 		});
@@ -71,7 +72,7 @@ export function buildEntityQueryItems(pageRows, aliasRows) {
 	return items;
 }
 
-export function rowToEntity(r) {
+export function rowToEntity(r, parseJson) {
 	const validTo = r.valid_to ?? null;
 	return {
 		id: r.id,
@@ -82,7 +83,7 @@ export function rowToEntity(r) {
 		valid_from: r.valid_from ?? null,
 		valid_to: validTo,
 		valid_to_state: normalizeValidToState(r.valid_to_state, validTo),
-		tags: parseTags(r.tags),
+		tags: parseTags(r.tags, parseJson),
 		produced_by: r.produced_by ?? null,
 		about: r.about ?? null,
 		affects: r.affects ?? null,

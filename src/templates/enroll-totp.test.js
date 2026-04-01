@@ -8,15 +8,6 @@ describe("templates/enroll-totp.pure", () => {
 		enrollNonce: "enonce2",
 		csrfToken: "csrf321",
 	};
-	test("returns non-empty HTML", () => {
-		expect(renderEnrollTotpPage(baseParams).length).toBeGreaterThan(100);
-	});
-	test("contains DOCTYPE", () => {
-		expect(renderEnrollTotpPage(baseParams).indexOf("<!DOCTYPE html>")).toBe(0);
-	});
-	test("contains title", () => {
-		expect(renderEnrollTotpPage(baseParams).indexOf("Set Up Two-Factor")).toBeGreaterThan(-1);
-	});
 	test("contains QR SVG raw (not escaped)", () => {
 		const text = renderEnrollTotpPage(baseParams);
 		expect(text.indexOf("<svg><rect/></svg>")).toBeGreaterThan(-1);

@@ -1,6 +1,4 @@
 /** @implements FR-008, NFR-001 — Effects boundary for history query and batch execution. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "history.efct";
 /** Query transactions with a pre-built SQL fragment. Caller provides full WHERE clause or empty string. */
 export async function queryTransactionRows(db, sql, binds) {
 	const { results } = await db

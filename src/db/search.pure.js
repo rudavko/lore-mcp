@@ -1,6 +1,4 @@
 /** @implements FR-002, NFR-004 — Pure search query sanitization and score composition helpers. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "search.pure";
 /**
  * Sanitize user input for FTS5 MATCH queries.
  * Wraps each token in double quotes to prevent FTS5 syntax errors from

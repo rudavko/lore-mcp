@@ -1,7 +1,7 @@
 /** @implements FR-002, NFR-001 — Verify LIKE-token fallback behavior preserves lexical retrieval relevance. */
 import { describe, expect, test } from "bun:test";
 import { runLikeTokenFallback } from "./runtime.orch.1.js";
-import { createGlobalTestStd } from "../test-helpers/runtime.shared.test.js";
+import { createGlobalTestStd } from "../test-helpers/runtime.shared.helper.js";
 const std = createGlobalTestStd(globalThis);
 describe("wiring/runtime.efct runLikeTokenFallback", () => {
 	test("handles 5+ token queries without variable fan-out in a single SQL statement", async () => {

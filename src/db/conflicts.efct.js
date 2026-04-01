@@ -1,6 +1,4 @@
 /** @implements FR-001 — Conflict D1 operations: save, load, remove, sweep pending conflicts. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "conflicts.efct";
 export async function savePendingConflictRow({
 	db,
 	conflictId,

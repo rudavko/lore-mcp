@@ -1,6 +1,4 @@
 /** @implements FR-010 — Effects-backed graph conflict resolution MCP tool handlers. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "tools-graph-resolve.efct";
 /** Handle "resolve_conflict" tool — reject strategy. */
 export async function handleResolveReject(args, deps) {
 	await deps.removeConflict(args.conflict_id);

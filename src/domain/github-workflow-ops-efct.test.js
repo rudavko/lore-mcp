@@ -28,7 +28,7 @@ describe("domain/github-workflow.ops.efct", () => {
 					documentation_url: "https://docs.github.com",
 				},
 			}),
-			readJsonSafe: async (response) => response.body,
+			getBody: async (response) => response.body,
 		});
 
 		expect(result).toEqual({
@@ -58,7 +58,7 @@ describe("domain/github-workflow.ops.efct", () => {
 					body: { commit: { sha: "commit-1", html_url: "https://github.com/commit-1" } },
 				};
 			},
-			readJsonSafe: async (response) => response.body,
+			getBody: async (response) => response.body,
 			renderWorkflowYaml: (repo) => `yaml:${repo}`,
 			btoa: (value) => `b64:${value}`,
 			jsonStringify: JSON.stringify,
@@ -76,7 +76,7 @@ describe("domain/github-workflow.ops.efct", () => {
 			init: {
 				method: "PUT",
 				body: JSON.stringify({
-					message: "chore: enable upstream sync",
+					message: "chore: bump lore-mcp dependency",
 					content: "b64:yaml:owner/repo",
 					branch: "main",
 				}),
@@ -105,7 +105,7 @@ describe("domain/github-workflow.ops.efct", () => {
 					body: { commit: { sha: "commit-2", html_url: "https://github.com/commit-2" } },
 				};
 			},
-			readJsonSafe: async (response) => response.body,
+			getBody: async (response) => response.body,
 			renderWorkflowYaml: (repo) => `yaml:${repo}`,
 			btoa: (value) => `b64:${value}`,
 			jsonStringify: JSON.stringify,
@@ -139,7 +139,7 @@ describe("domain/github-workflow.ops.efct", () => {
 					},
 				};
 			},
-			readJsonSafe: async (response) => response.body,
+			getBody: async (response) => response.body,
 			renderWorkflowYaml: (repo) => `yaml:${repo}`,
 			btoa: (value) => `b64:${value}`,
 			jsonStringify: JSON.stringify,

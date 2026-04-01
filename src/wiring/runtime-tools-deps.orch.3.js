@@ -37,7 +37,8 @@ function buildToolsDeps(core, runtimeOps, deps, host) {
 	return {
 		z: deps.z,
 		std: deps.std,
-		appVersion: deps.appVersion,
+		appVersion:
+			typeof deps.appVersion === "function" ? deps.appVersion(host.env) : deps.appVersion,
 		autoUpdatesLinkTtlSeconds: deps.autoUpdatesLinkTtlSeconds,
 		buildEnableAutoUpdatesPath: (setupToken) =>
 			deps.buildEnableAutoUpdatesPath(setupToken, (value) =>
@@ -61,7 +62,6 @@ function buildToolsDeps(core, runtimeOps, deps, host) {
 		efctExtractLessons: deps.handleExtractLessons,
 		efctHistory: deps.handleHistory,
 		efctIngest: deps.handleIngest,
-		efctIngestionStatus: deps.handleIngestionStatus,
 		efctMergeEntities: deps.handleMergeEntities,
 		efctQueryEntities: deps.handleQueryEntities,
 		efctQueryGraph: deps.handleQueryGraph,
@@ -74,7 +74,6 @@ function buildToolsDeps(core, runtimeOps, deps, host) {
 		efctResolveRetain: deps.handleResolveRetain,
 		efctSetType: deps.handleSetType,
 		efctStore: deps.handleStore,
-		efctUndo: deps.handleUndo,
 		efctUpdate: deps.handleUpdate,
 		efctUpdateTriple: deps.handleUpdateTriple,
 		efctUpsertEntity: deps.handleUpsertEntity,
@@ -82,7 +81,6 @@ function buildToolsDeps(core, runtimeOps, deps, host) {
 		formatError: core.formatError,
 		formatResult: core.formatResult,
 		getHistory: runtimeOps.entityAndHistory.getHistory,
-		getIngestionStatus: runtimeOps.ingestion.getIngestionStatus,
 		hasLessonForHypothesis: maintenance.hasLessonForHypothesis,
 		hybridSearch: runtimeOps.search.hybridSearch,
 		ingestAsync: runtimeOps.ingestion.ingestAsync,
@@ -113,7 +111,6 @@ function buildToolsDeps(core, runtimeOps, deps, host) {
 		syncEmbedding: runtimeOps.search.syncEmbedding,
 		throwNotFound: throwNotFoundValue,
 		timeNowForTimezone: (timezone, now) => formatNowForTimezone(timezone, now, deps.std),
-		undoTransactions: runtimeOps.entityAndHistory.undoTransactions,
 		updateAndEmbed: embedding.updateAndEmbed,
 		updateEntry: runtimeOps.entryAndTriple.updateEntry,
 		updateTriple: runtimeOps.entryAndTriple.updateTriple,

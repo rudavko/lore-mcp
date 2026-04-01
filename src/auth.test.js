@@ -80,6 +80,73 @@ function buildOauthReq() {
 	};
 }
 
+function buildInvalidPasskeyEnrollmentState(oauthReq) {
+	return {
+		version: 1,
+		stage: AUTH_STAGE_ENROLL_PASSKEY,
+		oauthReq,
+		allowedMethods: [AUTH_ACTION_SKIP_PASSKEY],
+		requiredNextAction: AUTH_ACTION_REGISTER_PASSKEY,
+		alternateFactorSatisfied: false,
+		allowTotpEnrollment: false,
+	};
+}
+
+function buildValidPasskeyEnrollmentState(oauthReq) {
+	return createPasskeyEnrollmentFlowState({
+		oauthReq,
+		alternateFactorSatisfied: false,
+		allowTotpEnrollment: true,
+	});
+}
+
+function buildInvalidPendingTotpState(oauthReq) {
+	return {
+		version: 1,
+		stage: AUTH_STAGE_ENROLL_TOTP,
+		oauthReq,
+		allowedMethods: [AUTH_ACTION_ENROLL_TOTP],
+		requiredNextAction: AUTH_ACTION_ENROLL_TOTP,
+	};
+}
+
+function buildAuthorizeStateForChallenge(oauthReq) {
+	return createAuthorizeFlowState({
+		oauthReq,
+		passkeyUsable: true,
+		totpEnrolled: false,
+		passphraseModeRequested: false,
+	});
+}
+
+function buildPendingTotpParentState(oauthReq) {
+	return createPasskeyEnrollmentFlowState({
+		oauthReq,
+		alternateFactorSatisfied: false,
+		allowTotpEnrollment: true,
+	});
+}
+
+function buildValidTotpPendingState(oauthReq) {
+	return createTotpEnrollmentFlowState({
+		oauthReq,
+		sourceStage: AUTH_STAGE_ENROLL_PASSKEY,
+		sourceAction: AUTH_ACTION_ENROLL_TOTP,
+	});
+}
+
+function parseChallengeRecordForTest(flowState) {
+	return parseStoredChallengeRecord(
+		buildStoredChallengeRecord("challenge-1", flowState, "registration", "csrf-1"),
+	);
+}
+
+function parsePendingTotpForTest(secret, flowState, parentState) {
+	return parsePendingTotpRecord(
+		buildPendingTotpRecord(secret, flowState, "csrf-1", parentState),
+	);
+}
+
 describe("auth-flow-state.pure", () => {
 	test("derives the expected authorize action for the capability matrix", () => {
 		const oauthReq = buildOauthReq();
@@ -401,97 +468,31 @@ describe("auth-flow-state.pure", () => {
 
 	test("rejects semantically invalid passkey enrollment challenge records", () => {
 		const oauthReq = buildOauthReq();
-		expect(
-			parseStoredChallengeRecord(
-				buildStoredChallengeRecord(
-					"challenge-1",
-					{
-						version: 1,
-						stage: AUTH_STAGE_ENROLL_PASSKEY,
-						oauthReq,
-						allowedMethods: [AUTH_ACTION_SKIP_PASSKEY],
-						requiredNextAction: AUTH_ACTION_REGISTER_PASSKEY,
-						alternateFactorSatisfied: false,
-						allowTotpEnrollment: false,
-					},
-					"registration",
-					"csrf-1",
-				),
-			),
-		).toBeNull();
-		expect(
-			parseStoredChallengeRecord(
-				buildStoredChallengeRecord(
-					"challenge-1",
-					createAuthorizeFlowState({
-						oauthReq,
-						passkeyUsable: true,
-						totpEnrolled: false,
-						passphraseModeRequested: false,
-					}),
-					"registration",
-					"csrf-1",
-				),
-			),
-		).toBeNull();
+		expect(parseChallengeRecordForTest(buildInvalidPasskeyEnrollmentState(oauthReq))).toBeNull();
+		expect(parseChallengeRecordForTest(buildAuthorizeStateForChallenge(oauthReq))).toBeNull();
 	});
 
 	test("rejects semantically invalid TOTP pending enrollment records", () => {
 		const oauthReq = buildOauthReq();
 		expect(
-			parsePendingTotpRecord(
-				buildPendingTotpRecord(
-					"ABCDEFGHIJKLMNOP",
-					{
-						version: 1,
-						stage: AUTH_STAGE_ENROLL_TOTP,
-						oauthReq,
-						allowedMethods: [AUTH_ACTION_ENROLL_TOTP],
-						requiredNextAction: AUTH_ACTION_ENROLL_TOTP,
-					},
-					"csrf-1",
-					createPasskeyEnrollmentFlowState({
-						oauthReq,
-						alternateFactorSatisfied: false,
-						allowTotpEnrollment: true,
-					}),
-				),
+			parsePendingTotpForTest(
+				"ABCDEFGHIJKLMNOP",
+				buildInvalidPendingTotpState(oauthReq),
+				buildValidPasskeyEnrollmentState(oauthReq),
 			),
 		).toBeNull();
 		expect(
-			parsePendingTotpRecord(
-				buildPendingTotpRecord(
-					"ABCDEFGHIJKLMNOP",
-					createPasskeyEnrollmentFlowState({
-						oauthReq,
-						alternateFactorSatisfied: false,
-						allowTotpEnrollment: true,
-					}),
-					"csrf-1",
-					createPasskeyEnrollmentFlowState({
-						oauthReq,
-						alternateFactorSatisfied: false,
-						allowTotpEnrollment: true,
-					}),
-				),
+			parsePendingTotpForTest(
+				"ABCDEFGHIJKLMNOP",
+				buildValidPasskeyEnrollmentState(oauthReq),
+				buildPendingTotpParentState(oauthReq),
 			),
 		).toBeNull();
 		expect(
-			parsePendingTotpRecord(
-				buildPendingTotpRecord(
-					"ABCDEFGHIJKLMNOP",
-					createTotpEnrollmentFlowState({
-						oauthReq,
-						sourceStage: AUTH_STAGE_ENROLL_PASSKEY,
-						sourceAction: AUTH_ACTION_ENROLL_TOTP,
-					}),
-					"csrf-1",
-					createPasskeyEnrollmentFlowState({
-						oauthReq,
-						alternateFactorSatisfied: false,
-						allowTotpEnrollment: true,
-					}),
-				),
+			parsePendingTotpForTest(
+				"ABCDEFGHIJKLMNOP",
+				buildValidTotpPendingState(oauthReq),
+				buildPendingTotpParentState(oauthReq),
 			),
 		).toEqual({
 			secret: "ABCDEFGHIJKLMNOP",
@@ -516,5 +517,16 @@ describe("auth-flow-state.pure", () => {
 				allowTotpEnrollment: true,
 			},
 		});
+	});
+
+	test("buildPendingTotpRecord requires sourceFlowState", () => {
+		const oauthReq = buildOauthReq();
+		expect(
+			buildPendingTotpRecord(
+				"ABCDEFGHIJKLMNOP",
+				buildValidTotpPendingState(oauthReq),
+				"csrf-1",
+			),
+		).toBeNull();
 	});
 });

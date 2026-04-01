@@ -2,7 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import { csrfCookieNameForNonce } from "./auth-shared.pure.js";
 import { createAuthRouteHarness } from "./auth-route-handlers.test-helpers.js";
-import { extractHiddenInputValue } from "./test-helpers/html-scrape.test.js";
+import { extractHiddenInputValue } from "./test-helpers/html-scrape.helper.js";
 
 describe("auth-route-authorize.orch", () => {
 	test("handleAuthorize fails when access passphrase is missing", async () => {

@@ -1,6 +1,4 @@
 /** @implements NFR-001 — Pure MCP prompt template builders. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "prompts.pure";
 /** Build the ingest-memory prompt template. */
 export function buildIngestMemoryPrompt() {
 	return {
@@ -28,7 +26,7 @@ export function buildIngestMemoryPrompt() {
 						"",
 						"6. Include provenance and validity whenever known: `source`, `confidence`, `valid_from`, `valid_to`, `tags`, `produced_by`, `about`, `affects`, and `specificity`.",
 						"",
-						"7. Use `engine_check` for operational visibility such as `help`, `status`, and `history`, and use action=`enable_auto_updates` when you need a one-time admin workflow-install link.",
+						"7. Use `engine_check` for operational visibility such as `help`, `status`, `history`, and `auto_updates_status`, and use action=`enable_auto_updates` when you need a one-time admin workflow-install link.",
 					].join("\n"),
 				},
 			},
@@ -48,15 +46,15 @@ export function buildRetrieveContextPrompt() {
 						"",
 						"Cookbook:",
 						"1. Use `retrieve` for all search flows. It returns notes, entities, and links in one result stream.",
-						"   Example: { q: \"Alice release notes\", limit: 10 }",
+						"   Example: { query: \"Alice release notes\", limit: 10 }",
 						"",
 						"2. Use `cursor` to paginate and keep scans bounded.",
-						"   Example: { q: \"release notes\", limit: 10, cursor: \"<next_cursor>\" }",
+						"   Example: { query: \"release notes\", limit: 10, cursor: \"<next_cursor>\" }",
 						"",
 						"3. Use `include_links` when explicit relationship context matters, and `include_auto_links` when implicit canonical associations matter.",
-						"   Example: { q: \"Alice\", include_links: true, include_auto_links: true, limit: 5 }",
+						"   Example: { query: \"Alice\", include_links: true, include_auto_links: true, limit: 5 }",
 						"",
-						"4. Use `engine_check` action=`history` to inspect recent changes, action=`status` to assess instance health before or after retrieval work, and action=`enable_auto_updates` when you need the one-time admin workflow-install link.",
+						"4. Use `engine_check` action=`history` to inspect recent changes, action=`status` to assess instance health before or after retrieval work, action=`auto_updates_status` to inspect baked auto-update configuration, and action=`enable_auto_updates` when you need the one-time admin workflow-install link.",
 						"",
 						"5. Always check provenance, validity windows, and whether a newer object `supersedes` an older one.",
 					].join("\n"),
@@ -78,7 +76,7 @@ export function buildCorrectStaleFactsPrompt() {
 						"",
 						"Cookbook:",
 						"1. Find candidates with `retrieve`.",
-						"   Example: { q: \"Alice title\", include_links: true, limit: 10 }",
+						"   Example: { query: \"Alice title\", include_links: true, limit: 10 }",
 						"",
 						"2. Inspect related context with `include_links` and `include_auto_links`.",
 						"",
@@ -91,7 +89,7 @@ export function buildCorrectStaleFactsPrompt() {
 						"",
 						"6. Track provenance with `source`, `confidence`, `valid_from`, and `valid_to`.",
 						"",
-						"7. Review the resulting audit trail with `engine_check` action=`history`.",
+						"7. Review the resulting audit trail with `engine_check` action=`history`, and use action=`auto_updates_status` if you need to inspect the baked auto-update target configuration.",
 					].join("\n"),
 				},
 			},

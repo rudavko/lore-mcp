@@ -1,6 +1,4 @@
 /** @implements FR-003 — Effects-backed plain entry query MCP tool handler. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "tools-entry-query-plain.efct";
 /** Handle "query" tool — plain listing path. */
 export async function handleQueryPlain(args, deps) {
 	const cursorError = deps.cursor.ensureValidCursor(args.cursor, deps.std);

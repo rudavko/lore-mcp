@@ -2,7 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import { queryEntities } from "./entities.ops.efct.js";
 import { buildEntityQueryItems, buildEntityQueryState } from "./entities.pure.js";
-import { createInitializedD1 } from "../test-helpers/db-d1.test.js";
+import { createInitializedD1 } from "../test-helpers/db-d1.helper.js";
 async function queryCanonicalRows(db, whereClause, binds, limit) {
 	const sql = `SELECT ce.id, ce.name, ce.created_at FROM canonical_entities ce WHERE ${whereClause} ORDER BY ce.id DESC LIMIT ?`;
 	const { results } = await db

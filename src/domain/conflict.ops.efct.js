@@ -1,6 +1,4 @@
 /** @implements FR-006 — Conflict detection effect operations combining DB reads with pure comparison logic. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "conflict.efct";
 /** Detect a conflict between incoming triple data and existing triples.
  *  Pure logic is inlined (no cross-module value import). */
 export async function detectConflict(params, deps) {

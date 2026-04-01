@@ -18,7 +18,7 @@ Legacy tool names such as `store`, `update`, `delete`, `query`, `query_graph`, `
 | `link_object` | Create or update an explicit triple between stored objects |
 | `object_create` | Create a `note` or `entity` with provenance, validity, tags, and optional related links |
 | `retrieve` | Unified retrieval across notes, entities, and links |
-| `engine_check` | Inspect tool help, instance status, transaction history, and one-time auto-update links |
+| `engine_check` | Inspect tool help, instance status, transaction history, baked auto-update status, and one-time auto-update links |
 
 ## Tool Details
 
@@ -100,6 +100,7 @@ Supported `action` values:
 - `help`
 - `status`
 - `history`
+- `auto_updates_status`
 - `enable_auto_updates`
 
 ## Resources (Paginated, Cursor-Based)

@@ -1,5 +1,4 @@
 /** @implements FR-015, FR-002, FR-004, FR-005, FR-006, FR-007, FR-008, FR-009, FR-010, FR-012, FR-013, FR-014, FR-019, FR-020, NFR-001 — Shared pure MCP tool helpers for time/build-info and query dispatch. */
-export const _MODULE = "tools-core.pure";
 const ISO_8601_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})$/;
 export function buildValidationError(message) {
 	return { code: "validation", message, retryable: false };
@@ -27,7 +26,7 @@ export function handleTime(args, deps) {
 	return deps.formatResult(zonedNow + " (" + tz + ")", { timezone: tz, now: zonedNow });
 }
 /** Handle "build_info" tool. */
-export function handleBuildInfo(_depsUnused, deps) {
+export function handleBuildInfo(_args, deps) {
 	return deps.formatResult("Build " + deps.appVersion + " (" + deps.buildHash + ")", {
 		version: deps.appVersion,
 		build_hash: deps.buildHash,

@@ -1,6 +1,4 @@
 /** @implements NFR-001 — Policy effect state and validation wiring via injected pure delegates. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "policy.efct";
 const DEFAULT_MIN_CONFIDENCE = 0;
 function cloneRequiredFields(std, source) {
 	const out = {};

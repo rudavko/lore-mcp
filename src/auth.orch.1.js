@@ -2,8 +2,6 @@
 import { createAuthRouteHandlers } from "./auth-route-handlers.orch.2.js";
 import { createAuthRouteDeps, registerAuthRouteTable } from "./auth-route-deps.orch.2.js";
 
-/** Sentinel for TDD hook. */
-export const _MODULE = "auth.orch";
 
 /** Register auth routes on the given router. */
 export function registerAuthRoutes(router, deps) {

@@ -1,6 +1,4 @@
 /** @implements FR-004 — Effects-backed entry update MCP tool handler. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "tools-entry-update.efct";
 /** Handle "update" tool. */
 export async function handleUpdate(args, deps) {
 	const ttlResult = deps.entryWrite.normalizeTtlSecondsArg(args, deps.std);

@@ -1,6 +1,4 @@
 /** @implements FR-001 — Triple D1 CRUD: thin boundary wrappers for insert, select, update, delete, query. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "triples.efct";
 export async function insertTripleRow({
 	db,
 	txId,

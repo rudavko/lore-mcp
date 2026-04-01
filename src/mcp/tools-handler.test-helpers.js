@@ -1,6 +1,6 @@
 /** @implements NFR-001 — Shared MCP handler-test helper bundles for injected validation and shaping seams. */
 import { safeStringEqual } from "../lib/constant-time-equal.pure.js";
-import { createGlobalTestStd } from "../test-helpers/runtime.shared.test.js";
+import { createGlobalTestStd } from "../test-helpers/runtime.shared.helper.js";
 import { buildValidationError } from "./tools-core.pure.js";
 import { ensureValidCursor } from "./tools-cursor.pure.js";
 import {

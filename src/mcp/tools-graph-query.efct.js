@@ -1,6 +1,4 @@
 /** @implements FR-008 — Effects-backed graph query MCP tool handler. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "tools-graph-query.efct";
 /** Handle "query_graph" tool. */
 export async function handleQueryGraph(args, deps) {
 	const cursorError = deps.cursor.ensureValidCursor(args.cursor, deps.std);

@@ -1,6 +1,4 @@
 /** @implements FR-001 — Conflict save/load/remove: translates conflict records to/from D1 rows. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "conflicts.efct";
 export const makeSaveConflict = (deps) => {
 	return async (conflict) => {
 		const conflictId = conflict.conflict_id;

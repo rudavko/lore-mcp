@@ -6,7 +6,7 @@ import {
 	removePendingConflictRow,
 	sweepExpiredConflicts,
 } from "./conflicts.efct.js";
-import { createInitializedD1 } from "../test-helpers/db-d1.test.js";
+import { createInitializedD1 } from "../test-helpers/db-d1.helper.js";
 describe("savePendingConflictRow", () => {
 	test("inserts conflict row with scope and data", async () => {
 		const { sqlite, db } = await createInitializedD1();

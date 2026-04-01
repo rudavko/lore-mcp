@@ -1,29 +1,21 @@
 /** @implements NFR-001 — Verify GitHub workflow pure helpers. */
 import { describe, test, expect } from "bun:test";
 import {
-	_MODULE,
 	API_BASE,
 	WORKFLOW_PATH,
 	COMMIT_MESSAGE,
-	DEFAULT_UPSTREAM_REPO,
+	UPSTREAM_CORE_REPO,
 	parseTargetRepo,
 	normalizeRepoFullName,
 	stableMinute,
 	renderWorkflowYaml,
 } from "./github-workflow.pure.js";
 describe("domain/github-workflow.pure", () => {
-	test("exports the expected module sentinel", () => {
-		expect(_MODULE).toBe("github-workflow.pure");
-	});
-
-	test("constants are non-empty strings", () => {
-		expect(API_BASE.length).toBeGreaterThan(0);
-		expect(WORKFLOW_PATH.length).toBeGreaterThan(0);
-		expect(COMMIT_MESSAGE.length).toBeGreaterThan(0);
+	test("pins the GitHub workflow installation contract", () => {
 		expect(API_BASE).toBe("https://api.github.com");
 		expect(WORKFLOW_PATH).toBe(".github/workflows/upstream-sync.yml");
-		expect(COMMIT_MESSAGE).toBe("chore: enable upstream sync");
-		expect(DEFAULT_UPSTREAM_REPO).toBe("rudavko/lore-mcp");
+		expect(COMMIT_MESSAGE).toBe("chore: bump lore-mcp dependency");
+		expect(UPSTREAM_CORE_REPO).toBe("rudavko/lore-mcp");
 	});
 	describe("parseTargetRepo", () => {
 		test("parses valid owner/repo", () => {
@@ -112,16 +104,43 @@ describe("domain/github-workflow.pure", () => {
 			expect(yaml.indexOf("actions/checkout")).toBeGreaterThan(-1);
 		});
 
-		test("defaults force overwrite to true for dispatch input and runtime fallback", () => {
+		test("runs on daily cron and workflow dispatch", () => {
 			const yaml = renderWorkflowYaml("owner/repo");
-			expect(yaml.indexOf('default: "true"')).toBeGreaterThan(-1);
-			expect(yaml.indexOf("FORCE_OVERWRITE: ${{ github.event.inputs.force_overwrite || vars.FORCE_OVERWRITE || 'true' }}")).toBeGreaterThan(-1);
+			expect(yaml.indexOf("workflow_dispatch")).toBeGreaterThan(-1);
+			expect(yaml.indexOf("schedule:")).toBeGreaterThan(-1);
 		});
 
-		test("falls back to the canonical upstream repo when repository variable is unset", () => {
+		test("checks the hardcoded upstream core repo for the latest v* tag", () => {
 			const yaml = renderWorkflowYaml("owner/repo");
-			expect(yaml.indexOf("UPSTREAM_REPO: ${{ vars.UPSTREAM_REPO || 'rudavko/lore-mcp' }}")).toBeGreaterThan(-1);
-			expect(yaml.indexOf('UPSTREAM_REPO="rudavko/lore-mcp"')).toBeGreaterThan(-1);
+			expect(yaml.indexOf("https://github.com/rudavko/lore-mcp.git 'v*'")).toBeGreaterThan(-1);
+			expect(yaml.indexOf("latest_tag")).toBeGreaterThan(-1);
+		});
+
+		test("reads the current lore-mcp dependency tag from package.json", () => {
+			const yaml = renderWorkflowYaml("owner/repo");
+			expect(yaml.indexOf("pkg.dependencies?.['lore-mcp']")).toBeGreaterThan(-1);
+			expect(yaml.indexOf("match(/#(v")).toBeGreaterThan(-1);
+		});
+
+		test("updates package.json and bun.lock when the upstream tag changes", () => {
+			const yaml = renderWorkflowYaml("owner/repo");
+			expect(yaml.indexOf("pkg.dependencies['lore-mcp'] = dep.replace(/#.+$/, `#${latestTag}`)")).toBeGreaterThan(-1);
+			expect(yaml.indexOf("bun install")).toBeGreaterThan(-1);
+			expect(yaml.indexOf("git add package.json bun.lock")).toBeGreaterThan(-1);
+		});
+
+		test("uses contents: write and the default GITHUB_TOKEN push flow", () => {
+			const yaml = renderWorkflowYaml("owner/repo");
+			expect(yaml.indexOf("permissions:\n  contents: write")).toBeGreaterThan(-1);
+			expect(yaml.indexOf("git push origin")).toBeGreaterThan(-1);
+		});
+
+		test("does not contain the removed mirror workflow logic", () => {
+			const yaml = renderWorkflowYaml("owner/repo");
+			expect(yaml.indexOf("git remote add upstream")).toBe(-1);
+			expect(yaml.indexOf("git fetch upstream main")).toBe(-1);
+			expect(yaml.indexOf("git merge --ff-only upstream/main")).toBe(-1);
+			expect(yaml.indexOf("--force-with-lease")).toBe(-1);
 		});
 	});
 });

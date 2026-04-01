@@ -1,6 +1,4 @@
 /** @implements FR-008, NFR-001 — Orchestration helpers for history queries and undo execution. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "history.efct";
 // CONTEXT: undoTransactions reverts each transaction one at a time. The loop body
 // calls buildUndoStatements + executeBatch per transaction. parseSnapshot is a
 // pre-composed dep that does JSON.parse, keeping this function's fan-out ≤ 7.

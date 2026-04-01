@@ -1,5 +1,4 @@
 /** @implements FR-018 — Pure auth flow-state builders and validators. */
-export const _MODULE = "auth-flow-state.pure";
 export const AUTH_FLOW_VERSION = 1;
 export const AUTH_STAGE_AWAITING_PASSKEY = "awaiting_passkey";
 export const AUTH_STAGE_AWAITING_PASSPHRASE = "awaiting_passphrase";
@@ -171,11 +170,10 @@ function hasMatchingOauthRequest(left, right) {
 }
 
 export function buildPendingTotpRecord(secret, flowState, csrfToken, sourceFlowState) {
-	const record = { secret, flowState, csrfToken };
-	if (sourceFlowState !== undefined) {
-		record.sourceFlowState = sourceFlowState;
+	if (!isValidFlowState(sourceFlowState)) {
+		return null;
 	}
-	return record;
+	return { secret, flowState, csrfToken, sourceFlowState };
 }
 
 function isAuthorizeStage(stage) {

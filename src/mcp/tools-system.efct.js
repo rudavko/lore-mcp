@@ -1,6 +1,24 @@
 /** @implements FR-019, FR-020, NFR-001 — Effects-backed system/tooling handlers for auto-updates, history, and ingestion flows. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "tools-system.efct";
+/** Handle "auto_updates_status" engine_check action. */
+export async function handleAutoUpdatesStatus(_args, deps) {
+	const normalizedRepo = await deps.resolveAutoUpdatesTargetRepo();
+	const configured = typeof normalizedRepo === "string" && normalizedRepo.length > 0;
+	return deps.formatResult(
+		configured
+			? "Auto-updates are configured for a downstream target repo."
+			: "Auto-updates are not configured on this server.",
+		{
+			action: "auto_updates_status",
+			configured,
+			target_repo: configured ? normalizedRepo : null,
+			setup_mode: configured ? "one_time_browser_link" : null,
+			installation_state: configured ? "unknown" : "not_configured",
+			inspection_note:
+				"Runtime can confirm the baked target repo, but it does not persist GitHub credentials or inspect downstream workflow installation state.",
+		},
+		"knowledge://history/transactions",
+	);
+}
 /** Handle "enable_auto_updates" tool. */
 export async function handleEnableAutoUpdates(_args, deps) {
 	const normalizedRepo = await deps.resolveAutoUpdatesTargetRepo();
@@ -41,24 +59,6 @@ export async function handleEnableAutoUpdates(_args, deps) {
 		},
 	);
 }
-/** Handle "undo" tool. */
-export async function handleUndo(args, deps) {
-	const reverted = await deps.undoTransactions(args.count || 1);
-	if (reverted.length === 0) {
-		return deps.formatResult(
-			"Nothing to undo",
-			{ reverted: [] },
-			"knowledge://history/transactions",
-		);
-	}
-	deps.notifyResourceChange("entry");
-	deps.notifyResourceChange("triple");
-	return deps.formatResult(
-		"Reverted " + reverted.length + " transaction(s)",
-		{ reverted },
-		"knowledge://history/transactions",
-	);
-}
 /** Handle "history" tool. */
 export async function handleHistory(args, deps) {
 	const cursorError = deps.cursor.ensureValidCursor(args.cursor, deps.std);
@@ -92,25 +92,5 @@ export async function handleIngest(args, deps) {
 			" duplicates skipped)",
 		result,
 		"knowledge://ingestion/" + result.task_id,
-	);
-}
-/** Handle "ingestion_status" tool. */
-export async function handleIngestionStatus(args, deps) {
-	const status = await deps.getIngestionStatus(args.task_id);
-	if (status === null) {
-		return deps.formatError(deps.throwNotFound("Ingestion task", args.task_id));
-	}
-	return deps.formatResult(
-		"Task " +
-			args.task_id +
-			": " +
-			status.status +
-			" (" +
-			status.processed_items +
-			"/" +
-			status.total_items +
-			")",
-		status,
-		"knowledge://ingestion/" + args.task_id,
 	);
 }

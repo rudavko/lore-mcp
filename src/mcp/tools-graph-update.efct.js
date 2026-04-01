@@ -1,6 +1,4 @@
 /** @implements FR-009 — Effects-backed graph update/upsert MCP tool handlers. */
-/** Sentinel for TDD hook. */
-export const _MODULE = "tools-graph-update.efct";
 function tripleUpdateFields() {
 	return ["predicate", "object", "source", "actor", "confidence", "valid_from", "valid_to"];
 }
