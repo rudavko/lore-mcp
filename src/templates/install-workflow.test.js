@@ -30,6 +30,17 @@ describe("templates/install-workflow.pure", () => {
 			"This setup link is short-lived and scoped to the repository shown above.",
 		);
 	});
+	test("shows automatic repository discovery messaging when no preset repo is provided", () => {
+		const text = renderInstallWorkflowPage({
+			...baseParams,
+			defaultRepo: "",
+		});
+		expect(text).toContain("Target repository verification");
+		expect(text).toContain("pinned to the deployed build branch and commit");
+		expect(text).toContain(
+			"Use a fine-grained PAT scoped to exactly one deploy repo with Metadata: read, Contents: read and write, and Workflows: read and write.",
+		);
+	});
 	test("omits the form when setup token is unavailable", () => {
 		const text = renderInstallWorkflowPage({
 			...baseParams,

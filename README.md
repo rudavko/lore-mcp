@@ -179,7 +179,7 @@ See [docs/quality/evals.md](docs/quality/evals.md) for current status before wir
 
 ## Updates
 
-Deploy Button forks do not keep the update workflows automatically. The workflow-install admin flow still exists, but it is not currently exposed on the v0 four-tool MCP surface.
+The dependency-bump updater lives in the Cloudflare deploy shell repo, not in this core source repo. After a one-click deploy, use `engine_check(action="enable_auto_updates")` to install `.github/workflows/upstream-sync.yml` into your downstream deploy repo. The worker verifies the target repo against the branch and commit recorded during the Cloudflare build, then installs a managed workflow that checks `rudavko/lore-mcp` for the latest `v*` tag, repins the `lore-mcp` dependency in your deploy repo, runs `bun install`, and opens a pull request for the bump.
 
 **Prerequisites** (one-time setup in your fork's **Settings → Secrets and variables → Actions** after the workflow is installed):
 
@@ -188,7 +188,7 @@ Deploy Button forks do not keep the update workflows automatically. The workflow
 | `CLOUDFLARE_API_TOKEN` | API token with Workers + D1 edit permissions |
 | `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
 
-If the secrets are missing, the sync still runs but the deploy step is skipped.
+If the secrets are missing, the dependency-bump pull request can still be created in GitHub, but the merged change may fail during the next Cloudflare deploy.
 
 See [docs/operations/updates.md](docs/operations/updates.md) for the exact setup path and PAT requirements.
 

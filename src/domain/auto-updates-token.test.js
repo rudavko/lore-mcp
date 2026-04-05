@@ -52,6 +52,33 @@ describe("domain/auto-updates-token.efct", () => {
 		expect(parsed).toEqual({
 			targetRepo: "owner/repo",
 			expiresAtMs: 9_000,
+			installContext: {
+				mode: "exact_repo",
+				repo: "owner/repo",
+			},
+		});
+	});
+
+	test("issues a signed token that carries deploy-build verification context", async () => {
+		const deps = makeDeps(() => 1_000);
+		const token = await issueAutoUpdatesSetupToken(
+			{
+				mode: "workers_build_ref",
+				branch: "main",
+				commitSha: "abc123",
+			},
+			9_000,
+			deps,
+		);
+		const parsed = await readAutoUpdatesSetupToken(token, deps);
+		expect(parsed).toEqual({
+			targetRepo: "",
+			expiresAtMs: 9_000,
+			installContext: {
+				mode: "workers_build_ref",
+				branch: "main",
+				commitSha: "abc123",
+			},
 		});
 	});
 
@@ -95,14 +122,36 @@ describe("domain/auto-updates-token.efct", () => {
 		const deps = makeDeps(() => 1_000);
 		expect(validateAutoUpdatesSetupPayload(null, deps)).toBeNull();
 		expect(validateAutoUpdatesSetupPayload("bad", deps)).toBeNull();
-		expect(validateAutoUpdatesSetupPayload({ repo: "", exp: 9_000 }, deps)).toBeNull();
 		expect(validateAutoUpdatesSetupPayload({ repo: "owner/repo", exp: "9_000" }, deps)).toBeNull();
 		expect(validateAutoUpdatesSetupPayload({ repo: "owner/repo", exp: 1_000 }, deps)).toBeNull();
+		expect(validateAutoUpdatesSetupPayload({ repo: "", exp: 9_000 }, deps)).toBeNull();
 		expect(
 			validateAutoUpdatesSetupPayload({ repo: "owner/repo", exp: 9_000 }, deps),
 		).toEqual({
 			targetRepo: "owner/repo",
 			expiresAtMs: 9_000,
+			installContext: {
+				mode: "exact_repo",
+				repo: "owner/repo",
+			},
+		});
+		expect(
+			validateAutoUpdatesSetupPayload(
+				{
+					repo: "",
+					exp: 9_000,
+					ctx: { mode: "workers_build_ref", branch: "main", commitSha: "abc123" },
+				},
+				deps,
+			),
+		).toEqual({
+			targetRepo: "",
+			expiresAtMs: 9_000,
+			installContext: {
+				mode: "workers_build_ref",
+				branch: "main",
+				commitSha: "abc123",
+			},
 		});
 	});
 
@@ -136,15 +185,9 @@ describe("domain/auto-updates-token.efct", () => {
 		expect(await readAutoUpdatesSetupToken(token, deps)).toBeNull();
 	});
 
-	test("rejects missing or empty repos", async () => {
+	test("rejects missing repos", async () => {
 		const deps = makeDeps(() => 1_000);
 		expect(await readAutoUpdatesSetupToken(await signPayload({ v: 1, exp: 9_000 }, deps), deps)).toBeNull();
-		expect(
-			await readAutoUpdatesSetupToken(
-				await signPayload({ v: 1, repo: "", exp: 9_000 }, deps),
-				deps,
-			),
-		).toBeNull();
 	});
 
 	test("rejects invalid expiry payloads", async () => {

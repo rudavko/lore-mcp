@@ -34,7 +34,9 @@ export function decodeSetupPayload(payloadBase64Url, deps) {
 export function validateAutoUpdatesSetupPayload(payload, deps) {
 	const repo = typeof payload?.repo === "string" ? payload.repo : null;
 	const expiresAtMs = payload?.exp;
-	if (repo === null || repo.length === 0) {
+	const rawContext =
+		payload !== null && payload !== undefined && typeof payload === "object" ? payload.ctx : null;
+	if (repo === null) {
 		return null;
 	}
 	if (!deps.numberIsFinite(expiresAtMs)) {
@@ -43,18 +45,73 @@ export function validateAutoUpdatesSetupPayload(payload, deps) {
 	if (expiresAtMs <= deps.nowMs()) {
 		return null;
 	}
+	let installContext = null;
+	if (rawContext !== null && rawContext !== undefined) {
+		if (typeof rawContext !== "object") {
+			return null;
+		}
+		if (rawContext.mode === "exact_repo") {
+			if (typeof rawContext.repo !== "string" || rawContext.repo.length === 0) {
+				return null;
+			}
+			installContext = {
+				mode: "exact_repo",
+				repo: rawContext.repo,
+			};
+		} else if (rawContext.mode === "workers_build_ref") {
+			if (
+				typeof rawContext.branch !== "string" ||
+				rawContext.branch.length === 0 ||
+				typeof rawContext.commitSha !== "string" ||
+				rawContext.commitSha.length === 0
+			) {
+				return null;
+			}
+			installContext = {
+				mode: "workers_build_ref",
+				branch: rawContext.branch,
+				commitSha: rawContext.commitSha,
+			};
+		} else {
+			return null;
+		}
+	} else if (repo.length > 0) {
+		installContext = {
+			mode: "exact_repo",
+			repo,
+		};
+	} else {
+		return null;
+	}
 	return {
 		targetRepo: repo,
 		expiresAtMs,
+		installContext,
 	};
 }
 
-export async function issueAutoUpdatesSetupToken(targetRepo, expiresAtMs, deps) {
-	const payloadText = deps.jsonStringify({
-		v: 1,
+export async function issueAutoUpdatesSetupToken(targetRepoOrContext, expiresAtMs, deps) {
+	const installContext =
+		targetRepoOrContext !== null &&
+		targetRepoOrContext !== undefined &&
+		typeof targetRepoOrContext === "object"
+			? targetRepoOrContext
+			: null;
+	const targetRepo =
+		installContext && installContext.mode === "exact_repo"
+			? installContext.repo
+			: typeof targetRepoOrContext === "string"
+				? targetRepoOrContext
+				: "";
+	const payload = {
+		v: 2,
 		repo: targetRepo,
 		exp: expiresAtMs,
-	});
+	};
+	if (installContext !== null) {
+		payload.ctx = installContext;
+	}
+	const payloadText = deps.jsonStringify(payload);
 	const payloadBase64Url = deps.encodeTokenPayload(payloadText, deps);
 	const signatureBase64Url = await deps.signPayloadBase64Url(payloadBase64Url, deps);
 	return payloadBase64Url + "." + signatureBase64Url;

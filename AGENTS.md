@@ -6,3 +6,4 @@ Do not claim you can "verify correctness by reading." You cannot. You hallucinat
 
 Deployment model rule: for our MCPs, this repository is the source repo only. The target repo is a different downstream repo created during single-click Cloudflare deployment.
 Target repo inference rule: do not assume the source repo Git remote is the auto-updates target repo unless an explicit deploy-time configuration says so.
+Script execution rule: do not run ad hoc one-off script calls. If execution is needed, use only checked-in `package.json` entrypoints via `bun run <script-name>` or `npm run <script-name>`. If no such entrypoint exists yet, add one first and then run it through `bun run` or `npm run`.

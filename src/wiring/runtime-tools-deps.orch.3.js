@@ -100,8 +100,15 @@ function buildToolsDeps(core, runtimeOps, deps, host) {
 		queryTriples: runtimeOps.entryAndTriple.queryTriples,
 		querySummaryCounts: () => deps.querySummaryCounts(host.db),
 		randomToken,
+		readAutoUpdatesInstallState:
+			typeof host.readAutoUpdatesInstallState === "function"
+				? () => host.readAutoUpdatesInstallState()
+				: undefined,
 		removeConflict: runtimeOps.conflictRemove,
-		resolveAutoUpdatesTargetRepo: host.resolveAutoUpdatesTargetRepo,
+		resolveAutoUpdatesInstallContext:
+			typeof host.resolveAutoUpdatesInstallContext === "function"
+				? () => host.resolveAutoUpdatesInstallContext()
+				: undefined,
 		resolveEnableAutoUpdatesBaseUrl: (requestHeaders) => deps.resolveEnableAutoUpdatesBaseUrl(requestHeaders),
 		runMemoryGc: maintenance.runMemoryGc,
 		saveConflict: runtimeOps.conflictSave,

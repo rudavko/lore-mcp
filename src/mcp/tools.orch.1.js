@@ -450,7 +450,7 @@ function buildEngineHelpPayload() {
 			},
 			{
 				name: "auto_updates_status",
-				description: "Report baked auto-updates configuration and current inspection limitations",
+				description: "Report current auto-update inspection limitations and install-flow behavior",
 				required: [],
 				optional: [],
 				example: { action: "auto_updates_status" },
@@ -932,18 +932,19 @@ async function handleEngineCheck(args, deps) {
 	}
 	if (args.action === "auto_updates_status") {
 		return await handleAutoUpdatesStatus({}, {
-			resolveAutoUpdatesTargetRepo: deps.resolveAutoUpdatesTargetRepo,
 			formatResult: deps.formatResult,
+			readAutoUpdatesInstallState: deps.readAutoUpdatesInstallState,
+			resolveAutoUpdatesInstallContext: deps.resolveAutoUpdatesInstallContext,
 		});
 	}
 	if (args.action === "enable_auto_updates") {
 		return await handleEnableAutoUpdates({}, {
 			std: deps.std,
-			resolveAutoUpdatesTargetRepo: deps.resolveAutoUpdatesTargetRepo,
 			issueAutoUpdatesSetupToken: deps.issueAutoUpdatesSetupToken,
 			autoUpdatesLinkTtlSeconds: deps.autoUpdatesLinkTtlSeconds,
 			buildEnableAutoUpdatesPath: deps.buildEnableAutoUpdatesPath,
 			buildEnableAutoUpdatesUrl: deps.buildEnableAutoUpdatesUrl,
+			resolveAutoUpdatesInstallContext: deps.resolveAutoUpdatesInstallContext,
 			resolveEnableAutoUpdatesBaseUrl: deps.resolveEnableAutoUpdatesBaseUrl,
 			validation: {
 				buildValidationError,
@@ -1021,6 +1022,7 @@ export function registerTools(server, deps) {
 			getHistory: deps.getHistory,
 			issueAutoUpdatesSetupToken: deps.issueAutoUpdatesSetupToken,
 			logEvent: deps.logEvent,
+			readAutoUpdatesInstallState: deps.readAutoUpdatesInstallState,
 			efctDelete: deps.efctDelete,
 			querySummaryCounts: deps.querySummaryCounts,
 			requestHeaders:
@@ -1032,8 +1034,8 @@ export function registerTools(server, deps) {
 				extra.requestInfo.headers !== null
 					? extra.requestInfo.headers
 					: undefined,
-			resolveAutoUpdatesTargetRepo: deps.resolveAutoUpdatesTargetRepo,
 			resolveEnableAutoUpdatesBaseUrl: deps.resolveEnableAutoUpdatesBaseUrl,
+			resolveAutoUpdatesInstallContext: deps.resolveAutoUpdatesInstallContext,
 			std: deps.std,
 			deleteEntry: deps.deleteEntry,
 			deleteTriple: deps.deleteTriple,

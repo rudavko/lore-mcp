@@ -1,35 +1,65 @@
 /** @implements FR-019, FR-020, NFR-001 — Effects-backed system/tooling handlers for auto-updates, history, and ingestion flows. */
 /** Handle "auto_updates_status" engine_check action. */
 export async function handleAutoUpdatesStatus(_args, deps) {
-	const normalizedRepo = await deps.resolveAutoUpdatesTargetRepo();
-	const configured = typeof normalizedRepo === "string" && normalizedRepo.length > 0;
+	const installState =
+		typeof deps.readAutoUpdatesInstallState === "function"
+			? await deps.readAutoUpdatesInstallState()
+			: null;
+	const installContext =
+		typeof deps.resolveAutoUpdatesInstallContext === "function"
+			? await deps.resolveAutoUpdatesInstallContext()
+			: null;
 	return deps.formatResult(
-		configured
-			? "Auto-updates are configured for a downstream target repo."
-			: "Auto-updates are not configured on this server.",
+		installState !== null
+			? "Auto-update install is recorded for a downstream deploy repo."
+			: installContext !== null
+				? "Auto-update install is available, but no workflow installation has been recorded yet."
+				: "Auto-update install is unavailable because this deployment has no verified downstream repo context.",
 		{
 			action: "auto_updates_status",
-			configured,
-			target_repo: configured ? normalizedRepo : null,
-			setup_mode: configured ? "one_time_browser_link" : null,
-			installation_state: configured ? "unknown" : "not_configured",
+			configured: installState !== null,
+			target_repo: installState?.targetRepo ?? null,
+			setup_mode: "one_time_browser_link",
+			installation_state: installState !== null ? "recorded" : "not_installed",
+			install_context_mode: installContext?.mode ?? null,
+			expected_target_repo: installContext?.mode === "exact_repo" ? installContext.repo : null,
+			expected_branch: installContext?.mode === "workers_build_ref" ? installContext.branch : null,
+			expected_commit_sha:
+				installContext?.mode === "workers_build_ref" ? installContext.commitSha : null,
+			installed_at: installState?.installedAt ?? null,
+			install_commit_sha: installState?.installCommitSha ?? null,
+			install_commit_url: installState?.installCommitUrl ?? null,
 			inspection_note:
-				"Runtime can confirm the baked target repo, but it does not persist GitHub credentials or inspect downstream workflow installation state.",
+				installState !== null
+					? "Runtime records the last successful install target locally, but it does not keep a GitHub PAT and cannot continuously inspect downstream workflow drift."
+					: "Runtime has no recorded successful workflow install yet.",
 		},
 		"knowledge://history/transactions",
 	);
 }
 /** Handle "enable_auto_updates" tool. */
 export async function handleEnableAutoUpdates(_args, deps) {
-	const normalizedRepo = await deps.resolveAutoUpdatesTargetRepo();
-	if (!normalizedRepo) {
-		throw deps.validation.buildValidationError(
-			"Auto-updates target repo is not configured on the server. Expected TARGET_REPO to be baked in at deploy time.",
+	const installContext =
+		typeof deps.resolveAutoUpdatesInstallContext === "function"
+			? await deps.resolveAutoUpdatesInstallContext()
+			: null;
+	if (installContext === null) {
+		return deps.formatResult(
+			"Auto-update setup is unavailable on this deployment because the worker does not have verified deploy-repo context. Redeploy from the Deploy to Cloudflare flow or use the direct maintainer install helper.",
+			{
+				url: null,
+				path: null,
+				expires_at: null,
+				expires_in_seconds: deps.autoUpdatesLinkTtlSeconds,
+				target_repo: null,
+				install_context_mode: null,
+				available: false,
+			},
 		);
 	}
 	const issuedAtMs = deps.std.Date.now();
 	const expiresAtMs = issuedAtMs + deps.autoUpdatesLinkTtlSeconds * 1000;
-	const setupToken = await deps.issueAutoUpdatesSetupToken(normalizedRepo, expiresAtMs);
+	const setupToken = await deps.issueAutoUpdatesSetupToken(installContext, expiresAtMs);
 	const resolvedBaseUrl = deps.resolveEnableAutoUpdatesBaseUrl(deps.requestHeaders);
 	const path = deps.buildEnableAutoUpdatesPath(setupToken);
 	const url = deps.buildEnableAutoUpdatesUrl(resolvedBaseUrl, setupToken);
@@ -38,15 +68,20 @@ export async function handleEnableAutoUpdates(_args, deps) {
 	deps.logEvent("mutation", {
 		op: "enable_auto_updates",
 		ok: true,
-		target_repo: normalizedRepo || null,
+		target_repo: installContext.mode === "exact_repo" ? installContext.repo : null,
 	});
+	const setupInstruction =
+		installContext.mode === "exact_repo"
+			? "Target repo: " +
+				installContext.repo +
+				". Use a fine-grained GitHub PAT scoped to that repo with metadata, contents, and workflow write access."
+			: "Target repo verification: use a fine-grained GitHub PAT scoped to exactly one deploy repo. The install flow will verify that repo against this deployment's recorded branch and commit before writing the workflow.";
 	return deps.formatResult(
 		(url !== null
 			? "Open the one-time auto-updates link in your browser and enter the GitHub PAT."
 			: "Open the one-time auto-updates path on this same server in your browser and enter the GitHub PAT.") +
 			"\n" +
-			"Target repo: " +
-			normalizedRepo +
+			setupInstruction +
 			"\n" +
 			(url !== null ? "URL: " : "Path: ") +
 			browserDestination,
@@ -55,7 +90,12 @@ export async function handleEnableAutoUpdates(_args, deps) {
 			path,
 			expires_at: expiresAt,
 			expires_in_seconds: deps.autoUpdatesLinkTtlSeconds,
-			target_repo: normalizedRepo || null,
+			target_repo: installContext.mode === "exact_repo" ? installContext.repo : null,
+			install_context_mode: installContext.mode,
+			expected_branch: installContext.mode === "workers_build_ref" ? installContext.branch : null,
+			expected_commit_sha:
+				installContext.mode === "workers_build_ref" ? installContext.commitSha : null,
+			available: true,
 		},
 	);
 }

@@ -1,50 +1,4 @@
 /** @implements NFR-001 — Admin route orchestration for install-workflow GET/POST via injected deps. */
-const AUTO_UPDATES_USED_PREFIX = "ks:auto_updates_used:";
-
-function usedSetupTokenKey(setupToken) {
-	if (typeof setupToken !== "string" || setupToken.length === 0) {
-		return AUTO_UPDATES_USED_PREFIX;
-	}
-	const firstDot = setupToken.indexOf(".");
-	if (
-		firstDot > 0 &&
-		firstDot < setupToken.length - 1 &&
-		setupToken.indexOf(".", firstDot + 1) === -1
-	) {
-		return AUTO_UPDATES_USED_PREFIX + "sig:" + setupToken.slice(firstDot + 1);
-	}
-	return AUTO_UPDATES_USED_PREFIX + "raw:" + setupToken;
-}
-
-function normalizeUsedTokenTtlSeconds(ttlSeconds) {
-	if (
-		typeof ttlSeconds !== "number" ||
-		ttlSeconds !== ttlSeconds ||
-		ttlSeconds === Infinity ||
-		ttlSeconds === -Infinity ||
-		ttlSeconds <= 0
-	) {
-		return 60;
-	}
-	if (ttlSeconds < 60) {
-		return 60;
-	}
-	const whole = ttlSeconds - (ttlSeconds % 1);
-	return ttlSeconds === whole ? ttlSeconds : whole + 1;
-}
-function computeSetupInvalidationTtlSeconds(expiresAtMs, nowMsValue) {
-	const remainingMs = typeof expiresAtMs === "number" ? expiresAtMs - nowMsValue : 0;
-	if (remainingMs <= 0) {
-		return 60;
-	}
-	const ttlBase = remainingMs / 1000;
-	const ttlWhole = ttlBase - (ttlBase % 1);
-	if (ttlBase === ttlWhole) {
-		return ttlWhole;
-	}
-	return ttlWhole + 1;
-}
-
 function errorMessage(error) {
 	if (error instanceof Error && typeof error.message === "string" && error.message.length > 0) {
 		return error.message;
@@ -60,8 +14,6 @@ function errorMessage(error) {
 // concrete implementations using Hono. This allows testing without the Hono runtime.
 /** Register admin routes on the given router. */
 export function registerAdminRoutes(router, deps) {
-	const kvGet = deps.kvGet;
-	const kvPut = deps.kvPut;
 	const setCookie = deps.setCookie;
 	const getCookie = deps.getCookie;
 	const randomToken = deps.randomToken;
@@ -69,10 +21,16 @@ export function registerAdminRoutes(router, deps) {
 	const bodyString = deps.bodyString;
 	const isIpLocked = deps.isIpLocked;
 	const clearAuthFailures = deps.clearAuthFailures;
+	const discoverDeployRepo = deps.discoverDeployRepo;
 	const installWorkflowToRepo = deps.installWorkflowToRepo;
 	const normalizeRepoFullName = deps.normalizeRepoFullName;
 	const renderInstallWorkflowPage = deps.renderInstallWorkflowPage;
 	const readAutoUpdatesSetupToken = deps.readAutoUpdatesSetupToken;
+	const isAutoUpdatesSetupTokenConsumed = deps.isAutoUpdatesSetupTokenConsumed;
+	const claimAutoUpdatesSetupToken = deps.claimAutoUpdatesSetupToken;
+	const releaseAutoUpdatesSetupTokenClaim = deps.releaseAutoUpdatesSetupTokenClaim;
+	const completeAutoUpdatesSetupTokenClaim = deps.completeAutoUpdatesSetupTokenClaim;
+	const recordAutoUpdatesInstallState = deps.recordAutoUpdatesInstallState;
 	const parseBody = deps.parseBody;
 	const queryParam = deps.queryParam;
 	const htmlResponse = deps.htmlResponse;
@@ -105,10 +63,11 @@ export function registerAdminRoutes(router, deps) {
 		return {
 			targetRepo: signed.targetRepo,
 			expiresAtMs: signed.expiresAtMs,
+			installContext: signed.installContext,
 		};
 	}
 	async function isSetupLinkConsumed(setupToken) {
-		return (await kvGet(usedSetupTokenKey(setupToken))) !== null;
+		return await isAutoUpdatesSetupTokenConsumed(setupToken);
 	}
 	async function renderInstallError(setupToken, defaultRepo, error) {
 		const csrfToken = issueAdminCsrfToken();
@@ -138,6 +97,16 @@ export function registerAdminRoutes(router, deps) {
 			return { ok: true, value: await installWorkflowToRepo(githubPat, normalizedRepo) };
 		} catch (error) {
 			return { ok: false, error: "installWorkflowToRepo: " + errorMessage(error) };
+		}
+	}
+	async function callDiscoverDeployRepo(githubPat) {
+		return { ok: false, error: "discoverDeployRepo: missing install context" };
+	}
+	async function callDiscoverDeployRepoWithContext(githubPat, installContext) {
+		try {
+			return { ok: true, value: await discoverDeployRepo(githubPat, installContext) };
+		} catch (error) {
+			return { ok: false, error: "discoverDeployRepo: " + errorMessage(error) };
 		}
 	}
 	function renderUnexpectedInstallError(message) {
@@ -196,18 +165,6 @@ export function registerAdminRoutes(router, deps) {
 		}
 		return { setup, response: null };
 	}
-	async function invalidateSuccessfulInstallSetup(setup, setupToken) {
-		if (!setup) {
-			return "";
-		}
-		try {
-			const ttlSeconds = computeSetupInvalidationTtlSeconds(setup.expiresAtMs, nowMs());
-			await kvPut(usedSetupTokenKey(setupToken), "1", normalizeUsedTokenTtlSeconds(ttlSeconds));
-			return "";
-		} catch {
-			return "Workflow installed, but the one-time setup link could not be invalidated. It will expire shortly.";
-		}
-	}
 	function buildInstallRenderParams({ result, warning, setupToken, csrfToken, normalizedRepo }) {
 		const installSucceeded = Boolean(result && result.ok);
 		const responseResult = warning && installSucceeded ? { ...result, warning } : result;
@@ -225,8 +182,30 @@ export function registerAdminRoutes(router, deps) {
 		}
 		await clearAuthFailures();
 		const setup = setupState.setup;
-		const normalizedRepo = normalizeTargetRepo(setup.targetRepo);
+		const claimResult = await claimAutoUpdatesSetupToken(setupToken, setup.expiresAtMs);
+		if (!claimResult.ok) {
+			return textResponse("Invalid or expired setup link", 401);
+		}
+		const claimId = claimResult.claimId;
+		let normalizedRepo = normalizeTargetRepo(setup.targetRepo);
 		if (!normalizedRepo) {
+			const discoveryCall = await callDiscoverDeployRepoWithContext(
+				githubPat,
+				setup.installContext,
+			);
+			if (!discoveryCall.ok) {
+				await releaseAutoUpdatesSetupTokenClaim(setupToken, claimId);
+				return renderUnexpectedInstallError(discoveryCall.error);
+			}
+			const discoveryResult = discoveryCall.value;
+			if (!discoveryResult.ok) {
+				await releaseAutoUpdatesSetupTokenClaim(setupToken, claimId);
+				return await renderInstallError(setupToken, "", discoveryResult.error);
+			}
+			normalizedRepo = normalizeTargetRepo(discoveryResult.targetRepo);
+		}
+		if (!normalizedRepo) {
+			await releaseAutoUpdatesSetupTokenClaim(setupToken, claimId);
 			return await renderInstallError(
 				setupToken,
 				setup.targetRepo,
@@ -235,10 +214,33 @@ export function registerAdminRoutes(router, deps) {
 		}
 		const installCall = await callInstallWorkflowToRepo(githubPat, normalizedRepo);
 		if (!installCall.ok) {
+			await releaseAutoUpdatesSetupTokenClaim(setupToken, claimId);
 			return renderUnexpectedInstallError(installCall.error);
 		}
 		const result = installCall.value;
-		const warning = result && result.ok ? await invalidateSuccessfulInstallSetup(setup, setupToken) : "";
+		if (!result || result.ok !== true) {
+			await releaseAutoUpdatesSetupTokenClaim(setupToken, claimId);
+		}
+		let warning = "";
+		if (result && result.ok) {
+			await recordAutoUpdatesInstallState({
+				targetRepo: normalizedRepo,
+				installedAt: new Date(nowMs()).toISOString(),
+				installCommitSha:
+					typeof result.commitSha === "string" && result.commitSha.length > 0
+						? result.commitSha
+						: null,
+				installCommitUrl:
+					typeof result.commitUrl === "string" && result.commitUrl.length > 0
+						? result.commitUrl
+						: null,
+			});
+			const completed = await completeAutoUpdatesSetupTokenClaim(setupToken, claimId);
+			if (!completed.ok) {
+				warning =
+					"Workflow installed, but the one-time setup link could not be marked complete. Retry attempts may be blocked until it expires.";
+			}
+		}
 		const csrfToken = issueAdminCsrfTokenResult();
 		if (!csrfToken.ok) {
 			return renderUnexpectedInstallError(csrfToken.error);

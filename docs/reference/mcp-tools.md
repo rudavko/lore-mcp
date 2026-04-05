@@ -18,7 +18,7 @@ Legacy tool names such as `store`, `update`, `delete`, `query`, `query_graph`, `
 | `link_object` | Create or update an explicit triple between stored objects |
 | `object_create` | Create a `note` or `entity` with provenance, validity, tags, and optional related links |
 | `retrieve` | Unified retrieval across notes, entities, and links |
-| `engine_check` | Inspect tool help, instance status, transaction history, baked auto-update status, and one-time auto-update links |
+| `engine_check` | Inspect tool help, instance status, transaction history, auto-update install status limits, and one-time auto-update links |
 
 ## Tool Details
 
@@ -102,6 +102,17 @@ Supported `action` values:
 - `history`
 - `auto_updates_status`
 - `enable_auto_updates`
+
+Auto-update action behavior:
+
+- `enable_auto_updates`
+  - returns a short-lived browser link only when this deployment has verified downstream install context
+  - on the public one-click deploy path, that context is the Cloudflare build branch + commit recorded at deploy time
+  - the install page requires a fine-grained GitHub PAT scoped to exactly one writable deploy repo
+- `auto_updates_status`
+  - reports whether the runtime has verified install context
+  - reports whether a successful workflow install has been recorded locally
+  - returns the recorded target repo and install commit metadata when available
 
 ## Resources (Paginated, Cursor-Based)
 

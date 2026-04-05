@@ -75,7 +75,15 @@ function makeTokenDeps(nowMs = () => 1_000) {
 }
 
 async function issueSetupToken(targetRepo, expiresAtMs, deps) {
-	const payloadText = deps.jsonStringify({ v: 1, repo: targetRepo, exp: expiresAtMs });
+	const payloadText = deps.jsonStringify({
+		v: 2,
+		repo: targetRepo,
+		exp: expiresAtMs,
+		ctx:
+			targetRepo.length > 0
+				? { mode: "exact_repo", repo: targetRepo }
+				: { mode: "workers_build_ref", branch: "main", commitSha: "buildsha" },
+	});
 	const payloadBase64Url = toBase64Url(
 		deps.btoa(bytesToBinaryString(new deps.textEncoderCtor().encode(payloadText))),
 	);
@@ -132,6 +140,12 @@ function createHarness(options = {}) {
 			bodyString: (value) => (typeof value === "string" ? value : ""),
 			isIpLocked: async () => false,
 			clearAuthFailures: options.clearAuthFailures || (async () => {}),
+			discoverDeployRepo:
+				options.discoverDeployRepo ||
+				(async () => ({
+					ok: false,
+					error: "Automatic repository discovery is unavailable",
+				})),
 			installWorkflowToRepo:
 				options.installWorkflowToRepo ||
 				(async () => ({ ok: true, action: "unchanged" })),
@@ -143,6 +157,17 @@ function createHarness(options = {}) {
 				}
 				return null;
 			},
+			isAutoUpdatesSetupTokenConsumed:
+				options.isAutoUpdatesSetupTokenConsumed || (async () => false),
+			claimAutoUpdatesSetupToken:
+				options.claimAutoUpdatesSetupToken ||
+				(async () => ({ ok: true, claimId: "claim-1" })),
+			releaseAutoUpdatesSetupTokenClaim:
+				options.releaseAutoUpdatesSetupTokenClaim || (async () => {}),
+			completeAutoUpdatesSetupTokenClaim:
+				options.completeAutoUpdatesSetupTokenClaim || (async () => ({ ok: true })),
+			recordAutoUpdatesInstallState:
+				options.recordAutoUpdatesInstallState || (async () => {}),
 			parseBody: async () => currentBody,
 			queryParam: (name) => currentQuery[name] || "",
 			htmlResponse: (body, status = 200) => {
@@ -176,10 +201,22 @@ describe("admin.efct", () => {
 	test("consumes a signed setup token after a successful unchanged install", async () => {
 		const nowMs = () => 1_000;
 		const setupToken = await issueSetupToken("owner/repo", 61_000, makeTokenDeps(nowMs));
+		let consumed = false;
 		const harness = createHarness({
 			nowMs,
 			readAutoUpdatesSetupToken: async (token) =>
-				token === setupToken ? { targetRepo: "owner/repo", expiresAtMs: 61_000 } : null,
+				token === setupToken
+					? {
+							targetRepo: "owner/repo",
+							expiresAtMs: 61_000,
+							installContext: { mode: "exact_repo", repo: "owner/repo" },
+						}
+					: null,
+			isAutoUpdatesSetupTokenConsumed: async () => consumed,
+			completeAutoUpdatesSetupTokenClaim: async () => {
+				consumed = true;
+				return { ok: true };
+			},
 		});
 
 		harness.setQuery({ setup_token: setupToken });
@@ -197,10 +234,6 @@ describe("admin.efct", () => {
 		expect(rendered.result).toEqual({ ok: true, action: "unchanged" });
 		expect(rendered.setupToken).toBe("");
 
-		const usedKey =
-			"ks:auto_updates_used:sig:" + setupToken.slice(setupToken.indexOf(".") + 1);
-		expect(await harness.kv.get(usedKey)).toBe("1");
-
 		harness.setQuery({ setup_token: setupToken });
 		const repeatGet = await harness.routes.get.get("/install-workflow")();
 		expect(repeatGet.status).toBe(401);
@@ -213,12 +246,14 @@ describe("admin.efct", () => {
 		const harness = createHarness({
 			nowMs,
 			readAutoUpdatesSetupToken: async (token) =>
-				token === setupToken ? { targetRepo: "owner/repo", expiresAtMs: 61_000 } : null,
-			kvPutImpl: async (key) => {
-				if (key.startsWith("ks:auto_updates_used:")) {
-					return Promise.reject("kv unavailable");
-				}
-			},
+				token === setupToken
+					? {
+							targetRepo: "owner/repo",
+							expiresAtMs: 61_000,
+							installContext: { mode: "exact_repo", repo: "owner/repo" },
+						}
+					: null,
+			completeAutoUpdatesSetupTokenClaim: async () => ({ ok: false }),
 		});
 
 		harness.setQuery({ setup_token: setupToken });
@@ -234,7 +269,7 @@ describe("admin.efct", () => {
 		const rendered = JSON.parse(postResponse.body);
 		expect(rendered.result.ok).toBe(true);
 		expect(rendered.result.action).toBe("unchanged");
-		expect(rendered.result.warning).toContain("could not be invalidated");
+		expect(rendered.result.warning).toContain("could not be marked complete");
 	});
 
 	test("converts unexpected post errors into a 500 text response instead of throwing", async () => {
@@ -243,7 +278,13 @@ describe("admin.efct", () => {
 		const harness = createHarness({
 				nowMs,
 				readAutoUpdatesSetupToken: async (token) =>
-					token === setupToken ? { targetRepo: "owner/repo", expiresAtMs: 61_000 } : null,
+					token === setupToken
+						? {
+								targetRepo: "owner/repo",
+								expiresAtMs: 61_000,
+								installContext: { mode: "exact_repo", repo: "owner/repo" },
+							}
+						: null,
 				installWorkflowToRepo: async () => Promise.reject("boom"),
 			});
 
@@ -281,5 +322,47 @@ describe("admin.efct", () => {
 		expect(postResponse.status).toBe(401);
 		expect(postResponse.body).toContain("Invalid or expired setup link");
 		expect(clearCalls).toBe(0);
+	});
+
+	test("discovers the target repo during POST when the setup token has no preset repo", async () => {
+		const nowMs = () => 1_000;
+		const setupToken = await issueSetupToken("", 61_000, makeTokenDeps(nowMs));
+		const installCalls = [];
+		const harness = createHarness({
+			nowMs,
+			readAutoUpdatesSetupToken: async (token) =>
+				token === setupToken
+					? {
+							targetRepo: "",
+							expiresAtMs: 61_000,
+							installContext: {
+								mode: "workers_build_ref",
+								branch: "main",
+								commitSha: "buildsha",
+							},
+						}
+					: null,
+			discoverDeployRepo: async () => ({ ok: true, targetRepo: "owner/discovered-repo" }),
+			installWorkflowToRepo: async (_token, targetRepo) => {
+				installCalls.push(targetRepo);
+				return { ok: true, action: "created" };
+			},
+		});
+
+		harness.setQuery({ setup_token: setupToken });
+		const getResponse = await harness.routes.get.get("/install-workflow")();
+		expect(getResponse.status).toBe(200);
+
+		harness.setBody({
+			csrf_token: "csrf-token-1",
+			setup_token: setupToken,
+			github_pat: "github_pat_test",
+		});
+		const postResponse = await harness.routes.post.get("/install-workflow")();
+		expect(postResponse.status).toBe(200);
+		const rendered = JSON.parse(postResponse.body);
+		expect(installCalls).toEqual(["owner/discovered-repo"]);
+		expect(rendered.defaultRepo).toBe("owner/discovered-repo");
+		expect(rendered.result).toEqual({ ok: true, action: "created" });
 	});
 });

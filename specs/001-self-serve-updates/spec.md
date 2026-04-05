@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-Users can deploy from a public repository, but post-deploy updates still need a clear self-serve path. The product needs a reliable model where the deploy repo is baked into the worker, `enable_auto_updates` installs the repository workflow on demand, and operators can then use the installed workflow for scheduled or manual updates with clear rollback/failure guidance.
+Users can deploy from a public repository, but post-deploy updates still need a clear self-serve path. The product needs a reliable model where the install flow verifies the deploy repo from trusted deploy-time context plus a fine-grained install PAT, `enable_auto_updates` installs the repository workflow on demand, and operators can then use the installed workflow for scheduled or manual dependency bumps to the latest tagged `lore-mcp` release with clear rollback/failure guidance.
 
 ## Goals
 
@@ -10,7 +10,7 @@ Users can deploy from a public repository, but post-deploy updates still need a 
 2. Provide an explicit opt-in path for installing the update workflow into the deploy repository.
 3. Support scheduled updates without requiring users to edit workflow files manually.
 4. Keep a manual workflow-dispatch path available after the update workflow is installed.
-5. Make failure modes, overwrite risk, rollback, and data safety explicit.
+5. Make failure modes, rollback, and data safety explicit.
 
 ## Non-Goals
 
@@ -73,7 +73,7 @@ Acceptance Criteria:
 - When I review the worker documentation
 - Then I see that scheduled updates are not active yet
 
-- Given the deploy repo is baked into the worker
+- Given the install flow has verified deploy context from the Cloudflare build or manual exact-repo config
 - When I run `enable_auto_updates` and complete the one-time setup page
 - Then `.github/workflows/upstream-sync.yml` is installed without redeploying the worker
 
@@ -83,11 +83,11 @@ As a user, I want a low-friction way to enable scheduled updates, so I do not ne
 
 Acceptance Criteria:
 
-- Given the worker knows my deploy repository
+- Given the install flow has verified deploy context from the current deployment
 - When I call `enable_auto_updates`
 - Then I receive a short-lived browser link for installing the workflow
 
-- Given I open the setup link and provide a PAT with workflow-file write access
+- Given I open the setup link and provide a fine-grained PAT scoped to exactly one writable deploy repo
 - When installation succeeds
 - Then the repository contains `upstream-sync.yml` with a schedule and `workflow_dispatch`
 
@@ -119,33 +119,33 @@ Acceptance Criteria:
 - When I need the latest upstream changes
 - Then manual `workflow_dispatch` remains available and functional
 
-### US-008 Force-sync update behavior (explicitly allowed)
+### US-008 Dependency-bump update behavior
 
-As a user, I want update runs to force-sync from upstream, so I always get latest template updates even if local divergence exists.
+As a user, I want update runs to bump my deploy repo to the latest tagged `lore-mcp` release, so Cloudflare rebuilds from a known core version without rewriting my branch history.
 
 Acceptance Criteria:
 
 - Given I trigger an update
 - When the update workflow runs
-- Then local target branch is force-synced from upstream according to documented behavior
+- Then the workflow compares the current `dependencies.lore-mcp` tag to the latest upstream `v*` tag and updates the dependency only when the tag changed
 
-- Given force-sync executes
+- Given a newer upstream tag exists
 - When workflow completes
-- Then logs include before/after commit identifiers
+- Then `package.json` and `bun.lock` reflect the new tag and the workflow creates or updates a pull request for that bump
 
-### US-009 Pre-update overwrite warning
+### US-009 Pre-update version visibility
 
-As a user, I want clear warnings before force-sync updates, so I understand local modifications may be overwritten.
+As a user, I want clear visibility into which `lore-mcp` version an update will apply, so I understand the exact dependency change before GitHub commits it.
 
 Acceptance Criteria:
 
 - Given I view update documentation
 - When I reach manual or auto-update sections
-- Then overwrite risk is clearly stated
+- Then the docs explain that updates change the pinned `lore-mcp` dependency tag in the deploy repo rather than force-syncing repository history
 
 - Given I run manual update
 - When workflow input and logs display
-- Then overwrite warning is visible at execution time
+- Then the current and latest `lore-mcp` tags are visible in the workflow output
 
 ### US-010 Failure visibility and actionable errors
 
@@ -191,9 +191,9 @@ Acceptance Criteria:
 
 ## Edge Cases and Constraints
 
-1. Installing the update workflow must remain decoupled from worker redeploy once `TARGET_REPO` is baked in.
-2. Missing required configuration (for example, target repo or passphrase) must fail loudly and clearly.
-3. Force-sync behavior is intentional and must be prominently documented as overwrite-prone.
+1. Installing the update workflow must remain decoupled from worker redeploy, and the public install flow must verify repo identity from deploy-time build context plus a single-repo fine-grained PAT.
+2. Missing required configuration or verification context (for example, passphrase, build branch, build commit, or exact repo) must fail loudly and clearly.
+3. Update behavior changes the pinned `lore-mcp` dependency in the deploy repo and must remain explicit in the docs and workflow output.
 4. Cloudflare resource state and GitHub repository state may drift; troubleshooting must account for both.
 5. Delete/redeploy is last-resort because it can be destructive for stateful resources.
 

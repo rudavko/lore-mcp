@@ -66,6 +66,11 @@ function renderBanner(p) {
 export function renderInstallWorkflowPage(p) {
 	const banner = renderBanner(p);
 	const canSubmit = typeof p.setupToken === "string" && p.setupToken.length > 0;
+	const hasFixedRepo = typeof p.defaultRepo === "string" && p.defaultRepo.length > 0;
+	const repoLabel = hasFixedRepo ? "Target repository" : "Target repository verification";
+	const repoValue = hasFixedRepo
+		? p.defaultRepo
+		: "This install link is pinned to the deployed build branch and commit. Use a fine-grained PAT scoped to exactly one deploy repo and the installer will verify that repo before writing the workflow.";
 	const form =
 		(canSubmit
 			? '<form action="/admin/install-workflow" method="POST">' +
@@ -75,18 +80,22 @@ export function renderInstallWorkflowPage(p) {
 					'<input type="hidden" name="setup_token" value="' +
 					escapeHtml(p.setupToken) +
 					'" />' +
-					'<div class="field"><label>Target repository</label>' +
+					'<div class="field"><label>' +
+					escapeHtml(repoLabel) +
+					"</label>" +
 					'<div class="repo-box">' +
-					escapeHtml(p.defaultRepo) +
+					escapeHtml(repoValue) +
 					"</div></div>" +
 				'<div class="field"><label for="github_pat">GitHub PAT</label>' +
-				'<input id="github_pat" type="password" name="github_pat" required autocomplete="off" placeholder="ghp_..." /></div>' +
+				'<input id="github_pat" type="password" name="github_pat" required autocomplete="off" placeholder="Paste fine-grained PAT" /></div>' +
 				'<button type="submit">Install Workflow</button>' +
 				"</form>"
 			: "") +
 		"";
 	const footer = canSubmit
-		? "This setup link is short-lived and scoped to the repository shown above. The PAT is used once and is not stored."
+		? (hasFixedRepo
+			? "This setup link is short-lived and scoped to the repository shown above. The PAT is used once and is not stored."
+			: "This setup link is short-lived. Use a fine-grained PAT scoped to exactly one deploy repo with Metadata: read, Contents: read and write, and Workflows: read and write. The PAT is used once and is not stored.")
 		: "Generate a fresh one-time link with the enable_auto_updates MCP tool if you need to retry.";
 	return renderHtmlDocument({
 		title: "Install Workflow — Lore Admin",

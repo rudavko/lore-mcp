@@ -85,7 +85,7 @@ describe("mcp/tools.pure surface", () => {
 		expect(result.tool_contracts.engine_check.example.action).toBe("status");
 	});
 
-	test("engine_check can report baked auto-updates status", async () => {
+	test("engine_check can report auto-updates install-flow limits", async () => {
 		const handlers = {};
 		registerTools(
 			{
@@ -98,15 +98,14 @@ describe("mcp/tools.pure surface", () => {
 				std,
 				formatResult: (_text, data) => data,
 				formatError: (error) => error,
-				resolveAutoUpdatesTargetRepo: async () => "owner/repo",
 			},
 		);
 		const result = await handlers.engine_check({ action: "auto_updates_status" });
 		expect(result.action).toBe("auto_updates_status");
-		expect(result.configured).toBe(true);
-		expect(result.target_repo).toBe("owner/repo");
+		expect(result.configured).toBe(false);
+		expect(result.target_repo).toBeNull();
 		expect(result.setup_mode).toBe("one_time_browser_link");
-		expect(result.installation_state).toBe("unknown");
+		expect(result.installation_state).toBe("not_installed");
 	});
 
 	test("engine_check can dispatch enable_auto_updates without adding a fifth tool", async () => {
@@ -127,14 +126,18 @@ describe("mcp/tools.pure surface", () => {
 					baseUrl + "/admin/install-workflow?setup_token=" + setupToken,
 				formatResult: (_text, data) => data,
 				formatError: (error) => error,
+				resolveAutoUpdatesInstallContext: async () => ({
+					mode: "workers_build_ref",
+					branch: "main",
+					commitSha: "buildsha",
+				}),
 				issueAutoUpdatesSetupToken: async () => "setup-token-1",
 				logEvent: () => undefined,
-				resolveAutoUpdatesTargetRepo: async () => "owner/repo",
 				resolveEnableAutoUpdatesBaseUrl: () => "https://example.com",
 			},
 		);
 		const result = await handlers.engine_check({ action: "enable_auto_updates" });
-		expect(result.target_repo).toBe("owner/repo");
+		expect(result.target_repo).toBeNull();
 		expect(result.url).toBe("https://example.com/admin/install-workflow?setup_token=setup-token-1");
 	});
 

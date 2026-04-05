@@ -33,9 +33,17 @@ describe("mcp/tools enable_auto_updates", () => {
 				autoUpdatesLinkTtlSeconds: AUTO_UPDATES_LINK_TTL_SECONDS,
 				buildEnableAutoUpdatesPath,
 				buildEnableAutoUpdatesUrl,
-				resolveAutoUpdatesTargetRepo: async () => "owner/repo",
+				resolveAutoUpdatesInstallContext: async () => ({
+					mode: "workers_build_ref",
+					branch: "main",
+					commitSha: "abc123",
+				}),
 				issueAutoUpdatesSetupToken: async (targetRepo, expiresAtMs) => {
-					expect(targetRepo).toBe("owner/repo");
+					expect(targetRepo).toEqual({
+						mode: "workers_build_ref",
+						branch: "main",
+						commitSha: "abc123",
+					});
 					expect(typeof expiresAtMs).toBe("number");
 					return "setup-token-1";
 				},
@@ -52,8 +60,10 @@ describe("mcp/tools enable_auto_updates", () => {
 		expect(result.text).toContain(
 			"URL: https://example.com/admin/install-workflow?setup_token=setup-token-1",
 		);
-		expect(result.text).toContain("Target repo: owner/repo");
-		expect(result.target_repo).toBe("owner/repo");
+		expect(result.text).toContain(
+			"Target repo verification: use a fine-grained GitHub PAT scoped to exactly one deploy repo.",
+		);
+		expect(result.target_repo).toBeNull();
 		expect(result.expires_in_seconds).toBe(AUTO_UPDATES_LINK_TTL_SECONDS);
 		expect(typeof result.expires_at).toBe("string");
 	});
@@ -66,7 +76,11 @@ describe("mcp/tools enable_auto_updates", () => {
 				autoUpdatesLinkTtlSeconds: AUTO_UPDATES_LINK_TTL_SECONDS,
 				buildEnableAutoUpdatesPath,
 				buildEnableAutoUpdatesUrl,
-				resolveAutoUpdatesTargetRepo: async () => "owner/repo",
+				resolveAutoUpdatesInstallContext: async () => ({
+					mode: "workers_build_ref",
+					branch: "main",
+					commitSha: "abc123",
+				}),
 				issueAutoUpdatesSetupToken: async () => "setup-token-2",
 				resolveEnableAutoUpdatesBaseUrl: () => "",
 				requestHeaders: undefined,
@@ -76,34 +90,12 @@ describe("mcp/tools enable_auto_updates", () => {
 		);
 		expect(result.url).toBeNull();
 		expect(result.path).toBe("/admin/install-workflow?setup_token=setup-token-2");
-		expect(result.text).toContain("Target repo: owner/repo");
+		expect(result.text).toContain(
+			"Target repo verification: use a fine-grained GitHub PAT scoped to exactly one deploy repo.",
+		);
 		expect(result.text).toContain(
 			"Path: /admin/install-workflow?setup_token=setup-token-2",
 		);
-	});
-
-	test("rejects when the server-side target repo is not configured", async () => {
-		await expect(
-			handleEnableAutoUpdates(
-				{},
-				withEnableAutoUpdatesDeps({
-					std: { Date },
-					autoUpdatesLinkTtlSeconds: AUTO_UPDATES_LINK_TTL_SECONDS,
-					buildEnableAutoUpdatesPath,
-					buildEnableAutoUpdatesUrl,
-					resolveAutoUpdatesTargetRepo: async () => "",
-					issueAutoUpdatesSetupToken: async () => "setup-token-1",
-					resolveEnableAutoUpdatesBaseUrl: () => "",
-					requestHeaders: undefined,
-					logEvent: () => {},
-					formatResult: (_text, data) => data,
-				}),
-			),
-		).rejects.toMatchObject({
-			code: "validation",
-			message:
-				"Auto-updates target repo is not configured on the server. Expected TARGET_REPO to be baked in at deploy time.",
-		});
 	});
 
 	test("derives the absolute URL from request headers when no public base URL override exists", async () => {
@@ -118,7 +110,11 @@ describe("mcp/tools enable_auto_updates", () => {
 				autoUpdatesLinkTtlSeconds: AUTO_UPDATES_LINK_TTL_SECONDS,
 				buildEnableAutoUpdatesPath,
 				buildEnableAutoUpdatesUrl,
-				resolveAutoUpdatesTargetRepo: async () => "owner/repo",
+				resolveAutoUpdatesInstallContext: async () => ({
+					mode: "workers_build_ref",
+					branch: "main",
+					commitSha: "abc123",
+				}),
 				issueAutoUpdatesSetupToken: async () => "setup-token-3",
 				resolveEnableAutoUpdatesBaseUrl: (headers) => {
 					expect(headers).toBe(requestHeaders);
